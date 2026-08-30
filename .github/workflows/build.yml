@@ -24,24 +24,29 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Ensure Web Folder Exists
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Prepare Web Assets & Capacitor Clean Build
       run: |
+        npm install
+        
+        # إنشاء المجلد في حال عدم وجوده
         if [ ! -d "www" ] && [ ! -d "dist" ] && [ ! -d "build" ]; then
           mkdir -p www
-          echo '<!DOCTYPE html><html><head><title>App</title></head><body><h1>Caisse App</h1></body></html>' > www/index.html
+          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Caisse App</title></head><body><h1>Caisse Mobile App</h1></body></html>' > www/index.html
         fi
 
-    - name: Capacitor Sync
-      run: |
-        npx --yes @capacitor/cli init "CaisseApp" "com.caisse.app" --web-dir www || true
-        npx --yes @capacitor/cli add android || true
-        npx --yes @capacitor/cli sync android || true
+        # إعادة تهيئة منصة أندرويد بالكامل
+        rm -rf android
+        npx cap add android
+        npx cap sync android
 
     - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon
+        ./gradlew assembleDebug --warning-mode all
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4

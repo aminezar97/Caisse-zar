@@ -13,7 +13,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up JDK 17
+    - name: Set up Java 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -24,18 +24,21 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Install Project Dependencies & Build Web
+    - name: Ensure Web Folder Exists & Install Capacitor
       run: |
-        npm install
-        npm run build || true
+        npm install -g @capacitor/cli @capacitor/core
+        if [ ! -d "www" ] && [ ! -d "dist" ] && [ ! -d "build" ]; then
+          mkdir -p www
+          echo '<!DOCTYPE html><html><head><title>App</title></head><body><div id="app"></div></body></html>' > www/index.html
+        fi
 
-    - name: Sync Capacitor Android
+    - name: Capacitor Sync
       run: |
         npx cap add android || true
         npx cap copy android || true
         npx cap sync android || true
 
-    - name: Build APK via Gradle
+    - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew

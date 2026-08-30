@@ -38,6 +38,12 @@ jobs:
 
         rm -rf android
         npx cap add android
+
+        if [ -f "icon.png" ]; then
+          npm install @capacitor/assets --save-dev
+          npx @capacitor/assets generate --android || true
+        fi
+
         npx cap sync android
 
     - name: Build Android APK

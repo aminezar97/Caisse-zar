@@ -24,10 +24,10 @@ jobs:
       with:
         node-version: '22'
 
-    - name: Setup Android SDK
+    - name: Setup Android SDK & Accept Licenses
       uses: android-actions/setup-android@v3
 
-    - name: Prepare Web Assets & Capacitor Clean Build
+    - name: Prepare Web Assets & Capacitor
       run: |
         npm install
         
@@ -44,7 +44,7 @@ jobs:
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew assembleDebug --warning-mode all
+        ./gradlew assembleDebug --no-daemon -x test
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4

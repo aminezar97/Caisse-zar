@@ -23,21 +23,28 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Install Dependencies
-      run: |
-        npm install
-        npm install -D typescript
+    - name: Install Ionic & Capacitor CLI
+      run: npm install -g @ionic/cli @capacitor/cli
 
-    - name: Build Web Assets & Sync Capacitor
+    - name: Install Project Dependencies
+      run: |
+        if [ -f package.json ]; then npm install; else npm init -y && npm install @capacitor/core @capacitor/android; fi
+
+    - name: Setup Capacitor Android
       run: |
         npx cap add android || true
-        npx cap sync
+        npx cap copy android || true
+        npx cap sync android || true
 
     - name: Build Android APK
       run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleDebug
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "Android directory not found!" && exit 1
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4

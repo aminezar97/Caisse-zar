@@ -24,26 +24,24 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Clean & Setup Capacitor Android Fresh
+    - name: Ensure Web Folder Exists
       run: |
-        npm install
-        npm install -g @capacitor/cli @capacitor/core
-        
         if [ ! -d "www" ] && [ ! -d "dist" ] && [ ! -d "build" ]; then
           mkdir -p www
           echo '<!DOCTYPE html><html><head><title>App</title></head><body><h1>Caisse App</h1></body></html>' > www/index.html
         fi
 
-        rm -rf android
-
-        npx cap add android
-        npx cap sync android
+    - name: Capacitor Sync
+      run: |
+        npx --yes @capacitor/cli init "CaisseApp" "com.caisse.app" --web-dir www || true
+        npx --yes @capacitor/cli add android || true
+        npx --yes @capacitor/cli sync android || true
 
     - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew assembleDebug --no-daemon
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4

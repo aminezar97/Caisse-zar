@@ -22,17 +22,23 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '20'
 
-    - name: Grant Execute Permission for Gradlew
+    - name: Install Project Dependencies & Build Web
       run: |
-        if [ -f "android/gradlew" ]; then
-          chmod +x android/gradlew
-        fi
+        npm install
+        npm run build || true
 
-    - name: Build Android APK
+    - name: Sync Capacitor Android
+      run: |
+        npx cap add android || true
+        npx cap copy android || true
+        npx cap sync android || true
+
+    - name: Build APK via Gradle
       run: |
         cd android
+        chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
     - name: Upload APK Artifact

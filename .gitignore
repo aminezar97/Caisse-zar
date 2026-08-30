@@ -1,5 +1,4 @@
 node_modules/
-android/
 *.apk
 .gradle/
 .DS_Store

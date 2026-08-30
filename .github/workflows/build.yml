@@ -13,10 +13,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Java 21
+    - name: Set up Java 17
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '17'
         distribution: 'temurin'
 
     - name: Setup Node.js
@@ -24,28 +24,26 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Ensure Web Folder Exists & Install Capacitor
+    - name: Clean & Setup Capacitor Android Fresh
       run: |
+        npm install
         npm install -g @capacitor/cli @capacitor/core
+        
         if [ ! -d "www" ] && [ ! -d "dist" ] && [ ! -d "build" ]; then
           mkdir -p www
-          echo '<!DOCTYPE html><html><head><title>App</title></head><body><div id="app"></div></body></html>' > www/index.html
+          echo '<!DOCTYPE html><html><head><title>App</title></head><body><h1>Caisse App</h1></body></html>' > www/index.html
         fi
 
-    - name: Capacitor Sync
-      run: |
-        npx cap add android || true
-        npx cap copy android || true
-        npx cap sync android || true
+        rm -rf android
 
-    - name: Accept Android SDK Licenses
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        npx cap add android
+        npx cap sync android
 
     - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew clean assembleDebug --no-daemon
+        ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4

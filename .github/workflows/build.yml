@@ -27,7 +27,7 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Prepare Web Assets & Capacitor
+    - name: Prepare Web Assets & Generate Icon
       run: |
         npm install
         
@@ -41,7 +41,7 @@ jobs:
 
         if [ -f "icon.png" ]; then
           npm install @capacitor/assets --save-dev
-          npx @capacitor/assets generate --android || true
+          npx @capacitor/assets generate --android
         fi
 
         npx cap sync android

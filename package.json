@@ -26,16 +26,20 @@
   "main": "main.js",
   "build": {
     "appId": "com.zarouali.caisse",
-    "productName": "Zarouali Caisse",
+    "productName": "Caisse-zar",
     "directories": {
       "output": "dist"
-    },
-    "win": {
-      "target": "nsis"
     },
     "files": [
       "main.js",
       "www/**/*"
-    ]
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

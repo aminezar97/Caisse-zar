@@ -1,0 +1,29 @@
+name: Build Windows Setup EXE
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Windows Installer (EXE)
+        run: npx electron-builder --win --x64 -c.nsis.oneClick=false -c.nsis.allowToChangeInstallationDirectory=true
+
+      - name: Upload Windows Setup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup-exe
+          path: dist/*.exe

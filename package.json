@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.0",
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^7.0.2"
   }
 }

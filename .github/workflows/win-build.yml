@@ -17,13 +17,14 @@ jobs:
         with:
           node-version: 18
 
-      - name: Clean Install Dependencies
-        run: |
-          npm cache clean --force
-          npm install --legacy-peer-deps
+      - name: Install All Project Dependencies
+        run: npm install
+
+      - name: Force Install electron-builder locally
+        run: npm install electron-builder --save-dev
 
       - name: Build Windows Installer (EXE)
-        run: npx electron-builder --win --x64 -c.publish=null
+        run: npx electron-builder --win --x64 --publish never
         env:
           CI: false
 

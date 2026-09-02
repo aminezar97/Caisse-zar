@@ -1,0 +1,2752 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Zarouali Caisse</title>
+
+    <!-- html5-qrcode pour le scan de code-barres -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    </script>
+
+    <style>
+        /* =========================================================
+           ZAROUALI CAISSE — POS TERMINAL
+           Version PRO avec clients, crédit, prix d'achat
+        ========================================================= */
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --green: #174d32;
+            --green2: #246b45;
+            --olive: #6e7b42;
+            --yellow: #f2b72d;
+            --orange: #e8892d;
+            --red: #c63f35;
+            --blue: #2e6fa8;
+            --dark: #13221a;
+            --text: #203027;
+            --muted: #6f7d73;
+            --bg: #eef2ed;
+            --card: #fff;
+            --border: #d9e1d9;
+            --shadow: 0 8px 26px rgba(18, 42, 27, .09);
+            --shadow2: 0 16px 42px rgba(18, 42, 27, .15);
+            --touch-min: 52px;
+            --font-base: 17px;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+            font-size: var(--font-base);
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        button,
+        input,
+        select {
+            font-family: inherit;
+            font-size: inherit;
+        }
+        button {
+            cursor: pointer;
+            touch-action: manipulation;
+            min-height: var(--touch-min);
+        }
+
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================================
+           LOGIN SCREEN
+        ========================================================= */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(145deg, #123f29, #1e6340 70%, #2b7750);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+            transition: opacity .5s;
+        }
+        #loginScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .login-box {
+            background: rgba(255, 255, 255, .96);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 40px 32px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+            text-align: center;
+        }
+        .login-logo {
+            font-size: 56px;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .login-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--green);
+            margin-bottom: 4px;
+        }
+        .login-sub {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 22px;
+        }
+        .login-box .form-group {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+        .login-box .form-group label {
+            font-size: 13px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .login-box .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            background: #f8faf8;
+            min-height: var(--touch-min);
+        }
+        .login-box .form-group input:focus {
+            border-color: var(--green);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(23, 77, 50, .10);
+        }
+        .login-btn {
+            width: 100%;
+            border: 0;
+            background: linear-gradient(135deg, var(--green), var(--green2));
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 18px;
+            min-height: var(--touch-min);
+            box-shadow: 0 6px 18px rgba(23, 77, 50, .25);
+            transition: transform .10s;
+        }
+        .login-btn:active {
+            transform: scale(.96);
+        }
+        .login-error {
+            color: var(--red);
+            font-size: 13px;
+            min-height: 22px;
+            margin-top: 6px;
+        }
+
+        /* =========================================================
+           INACTIVITY SCREENSAVER
+        ========================================================= */
+        #screensaver {
+            position: fixed;
+            inset: 0;
+            z-index: 7000;
+            background: radial-gradient(circle at center, #123f29, #0a2418);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            color: white;
+        }
+        #screensaver.show {
+            display: flex;
+        }
+        #screensaver .logo-big {
+            font-size: 120px;
+            animation: pulse-logo 2.4s ease-in-out infinite;
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, .20));
+        }
+        #screensaver .brand {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, .85);
+        }
+        #screensaver .sub {
+            font-size: 14px;
+            color: rgba(255, 255, 255, .40);
+            letter-spacing: 4px;
+        }
+        @keyframes pulse-logo {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.04);
+            }
+        }
+
+        /* =========================================================
+           HEADER
+        ========================================================= */
+        .header {
+            background: linear-gradient(135deg, #123f29, #1e6340 60%, #2b7750);
+            color: white;
+            padding: 8px 12px calc(8px + env(safe-area-inset-top));
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 18px rgba(10, 35, 22, .22);
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 1640px;
+            margin: auto;
+        }
+        .menu-btn {
+            width: 48px;
+            height: 48px;
+            border: 1px solid rgba(255, 255, 255, .16);
+            background: rgba(255, 255, 255, .10);
+            color: white;
+            border-radius: 12px;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            backdrop-filter: blur(8px);
+        }
+        .logo-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: .3px;
+        }
+        .logo-area .logo-icon {
+            font-size: 28px;
+            line-height: 1;
+        }
+        .logo-area .logo-text {
+            font-size: 20px;
+            line-height: 1.1;
+        }
+        .header-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .icon-btn {
+            border: 1px solid rgba(255, 255, 255, .16);
+            background: rgba(255, 255, 255, .10);
+            color: white;
+            border-radius: 11px;
+            padding: 8px 14px;
+            font-size: 20px;
+            min-height: var(--touch-min);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .header-clock {
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .10);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, .08);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* =========================================================
+           SIDE MENU
+        ========================================================= */
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            z-index: 400;
+            display: none;
+        }
+        .menu-overlay.show {
+            display: block;
+        }
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 290px;
+            max-width: 85vw;
+            height: 100vh;
+            background: white;
+            z-index: 500;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, .2);
+            transition: left .25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .side-menu.show {
+            left: 0;
+        }
+
+        .menu-header {
+            background: linear-gradient(135deg, #123f29, #1e6340);
+            color: white;
+            padding: calc(18px + env(safe-area-inset-top)) 18px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-title {
+            font-size: 20px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .menu-close {
+            width: 42px;
+            height: 42px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .15);
+            color: white;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-items {
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .menu-item {
+            width: 100%;
+            border: 0;
+            background: white;
+            padding: 16px 14px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            text-align: left;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-height: var(--touch-min);
+            transition: background .1s;
+        }
+        .menu-item:active {
+            background: #eef3eb;
+        }
+        .menu-item.active {
+            background: #e9f0e8;
+            color: var(--green);
+        }
+        .menu-item .menu-icon {
+            font-size: 24px;
+            width: 32px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .menu-lock {
+            margin-left: auto;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* =========================================================
+           CONTENT
+        ========================================================= */
+        .content {
+            padding: 14px;
+            max-width: 1640px;
+            width: 100%;
+            margin: auto;
+            flex: 1;
+        }
+
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+
+        .page-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .page-head .panel-title {
+            font-weight: 900;
+            font-size: 20px;
+        }
+        .page-kicker {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        /* =========================================================
+           PANELS
+        ========================================================= */
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: linear-gradient(180deg, #fff, #fbfcfa);
+        }
+        .panel-title {
+            font-weight: 900;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* NOUVEAU STYLE - CAISSIER CONTAINER */
+        .cashier-badge-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #eef5f0, #e1ebe3);
+            border: 1.5px solid #a3c4ad;
+            border-radius: 14px;
+            padding: 6px 14px;
+            box-shadow: 0 2px 8px rgba(23, 77, 50, .08);
+            transition: all .2s ease;
+        }
+        .cashier-badge-container:hover {
+            border-color: var(--green);
+            box-shadow: 0 4px 12px rgba(23, 77, 50, .14);
+        }
+        .cashier-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--green);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .cashier-select-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+        .cashier-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--green);
+        }
+        .cashier-select {
+            border: none;
+            background: transparent;
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--dark);
+            outline: none;
+            cursor: pointer;
+            padding-right: 8px;
+        }
+
+        /* =========================================================
+           CAISSE LAYOUT
+        ========================================================= */
+        .sale-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 440px;
+            gap: 16px;
+        }
+
+        /* =========================================================
+           SEARCH & SCAN
+        ========================================================= */
+        .search-area {
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .search {
+            flex: 1;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 17px;
+            outline: none;
+            min-height: var(--touch-min);
+            background: white;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, .03);
+        }
+        .search:focus {
+            border-color: var(--green2);
+            box-shadow: 0 0 0 4px rgba(36, 107, 69, .10);
+        }
+        .scan-btn {
+            border: 0;
+            background: var(--green);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 26px;
+            min-height: var(--touch-min);
+            min-width: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s;
+            flex-shrink: 0;
+            font-weight: 700;
+            gap: 6px;
+        }
+        .scan-btn:active {
+            background: #1f4528;
+        }
+        .scan-btn span {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        /* =========================================================
+           CATEGORIES
+        ========================================================= */
+        .categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 0 12px 12px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .categories::-webkit-scrollbar {
+            display: none;
+        }
+        .category {
+            white-space: nowrap;
+            border: 1px solid var(--border);
+            background: #f8faf7;
+            border-radius: 26px;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 14px;
+            min-height: var(--touch-min);
+            transition: all .15s;
+            flex-shrink: 0;
+        }
+        .category.active {
+            background: linear-gradient(135deg, var(--green), var(--green2));
+            color: white;
+            border-color: var(--green);
+            box-shadow: 0 4px 12px rgba(23, 77, 50, .18);
+        }
+        .category:active {
+            transform: scale(.95);
+        }
+
+        /* =========================================================
+           PRODUCTS GRID
+        ========================================================= */
+        .products {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            max-height: calc(100vh - 240px);
+            overflow-y: auto;
+        }
+        .product {
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            min-height: 230px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: transform .12s, box-shadow .12s, border-color .12s;
+            position: relative;
+            box-shadow: 0 3px 10px rgba(25, 45, 32, .04);
+        }
+        .product:active {
+            transform: scale(.96);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+        }
+        .product-img {
+            width: 100%;
+            height: 148px;
+            background: linear-gradient(135deg, #f1f5ef, #e8eee8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .product-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ba79b;
+            font-size: 12px;
+            background: linear-gradient(135deg, #eef2ea, #e4e9df);
+            text-align: center;
+            padding: 8px;
+        }
+        .product-body {
+            padding: 9px 11px 11px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .product-name {
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1.2;
+            color: var(--text);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.4em;
+        }
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .product-price {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--green);
+        }
+        .product-stock {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: #eaf3e8;
+            color: var(--green);
+            white-space: nowrap;
+        }
+        .product-stock.low {
+            background: #fff0ee;
+            color: var(--red);
+        }
+        .product:after {
+            content: '＋';
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .94);
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 18px;
+            box-shadow: 0 3px 9px rgba(0, 0, 0, .10);
+        }
+
+        /* =========================================================
+           CART
+        ========================================================= */
+        .cart {
+            position: sticky;
+            top: 82px;
+            max-height: calc(100vh - 95px);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow2);
+        }
+        .cart .panel-header {
+            background: linear-gradient(135deg, #f9fbf8, #edf4ee);
+        }
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 180px;
+            max-height: 420px;
+        }
+        .cart-empty {
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 17px;
+        }
+        .cart-item {
+            padding: 13px 15px;
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: start;
+        }
+        .cart-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .cart-price {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .qty-btn {
+            width: 38px;
+            height: 38px;
+            border: 1px solid #dce4dc;
+            border-radius: 10px;
+            background: #f5f8f4;
+            font-weight: 700;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 38px;
+            transition: background .1s;
+        }
+        .qty-btn:active {
+            background: #d5dcd0;
+        }
+        .qty-input {
+            width: 52px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 17px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 2px;
+            min-height: 38px;
+            background: white;
+        }
+        .qty-input:focus {
+            border-color: var(--green);
+            outline: none;
+        }
+        .remove {
+            border: 0;
+            background: transparent;
+            color: var(--red);
+            font-size: 22px;
+            padding: 4px 6px;
+            min-height: 36px;
+        }
+
+        /* =========================================================
+           CART SUMMARY
+        ========================================================= */
+        .cart-summary {
+            padding: 14px;
+            border-top: 1px solid var(--border);
+            background: #fafbf8;
+        }
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 15px;
+            align-items: center;
+        }
+        .summary-line input {
+            width: 90px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: right;
+            font-size: 15px;
+            min-height: 40px;
+        }
+        .summary-total {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--green);
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        /* =========================================================
+           PAYMENT
+        ========================================================= */
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .payment-btn {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 6px;
+            background: white;
+            font-weight: 700;
+            font-size: 15px;
+            min-height: var(--touch-min);
+            transition: all .12s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .payment-btn.active {
+            background: linear-gradient(135deg, var(--green), var(--green2));
+            color: white;
+            border-color: var(--green);
+            box-shadow: 0 5px 12px rgba(23, 77, 50, .16);
+        }
+        .payment-btn:active {
+            transform: scale(.96);
+        }
+
+        .quick-cash {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .quick-cash.show {
+            display: grid;
+        }
+        .quick-cash button {
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 10px;
+            padding: 12px 5px;
+            font-weight: 900;
+            color: var(--green);
+            font-size: 15px;
+            min-height: var(--touch-min);
+        }
+        .quick-cash button:active {
+            background: #eaf1e8;
+        }
+
+        .cash-input {
+            display: none;
+            margin-top: 10px;
+        }
+        .cash-input.show {
+            display: block;
+        }
+        .cash-input input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 18px;
+            min-height: var(--touch-min);
+        }
+        .change {
+            padding: 8px 0;
+            font-weight: 700;
+            color: var(--green);
+            font-size: 16px;
+        }
+
+        /* =========================================================
+           CLIENT SELECTOR
+        ========================================================= */
+        .client-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 12px 4px;
+            flex-wrap: wrap;
+        }
+        .client-selector select {
+            flex: 1;
+            min-width: 120px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: white;
+            font-weight: 600;
+            min-height: var(--touch-min);
+            font-size: 15px;
+        }
+        .client-selector .client-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: #f0f5ee;
+            color: var(--green);
+            white-space: nowrap;
+        }
+        .client-selector .client-badge.credit {
+            background: #fff5e7;
+            color: #b87a1a;
+        }
+
+        .sell-btn {
+            width: 100%;
+            border: 0;
+            background: linear-gradient(135deg, #f5c13a, #e9a921);
+            color: #31260b;
+            padding: 16px;
+            margin-top: 10px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 19px;
+            min-height: var(--touch-min);
+            transition: background .15s;
+            box-shadow: 0 7px 16px rgba(214, 151, 24, .20);
+        }
+        .sell-btn:active {
+            filter: brightness(1.03);
+        }
+        .clear-btn {
+            width: 100%;
+            border: 0;
+            background: #eee;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 11px;
+            font-weight: 700;
+            font-size: 15px;
+            min-height: var(--touch-min);
+        }
+        .clear-btn:active {
+            background: #ddd;
+        }
+
+        /* =========================================================
+           SCANNER MODAL
+        ========================================================= */
+        .scanner-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .75);
+            z-index: 900;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            flex-direction: column;
+        }
+        .scanner-modal.show {
+            display: flex;
+        }
+        .scanner-box {
+            width: min(540px, 100%);
+            max-height: 90vh;
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+        }
+        .scanner-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafbf8;
+        }
+        .scanner-header strong {
+            font-size: 18px;
+        }
+        .scanner-close {
+            border: 0;
+            background: #eee;
+            border-radius: 10px;
+            width: 42px;
+            height: 42px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .scanner-body {
+            padding: 15px;
+            text-align: center;
+        }
+        #scannerContainer {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            aspect-ratio: 4/3;
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        #scannerContainer video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #scannerContainer .scanner-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, .3);
+        }
+        #scannerContainer .scanner-overlay::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 40%;
+            border: 2px solid rgba(255, 255, 255, .6);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, .4);
+        }
+        .scanner-status {
+            margin-top: 12px;
+            font-size: 14px;
+            color: var(--muted);
+            min-height: 24px;
+        }
+        .scanner-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .scanner-actions button {
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 700;
+            font-size: 16px;
+            min-height: var(--touch-min);
+        }
+        .scanner-actions .btn-primary {
+            background: var(--green);
+            color: white;
+        }
+        .scanner-actions .btn-secondary {
+            background: #eee;
+            color: var(--text);
+        }
+
+        /* =========================================================
+           DASHBOARD
+        ========================================================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        .stat {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 17px;
+            padding: 17px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat:after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            bottom: -25px;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: rgba(36, 107, 69, .06);
+        }
+        .stat-icon {
+            font-size: 28px;
+        }
+        .stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .stat-value {
+            font-size: 25px;
+            font-weight: 900;
+            margin-top: 4px;
+        }
+        .stat.green .stat-value {
+            color: var(--green);
+        }
+        .stat.red .stat-value {
+            color: var(--red);
+        }
+        .stat.orange .stat-value {
+            color: var(--orange);
+        }
+        .stat.blue .stat-value {
+            color: var(--blue);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th,
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background: #f7f8f4;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .table-wrap table tr:hover td {
+            background: #fafcf9;
+        }
+
+        /* =========================================================
+           FORMS
+        ========================================================= */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group.full {
+            grid-column: 1/-1;
+        }
+        .form-group label {
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .form-group input,
+        .form-group select {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            background: white;
+            min-height: var(--touch-min);
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--green2);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(36, 107, 69, .08);
+        }
+
+        .primary {
+            border: 0;
+            background: linear-gradient(135deg, var(--green), var(--green2));
+            color: white;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 700;
+            font-size: 15px;
+            min-height: var(--touch-min);
+            box-shadow: 0 5px 12px rgba(23, 77, 50, .13);
+            transition: transform .10s;
+        }
+        .primary:active {
+            transform: scale(.96);
+        }
+        .secondary {
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-weight: 700;
+            font-size: 14px;
+            min-height: var(--touch-min);
+            transition: background .1s;
+        }
+        .secondary:active {
+            background: #f0f2ec;
+        }
+        .danger {
+            border: 0;
+            background: #fff0ee;
+            color: var(--red);
+            border-radius: 9px;
+            padding: 8px 14px;
+            font-weight: 700;
+            min-height: 36px;
+            transition: background .1s;
+        }
+        .danger:active {
+            background: #f0cdc8;
+        }
+
+        .image-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .image-button {
+            border: 1px solid var(--border);
+            background: #f7f9f5;
+            border-radius: 10px;
+            padding: 14px;
+            font-weight: 700;
+            min-height: var(--touch-min);
+            transition: background .1s;
+        }
+        .image-button:active {
+            background: #eaf0e5;
+        }
+        .image-preview {
+            width: 100%;
+            height: 160px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f1f4ec;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 12px;
+        }
+        .filters input,
+        .filters select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            min-height: var(--touch-min);
+            font-size: 14px;
+            background: white;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .55);
+            z-index: 800;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-box {
+            width: min(540px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e0e6e0;
+            box-shadow: var(--shadow2);
+        }
+        .modal-header {
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header strong {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-body {
+            padding: 15px;
+        }
+        .close {
+            border: 0;
+            background: #eee;
+            border-radius: 9px;
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-box {
+            text-align: center;
+            padding: 15px;
+        }
+        .password-box .password-icon {
+            font-size: 52px;
+            margin-bottom: 6px;
+        }
+        .password-box input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 5px;
+            min-height: var(--touch-min);
+            background: #fafbfa;
+        }
+        .password-box input:focus {
+            border-color: var(--green);
+            outline: none;
+        }
+        .password-error {
+            color: var(--red);
+            font-size: 13px;
+            min-height: 20px;
+            margin: 8px 0;
+        }
+
+        /* =========================================================
+           TOAST
+        ========================================================= */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #17231a;
+            color: white;
+            padding: 14px 26px;
+            border-radius: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: .25s;
+            font-weight: 600;
+            font-size: 15px;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #printArea {
+            display: none;
+        }
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #printArea,
+            #printArea * {
+                visibility: visible !important;
+            }
+            #printArea {
+                display: block;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                background: white;
+                color: black;
+                font-family: monospace;
+                padding: 4mm;
+            }
+        }
+
+        /* =========================================================
+           STORE INFO PAGE
+        ========================================================= */
+        .store-preview {
+            background: #f8faf7;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .store-preview strong {
+            font-size: 18px;
+            display: block;
+            color: var(--green);
+        }
+
+        /* =========================================================
+           CLIENTS PAGE
+        ========================================================= */
+        .client-credit {
+            font-weight: 700;
+        }
+        .client-credit.positive {
+            color: var(--green);
+        }
+        .client-credit.negative {
+            color: var(--red);
+        }
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+        @media (max-width: 1050px) {
+            .sale-layout {
+                grid-template-columns: 1fr 380px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 800px) {
+            .sale-layout {
+                grid-template-columns: 1fr;
+            }
+            .cart {
+                position: static;
+                max-height: none;
+            }
+            .cart-items {
+                max-height: 350px;
+            }
+            .products {
+                max-height: none;
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .header-clock {
+                display: none;
+            }
+            .payment-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        @media (max-width: 600px) {
+            .content {
+                padding: 6px;
+            }
+            .products {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                padding: 6px;
+            }
+            .product {
+                min-height: 178px;
+            }
+            .product-img {
+                height: 112px;
+            }
+            .product-name {
+                font-size: 13px;
+            }
+            .product-price {
+                font-size: 17px;
+            }
+            .product:after {
+                width: 26px;
+                height: 26px;
+                font-size: 17px;
+            }
+            .stats-grid {
+                gap: 8px;
+                grid-template-columns: 1fr 1fr;
+            }
+            .stat {
+                padding: 12px;
+            }
+            .stat-value {
+                font-size: 19px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-group.full {
+                grid-column: auto;
+            }
+            .sale-layout {
+                gap: 8px;
+            }
+            .payment-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+            .quick-cash {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .scan-btn span {
+                display: none;
+            }
+            .scan-btn {
+                font-size: 26px;
+                min-width: 52px;
+                padding: 10px 12px;
+            }
+            .logo-area .logo-text {
+                font-size: 17px;
+            }
+            .logo-area .logo-icon {
+                font-size: 24px;
+            }
+        }
+        @media (max-width: 420px) {
+            .products {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .product-img {
+                height: 96px;
+            }
+            .product-name {
+                font-size: 12px;
+            }
+            .product-price {
+                font-size: 15px;
+            }
+            .product {
+                min-height: 154px;
+            }
+            .product:after {
+                display: none;
+            }
+            .cart-item {
+                padding: 10px;
+            }
+            .summary-total {
+                font-size: 22px;
+            }
+            .payment-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 4px;
+            }
+            .payment-btn {
+                font-size: 13px;
+                padding: 10px 4px;
+            }
+        }
+
+        .stock-low {
+            color: var(--red);
+            font-weight: 700;
+        }
+        .empty-state {
+            padding: 55px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =========================================================
+    LOGIN SCREEN
+    ========================================================= -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <div class="login-logo">🟢</div>
+            <div class="login-title">Zarouali POS</div>
+            <div class="login-sub">Terminal Caisse</div>
+            <div class="form-group">
+                <label>👤 Utilisateur</label>
+                <input id="loginUser" type="text" value="admin" placeholder="Nom d'utilisateur">
+            </div>
+            <div class="form-group">
+                <label>🔑 Mot de passe</label>
+                <input id="loginPass" type="password" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doLogin()">
+            </div>
+            <div class="login-error" id="loginError"></div>
+            <button class="login-btn" onclick="doLogin()">🔓 Se connecter</button>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    INACTIVITY SCREENSAVER
+    ========================================================= -->
+    <div id="screensaver">
+        <div class="logo-big">🟢</div>
+        <div class="brand">Zarouali POS</div>
+        <div class="sub">TAP · POUR REPRENDRE</div>
+    </div>
+
+    <!-- =========================================================
+    MAIN APP
+    ========================================================= -->
+    <div class="app" id="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-row">
+                <button class="menu-btn" onclick="toggleMenu()">☰</button>
+                <div class="logo-area">
+                    <span class="logo-icon">🟢</span>
+                    <span class="logo-text">Zarouali POS</span>
+                </div>
+                <div class="header-actions">
+                    <div class="header-clock" id="headerClock">--:--</div>
+                    <button class="icon-btn" onclick="openFullscreen()">⛶</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- SIDE MENU -->
+        <div id="menuOverlay" class="menu-overlay" onclick="closeMenu()"></div>
+        <aside id="sideMenu" class="side-menu">
+            <div class="menu-header">
+                <div class="menu-title">🟢 Zarouali POS</div>
+                <button class="menu-close" onclick="closeMenu()">×</button>
+            </div>
+            <div class="menu-items">
+                <button class="menu-item active" onclick="goPage('sale',this)"><span class="menu-icon">🛒</span> Caisse</button>
+                <button class="menu-item" onclick="protectedPage('dashboard',this)"><span class="menu-icon">📊</span> Dashboard <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('productsPage',this)"><span class="menu-icon">📦</span> Produits <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('clientsPage',this)"><span class="menu-icon">👥</span> Clients <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('cashiersPage',this)"><span class="menu-icon">👩‍💼</span> Caissières <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('historyPage',this)"><span class="menu-icon">📜</span> Historique <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('storePage',this)"><span class="menu-icon">🏪</span> Magasin <span class="menu-lock">🔒</span></button>
+                <button class="menu-item" onclick="protectedPage('settingsPage',this)"><span class="menu-icon">⚙️</span> Données <span class="menu-lock">🔒</span></button>
+            </div>
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="content">
+
+            <!-- ===================================================
+            CAISSE
+            =================================================== -->
+            <section id="sale" class="page active">
+                <div class="sale-layout">
+
+                    <!-- COLONNE PRODUITS -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">📦</div>
+                            <div class="cashier-badge-container">
+                                <div class="cashier-avatar">👤</div>
+                                <div class="cashier-select-wrapper">
+                                    <span class="cashier-label">Caissier</span>
+                                    <select id="saleCashier" class="cashier-select" onchange="saveCurrentCashier()"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recherche + scan -->
+                        <div class="search-area">
+                            <input id="search" class="search" placeholder="🔎 Rechercher ou scanner..." oninput="renderProducts()" autofocus>
+                            <button class="scan-btn" onclick="openScanner()" title="Scanner un code-barres">
+                                📷 <span>Scan</span>
+                            </button>
+                        </div>
+
+                        <!-- Catégories -->
+                        <div id="categories" class="categories"></div>
+
+                        <!-- Grille produits -->
+                        <div id="products" class="products"></div>
+                    </div>
+
+                    <!-- COLONNE PANIER -->
+                    <div class="panel cart">
+                        <div class="panel-header">
+                            <div class="panel-title">🛒 Panier</div>
+                            <div id="cartCount">0 article</div>
+                        </div>
+
+                        <!-- Client selector -->
+                        <div class="client-selector">
+                            <span style="font-size:13px;font-weight:700;">👤 Client :</span>
+                            <select id="saleClient" onchange="onClientChange()">
+                                <option value="">— Client libre —</option>
+                            </select>
+                            <span class="client-badge" id="clientBadge">Solde: 0 DH</span>
+                        </div>
+
+                        <div id="cartItems" class="cart-items"></div>
+
+                        <div class="cart-summary">
+                            <div class="summary-line">
+                                <span>Sous-total</span>
+                                <strong id="subtotal">0.00 DH</strong>
+                            </div>
+                            <div class="summary-line">
+                                <span>Remise</span>
+                                <strong><input id="discount" type="number" min="0" value="0" oninput="renderCart()"> DH</strong>
+                            </div>
+                            <div class="summary-line summary-total">
+                                <span>TOTAL</span>
+                                <strong id="total">0.00 DH</strong>
+                            </div>
+
+                            <!-- Paiement -->
+                            <div class="payment-grid">
+                                <button id="cashBtn" class="payment-btn active" onclick="setPayment('Espèces')">💵 Espèces</button>
+                                <button id="cardBtn" class="payment-btn" onclick="setPayment('Carte')">💳 Carte</button>
+                                <button id="creditBtn" class="payment-btn" onclick="setPayment('Crédit')">📝 Crédit</button>
+                            </div>
+
+                            <!-- Montants rapides -->
+                            <div id="quickCash" class="quick-cash">
+                                <button onclick="setCashAmount(20)">20 DH</button>
+                                <button onclick="setCashAmount(50)">50 DH</button>
+                                <button onclick="setCashAmount(100)">100 DH</button>
+                                <button onclick="setCashAmount(200)">200 DH</button>
+                            </div>
+
+                            <!-- Saisie montant reçu -->
+                            <div id="cashInput" class="cash-input show">
+                                <input id="cashReceived" type="number" min="0" placeholder="Montant reçu — optionnel" oninput="calculateChange()">
+                                <div class="change">Monnaie : <span id="change">0.00 DH</span></div>
+                            </div>
+
+                            <button class="sell-btn" onclick="completeSale()">✅ ENREGISTRER LA VENTE</button>
+                            <button class="clear-btn" onclick="clearCart()">🗑️ Vider le panier</button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ===================================================
+            DASHBOARD
+            =================================================== -->
+            <section id="dashboard" class="page">
+                <div class="page-head">
+                    <div><div class="panel-title">📊 Tableau de bord</div><div class="page-kicker">Vue synthétique de l'activité du jour</div></div>
+                    <button class="secondary" onclick="renderDashboard();toast('Actualisé')">↻ Actualiser</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat green"><div class="stat-icon">💰</div><div class="stat-label">Chiffre d'affaires</div><div id="statCA" class="stat-value">0 DH</div></div>
+                    <div class="stat blue"><div class="stat-icon">📈</div><div class="stat-label">Bénéfice (CA — coût)</div><div id="statProfit" class="stat-value">0 DH</div></div>
+                    <div class="stat"><div class="stat-icon">🧾</div><div class="stat-label">Tickets aujourd'hui</div><div id="statTickets" class="stat-value">0</div></div>
+                    <div class="stat orange"><div class="stat-icon">📊</div><div class="stat-label">Panier moyen</div><div id="statAverage" class="stat-value">0 DH</div></div>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">👩‍💼 Performance des caissières</div></div>
+                        <div class="table-wrap"><table><thead><tr><th>Caissière</th><th>Tickets</th><th>CA</th><th>Moyenne</th></tr></thead><tbody id="cashierStats"></tbody></table></div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">🔥 Produits les plus vendus</div></div>
+                        <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Qté</th><th>CA</th></tr></thead><tbody id="topProducts"></tbody></table></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            PRODUITS
+            =================================================== -->
+            <section id="productsPage" class="page">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📦 Gestion des produits</div>
+                        <button class="primary" onclick="openProductModal()">➕ Ajouter</button>
+                    </div>
+                    <div class="filters">
+                        <input id="productAdminSearch" placeholder="🔎 Rechercher..." oninput="renderProductAdmin()">
+                        <button class="secondary" onclick="exportProductsCSV()">📤 Export CSV</button>
+                        <button class="secondary" onclick="document.getElementById('csvInput').click()">📥 Import CSV</button>
+                        <input id="csvInput" type="file" accept=".csv,text/csv" hidden onchange="importProductsCSV(event)">
+                    </div>
+                    <div class="table-wrap">
+                        <table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix vente</th><th>Prix achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            CLIENTS
+            =================================================== -->
+            <section id="clientsPage" class="page">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">👥 Gestion des clients</div>
+                        <button class="primary" onclick="openClientModal()">➕ Ajouter</button>
+                    </div>
+                    <div class="filters">
+                        <input id="clientSearch" placeholder="🔎 Rechercher un client..." oninput="renderClientsAdmin()">
+                    </div>
+                    <div class="table-wrap">
+                        <table><thead><tr><th>Client</th><th>Téléphone</th><th>Email</th><th>Crédit</th><th>Actions</th></tr></thead><tbody id="clientsAdmin"></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            CAISSIERES
+            =================================================== -->
+            <section id="cashiersPage" class="page">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">👩‍💼 Gestion des caissières</div>
+                        <button class="primary" onclick="openCashierModal()">➕ Ajouter</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table><thead><tr><th>Nom</th><th>Ventes</th><th>CA</th><th>Panier moyen</th><th>Actions</th></tr></thead><tbody id="cashiersAdmin"></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            HISTORIQUE
+            =================================================== -->
+            <section id="historyPage" class="page">
+                <div class="panel">
+                    <div class="panel-header"><div class="panel-title">📜 Historique des ventes</div></div>
+                    <div class="filters">
+                        <input type="date" id="historyDate" onchange="renderHistory()">
+                        <select id="historyCashier" onchange="renderHistory()"></select>
+                        <select id="historyClient" onchange="renderHistory()"><option value="">Tous les clients</option></select>
+                        <button class="secondary" onclick="resetHistoryFilters()">Réinitialiser</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table><thead><tr><th>Ticket</th><th>Date</th><th>Caissière</th><th>Client</th><th>Articles</th><th>Total</th><th>Paiement</th><th></th></tr></thead><tbody id="history"></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            STORE INFO
+            =================================================== -->
+            <section id="storePage" class="page">
+                <div class="panel">
+                    <div class="panel-header"><div class="panel-title">🏪 Informations du magasin</div></div>
+                    <div class="form-grid" style="padding:15px;">
+                        <div class="form-group full"><label>Nom du magasin</label><input id="storeName" placeholder="Nom du magasin" onchange="saveStoreInfo()"></div>
+                        <div class="form-group full"><label>Adresse</label><input id="storeAddress" placeholder="Adresse" onchange="saveStoreInfo()"></div>
+                        <div class="form-group"><label>Téléphone</label><input id="storePhone" placeholder="Téléphone" onchange="saveStoreInfo()"></div>
+                        <div class="form-group"><label>Email</label><input id="storeEmail" placeholder="Email" onchange="saveStoreInfo()"></div>
+                        <div class="form-group full"><label>N° d'identification fiscale</label><input id="storeTaxId" placeholder="ICE / Tax ID" onchange="saveStoreInfo()"></div>
+                        <div class="form-group full">
+                            <div class="store-preview" id="storePreview">
+                                <strong>Zarouali POS</strong>
+                                <span id="previewAddress">Adresse non renseignée</span><br>
+                                <span id="previewPhone">Tél: —</span> &nbsp;|&nbsp; <span id="previewEmail">Email: —</span>
+                            </div>
+                        </div>
+                        <div class="form-group full"><button class="primary" onclick="saveStoreInfo();toast('Informations enregistrées')">💾 Enregistrer</button></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================
+            SETTINGS
+            =================================================== -->
+            <section id="settingsPage" class="page">
+                <div class="panel">
+                    <div class="panel-header"><div class="panel-title">⚙️ Données &amp; paramètres</div></div>
+                    <div style="padding:15px;display:grid;gap:10px">
+                        <button class="primary" onclick="exportBackup()">📤 Exporter toute la base</button>
+                        <button class="secondary" onclick="document.getElementById('backupInput').click()">📥 Restaurer une sauvegarde</button>
+                        <input id="backupInput" type="file" accept=".json" hidden onchange="importBackup(event)">
+                        <hr>
+                        <button class="secondary" onclick="openChangePassword()">🔐 Changer le mot de passe</button>
+                        <button class="secondary" onclick="downloadDailyReport()">📄 Exporter le rapport du jour</button>
+                        <button class="danger" onclick="resetDatabase()">⚠️ Réinitialiser toutes les données</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- =========================================================
+    SCANNER MODAL
+    ========================================================= -->
+    <div id="scannerModal" class="scanner-modal">
+        <div class="scanner-box">
+            <div class="scanner-header">
+                <strong>📷 Scanner un code-barres</strong>
+                <button class="scanner-close" onclick="closeScanner()">×</button>
+            </div>
+            <div class="scanner-body">
+                <div id="scannerContainer">
+                    <div class="scanner-overlay"></div>
+                </div>
+                <div class="scanner-status" id="scannerStatus">🔦 Prêt à scanner...</div>
+                <div class="scanner-actions">
+                    <button class="btn-primary" onclick="startScanner()">▶️ Démarrer</button>
+                    <button class="btn-secondary" onclick="closeScanner()">❌ Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    PRODUCT MODAL
+    ========================================================= -->
+    <div id="productModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <strong>📦 Produit</strong>
+                <button class="close" onclick="closeModal('productModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editProductId">
+                <div class="form-grid">
+                    <div class="form-group full"><label>Nom</label><input id="pName" placeholder="Nom du produit"></div>
+                    <div class="form-group"><label>Catégorie</label><select id="pCategory"><option>Épicerie</option><option>Boissons</option><option>Laitiers</option><option>Fruits & légumes</option><option>Viandes</option><option>Conserves</option><option>Snacks</option><option>Boulangerie</option><option>Hygiène</option><option>Autre</option></select></div>
+                    <div class="form-group"><label>Code-barres</label><input id="pBarcode" inputmode="numeric" placeholder="Code-barres"></div>
+                    <div class="form-group"><label>Prix vente (DH)</label><input id="pPrice" type="number" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Prix achat (DH)</label><input id="pPurchasePrice" type="number" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Stock</label><input id="pStock" type="number" step="1" placeholder="0"></div>
+                    <div class="form-group"><label>Stock minimum</label><input id="pMinStock" type="number" value="5"></div>
+                    <div class="form-group full">
+                        <label</label>
+                        <div id="imagePreview" class="image-preview"><span>Aucune image</span></div>
+                        <div class="image-buttons">
+                            <button class="image-button" onclick="openGallery()">🖼️ Galerie</button>
+                            <button class="image-button" onclick="openCamera()">📷 Caméra</button>
+                        </div>
+                        <input id="galleryInput" type="file" accept="image/*" hidden onchange="handleImageFile(event)">
+                        <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="handleImageFile(event)">
+                    </div>
+                    <div class="form-group full"><button class="primary" onclick="saveProduct()">💾 Enregistrer</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    CLIENT MODAL
+    ========================================================= -->
+    <div id="clientModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <strong>👤 Client</strong>
+                <button class="close" onclick="closeModal('clientModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editClientId">
+                <div class="form-grid">
+                    <div class="form-group full"><label>Nom complet</label><input id="clientName" placeholder="Nom du client"></div>
+                    <div class="form-group"><label>Téléphone</label><input id="clientPhone" placeholder="Téléphone"></div>
+                    <div class="form-group"><label>Email</label><input id="clientEmail" placeholder="Email"></div>
+                    <div class="form-group full"><label>Crédit initial (DH)</label><input id="clientCredit" type="number" step="0.01" value="0"></div>
+                    <div class="form-group full"><button class="primary" onclick="saveClient()">💾 Enregistrer</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    CASHIER MODAL
+    ========================================================= -->
+    <div id="cashierModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <strong>👩‍💼 Caissière</strong>
+                <button class="close" onclick="closeModal('cashierModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editCashierId">
+                <div class="form-group"><label>Nom</label><input id="cashierName" placeholder="Nom de la caissière"></div><br>
+                <button class="primary" onclick="saveCashier()">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    PASSWORD MODAL
+    ========================================================= -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <strong>🔐 Accès sécurisé</strong>
+                <button class="close" onclick="closeModal('passwordModal')">×</button>
+            </div>
+            <div class="modal-body password-box">
+                <div class="password-icon">🔒</div>
+                <div>Cette section est protégée.</div><br>
+                <input id="passwordInput" class="password-input" type="password" inputmode="numeric" maxlength="20" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPassword()">
+                <div id="passwordError" class="password-error"></div>
+                <button class="primary" style="width:100%" onclick="checkPassword()">🔓 Ouvrir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    CHANGE PASSWORD MODAL
+    ========================================================= -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <strong>🔐 Nouveau mot de passe</strong>
+                <button class="close" onclick="closeModal('changePasswordModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label>Ancien mot de passe</label><input id="oldPassword" type="password" inputmode="numeric"></div><br>
+                <div class="form-group"><label>Nouveau mot de passe</label><input id="newPassword" type="password" inputmode="numeric"></div><br>
+                <div class="form-group"><label>Confirmer</label><input id="confirmPassword" type="password" inputmode="numeric"></div><br>
+                <button class="primary" onclick="changePassword()">💾 Modifier</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+    PRINT & TOAST
+    ========================================================= -->
+    <div id="printArea"></div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+        /* =========================================================
+           ZAROUALI CAISSE — PRO
+           Version avec clients, crédit, prix d'achat, login, écran de veille
+        ========================================================= */
+
+        // ---- CONSTANTES ----
+        const DB_KEY = "zarouali_caisse_v1";
+        const PASSWORD_KEY = "zarouali_caisse_password";
+        const LOGIN_KEY = "zarouali_caisse_login";
+        const STORE_KEY = "zarouali_caisse_store";
+
+        // ---- DB ----
+        let db = {
+            products: [],
+            cashiers: [],
+            clients: [],
+            sales: [],
+            settings: { storeName: "Zarouali POS", currency: "DH" }
+        };
+
+        let cart = [];
+        let paymentMethod = "Espèces";
+        let activeCategory = "Tous";
+        let protectedTarget = null;
+        let protectedButton = null;
+        let currentImage = "";
+        let scannerInstance = null;
+        let scannerRunning = false;
+        let inactivityTimer = null;
+        let isLoggedIn = false;
+
+        // ---- PRODUITS PAR DÉFAUT (avec prix achat) ----
+        const defaultProducts = [
+            ["P001", "Pain complet", "Boulangerie", "611100000001", 1.50, 0.70, 40, "", 10],
+            ["P002", "Pain blanc", "Boulangerie", "611100000002", 1.20, 0.55, 50, "", 10],
+            ["P003", "Lait Centrale 1L", "Laitiers", "611100000003", 9.00, 6.20, 30, "", 8],
+            ["P004", "Lait Jaouda 1L", "Laitiers", "611100000004", 9.50, 6.50, 30, "", 8],
+            ["P005", "Yaourt nature", "Laitiers", "611100000005", 2.00, 1.20, 40, "", 10],
+            ["P006", "Fromage fondu", "Laitiers", "611100000006", 18.50, 12.00, 15, "", 5],
+            ["P007", "Beurre 250g", "Laitiers", "611100000007", 22.00, 16.00, 15, "", 5],
+            ["P008", "Sucre 1kg", "Épicerie", "611100000008", 8.50, 5.80, 50, "", 10],
+            ["P009", "Farine 1kg", "Épicerie", "611100000009", 7.00, 4.50, 50, "", 10],
+            ["P010", "Riz 1kg", "Épicerie", "611100000010", 15.00, 10.50, 30, "", 8],
+            ["P011", "Couscous 1kg", "Épicerie", "611100000011", 14.00, 9.50, 30, "", 8],
+            ["P012", "Pâtes 500g", "Épicerie", "611100000012", 8.00, 5.00, 40, "", 10],
+            ["P013", "Huile de table 1L", "Épicerie", "611100000013", 18.50, 13.00, 25, "", 8],
+            ["P014", "Huile d'olive 1L", "Épicerie", "611100000014", 85.00, 60.00, 10, "", 3],
+            ["P015", "Thé vert 200g", "Boissons", "611100000015", 25.00, 17.00, 15, "", 5],
+            ["P016", "Café moulu 250g", "Boissons", "611100000016", 29.00, 20.00, 15, "", 5],
+            ["P017", "Eau Sidi Ali 1.5L", "Boissons", "611100000017", 6.00, 3.80, 60, "", 15],
+            ["P018", "Eau 5L", "Boissons", "611100000018", 11.00, 7.50, 30, "", 8],
+            ["P019", "Coca-Cola 1L", "Boissons", "611100000019", 10.00, 6.50, 30, "", 8],
+            ["P020", "Jus orange 1L", "Boissons", "611100000020", 14.00, 9.00, 20, "", 6],
+            ["P021", "Tomates 1kg", "Fruits & légumes", "611100000021", 8.00, 5.00, 30, "", 8],
+            ["P022", "Pommes 1kg", "Fruits & légumes", "611100000022", 14.00, 9.50, 25, "", 6],
+            ["P023", "Bananes 1kg", "Fruits & légumes", "611100000023", 12.00, 8.00, 25, "", 6],
+            ["P024", "Oranges 1kg", "Fruits & légumes", "611100000024", 9.00, 5.50, 30, "", 8],
+            ["P025", "Pommes de terre 1kg", "Fruits & légumes", "611100000025", 7.00, 4.00, 40, "", 10],
+            ["P026", "Oignons 1kg", "Fruits & légumes", "611100000026", 6.00, 3.50, 40, "", 8],
+            ["P027", "Carottes 1kg", "Fruits & légumes", "611100000027", 7.00, 4.00, 30, "", 8],
+            ["P028", "Poulet entier", "Viandes", "611100000028", 32.00, 22.00, 15, "", 4],
+            ["P029", "Viande hachée 500g", "Viandes", "611100000029", 45.00, 32.00, 10, "", 3],
+            ["P030", "Thon conserve", "Conserves", "611100000030", 15.00, 10.00, 20, "", 5],
+            ["P031", "Tomates conserve", "Conserves", "611100000031", 9.00, 5.50, 20, "", 5],
+            ["P032", "Olives vertes", "Conserves", "611100000032", 18.00, 12.00, 15, "", 5],
+            ["P033", "Haricots blancs", "Conserves", "611100000033", 12.00, 7.50, 20, "", 5],
+            ["P034", "Chips", "Snacks", "611100000034", 8.00, 4.80, 30, "", 8],
+            ["P035", "Biscuits", "Snacks", "611100000035", 7.00, 4.00, 30, "", 8],
+            ["P036", "Chocolat", "Snacks", "611100000036", 12.00, 7.50, 20, "", 6],
+            ["P037", "Céréales", "Snacks", "611100000037", 28.00, 19.00, 15, "", 5],
+            ["P038", "Miel 500g", "Épicerie", "611100000038", 55.00, 38.00, 10, "", 3],
+            ["P039", "Confiture 370g", "Épicerie", "611100000039", 22.00, 14.00, 15, "", 5],
+            ["P040", "Mayonnaise", "Épicerie", "611100000040", 18.00, 11.00, 15, "", 5],
+            ["P041", "Ketchup", "Épicerie", "611100000041", 16.00, 10.00, 15, "", 5],
+            ["P042", "Sel 1kg", "Épicerie", "611100000042", 2.50, 1.20, 30, "", 8],
+            ["P043", "Lentilles 1kg", "Épicerie", "611100000043", 14.00, 9.00, 20, "", 5],
+            ["P044", "Pois chiches 1kg", "Épicerie", "611100000044", 16.00, 11.00, 20, "", 5],
+            ["P045", "Haricots secs 1kg", "Épicerie", "611100000045", 18.00, 12.00, 20, "", 5],
+            ["P046", "Eau gazeuse", "Boissons", "611100000046", 7.00, 4.20, 30, "", 8],
+            ["P047", "Limonade", "Boissons", "611100000047", 8.00, 4.80, 30, "", 8],
+            ["P048", "Œufs x6", "Laitiers", "611100000048", 12.00, 8.00, 20, "", 6],
+            ["P049", "Œufs x12", "Laitiers", "611100000049", 23.00, 15.00, 20, "", 6],
+            ["P050", "Pizza surgelée", "Autre", "611100000050", 25.00, 17.00, 10, "", 3]
+        ];
+
+        // ---- INIT ----
+        function init() {
+            // Restaurer les infos du magasin
+            const store = localStorage.getItem(STORE_KEY);
+            if (store) {
+                try {
+                    const s = JSON.parse(store);
+                    if (document.getElementById("storeName")) document.getElementById("storeName").value = s.name || "";
+                    if (document.getElementById("storeAddress")) document.getElementById("storeAddress").value = s.address || "";
+                    if (document.getElementById("storePhone")) document.getElementById("storePhone").value = s.phone || "";
+                    if (document.getElementById("storeEmail")) document.getElementById("storeEmail").value = s.email || "";
+                    if (document.getElementById("storeTaxId")) document.getElementById("storeTaxId").value = s.taxId || "";
+                    db.settings.storeName = s.name || "Zarouali POS";
+                    updateStorePreview();
+                } catch (e) {}
+            }
+
+            // Charger la DB
+            const saved = localStorage.getItem(DB_KEY);
+            if (saved) {
+                try { db = JSON.parse(saved); } catch (e) { createDefaultDB(); }
+            } else {
+                createDefaultDB();
+            }
+
+            // Vérifier que les champs existent (migration)
+            db.products.forEach(p => {
+                if (p.purchasePrice === undefined) p.purchasePrice = Number(p.price) * 0.65;
+            });
+
+            if (!db.clients) db.clients = [];
+            if (!db.cashiers || !db.cashiers.length) {
+                db.cashiers = [
+                    { id: "C1", name: "Caissière 1" },
+                    { id: "C2", name: "Caissière 2" }
+                ];
+            }
+            if (!localStorage.getItem(PASSWORD_KEY)) {
+                localStorage.setItem(PASSWORD_KEY, "1234");
+            }
+            if (!localStorage.getItem(LOGIN_KEY)) {
+                localStorage.setItem(LOGIN_KEY, JSON.stringify({ username: "admin", password: "1234" }));
+            }
+
+            saveDB();
+            renderAll();
+
+            const date = document.getElementById("historyDate");
+            if (date) date.value = new Date().toISOString().slice(0, 10);
+
+            // Focus recherche
+            setTimeout(() => {
+                const search = document.getElementById("search");
+                if (search) search.focus();
+            }, 400);
+
+            // Démarrer l'écran de veille
+            resetInactivityTimer();
+            document.addEventListener("click", resetInactivityTimer);
+            document.addEventListener("touchstart", resetInactivityTimer);
+            document.addEventListener("keydown", resetInactivityTimer);
+            document.addEventListener("mousemove", resetInactivityTimer);
+
+            // Horloge
+            updateHeaderClock();
+            setInterval(updateHeaderClock, 1000);
+
+            // Raccourcis clavier
+            document.addEventListener("keydown", function(e) {
+                if (e.key === "F2") { e.preventDefault();
+                    document.getElementById("search")?.focus(); }
+                if (e.key === "Escape") { closeMenu();
+                    document.querySelectorAll(".modal.show").forEach(m => m.classList.remove("show")); }
+                if (e.key === "F4") { e.preventDefault();
+                    newSale(); }
+                if (e.key === "F5") { e.preventDefault();
+                    renderAll();
+                    toast("Actualisé"); }
+            });
+
+            // Vérifier si déjà connecté
+            const loginData = localStorage.getItem(LOGIN_KEY);
+            if (loginData) {
+                try {
+                    const d = JSON.parse(loginData);
+                    if (d.username && d.password) {
+                        // Pré-remplir
+                        document.getElementById("loginUser").value = d.username;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        function createDefaultDB() {
+            db.products = defaultProducts.map(p => ({
+                id: p[0],
+                name: p[1],
+                category: p[2],
+                barcode: p[3],
+                price: p[4],
+                purchasePrice: p[5],
+                stock: p[6],
+                image: p[7],
+                minStock: p[8]
+            }));
+            db.cashiers = [
+                { id: "C1", name: "Caissière 1" },
+                { id: "C2", name: "Caissière 2" }
+            ];
+            db.clients = [];
+            db.sales = [];
+            saveDB();
+        }
+
+        function saveDB() {
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+        }
+
+        // ---- LOGIN ----
+        function doLogin() {
+            const user = document.getElementById("loginUser").value.trim();
+            const pass = document.getElementById("loginPass").value.trim();
+            const loginData = localStorage.getItem(LOGIN_KEY);
+            let valid = false;
+            if (loginData) {
+                try {
+                    const d = JSON.parse(loginData);
+                    if (d.username === user && d.password === pass) valid = true;
+                } catch (e) {}
+            }
+            // Fallback
+            if (!valid && user === "admin" && pass === "1234") valid = true;
+
+            if (valid) {
+                isLoggedIn = true;
+                document.getElementById("loginScreen").classList.add("hidden");
+                toast("Bienvenue " + user + " !");
+                resetInactivityTimer();
+            } else {
+                document.getElementById("loginError").textContent = "Identifiants incorrects";
+            }
+        }
+
+        // ---- INACTIVITY SCREENSAVER (MODIFIÉ A 15 SECONDES) ----
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            const ss = document.getElementById("screensaver");
+            if (ss) ss.classList.remove("show");
+            if (isLoggedIn) {
+                inactivityTimer = setTimeout(() => {
+                    const ss2 = document.getElementById("screensaver");
+                    if (ss2 && !document.querySelector(".modal.show") && !document.querySelector(
+                            ".scanner-modal.show")) {
+                        ss2.classList.add("show");
+                    }
+                }, 15000); // 15 ثانية
+            }
+        }
+        document.getElementById("screensaver")?.addEventListener("click", function() {
+            this.classList.remove("show");
+            resetInactivityTimer();
+        });
+        document.getElementById("screensaver")?.addEventListener("touchstart", function() {
+            this.classList.remove("show");
+            resetInactivityTimer();
+        });
+
+        // ---- HEADER CLOCK ----
+        function updateHeaderClock() {
+            const el = document.getElementById("headerClock");
+            if (el) el.textContent = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        }
+
+        // ---- UTILS ----
+        function money(value) {
+            return Number(value || 0).toFixed(2) + " DH";
+        }
+
+        function toast(message) {
+            const t = document.getElementById("toast");
+            t.textContent = message;
+            t.classList.add("show");
+            clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove("show");
+        }
+
+        function openFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g,
+                "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeAttr(value) {
+            return escapeHTML(value);
+        }
+
+        function downloadFile(filename, content, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function parseCSVLine(line, separator) {
+            const result = [];
+            let current = "",
+                inside = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') {
+                    if (inside && line[i + 1] === '"') { current += '"';
+                        i++; } else { inside = !inside; }
+                } else if (c === separator && !inside) {
+                    result.push(current);
+                    current = "";
+                } else {
+                    current += c;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function csvEscape(v) {
+            const s = String(v ?? "");
+            if (/[;"\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+            return s;
+        }
+
+        // ---- MENU ----
+        function toggleMenu() {
+            document.getElementById("sideMenu").classList.toggle("show");
+            document.getElementById("menuOverlay").classList.toggle("show");
+        }
+
+        function closeMenu() {
+            document.getElementById("sideMenu").classList.remove("show");
+            document.getElementById("menuOverlay").classList.remove("show");
+        }
+
+        function goPage(id, btn) {
+            closeMenu();
+            document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            document.querySelectorAll(".menu-item").forEach(b => b.classList.remove("active"));
+            if (btn) btn.classList.add("active");
+            renderAll();
+            resetInactivityTimer();
+        }
+
+        function protectedPage(id, btn) {
+            protectedTarget = id;
+            protectedButton = btn;
+            closeMenu();
+            document.getElementById("passwordInput").value = "";
+            document.getElementById("passwordError").textContent = "";
+            document.getElementById("passwordModal").classList.add("show");
+            setTimeout(() => document.getElementById("passwordInput").focus(), 150);
+        }
+
+        function checkPassword() {
+            const entered = document.getElementById("passwordInput").value;
+            const correct = localStorage.getItem(PASSWORD_KEY) || "1234";
+            if (entered === correct) {
+                closeModal("passwordModal");
+                if (protectedTarget) {
+                    const page = document.getElementById(protectedTarget);
+                    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+                    page.classList.add("active");
+                    document.querySelectorAll(".menu-item").forEach(b => b.classList.remove("active"));
+                    if (protectedButton) protectedButton.classList.add("active");
+                    renderAll();
+                }
+            } else {
+                document.getElementById("passwordError").textContent = "Mot de passe incorrect";
+            }
+        }
+
+        function openChangePassword() {
+            document.getElementById("oldPassword").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("confirmPassword").value = "";
+            document.getElementById("changePasswordModal").classList.add("show");
+        }
+
+        function changePassword() {
+            const oldPassword = document.getElementById("oldPassword").value;
+            const newPassword = document.getElementById("newPassword").value;
+            const confirm = document.getElementById("confirmPassword").value;
+            const current = localStorage.getItem(PASSWORD_KEY) || "1234";
+            if (oldPassword !== current) { toast("Ancien mot de passe incorrect"); return; }
+            if (!newPassword) { toast("Nouveau mot de passe obligatoire"); return; }
+            if (newPassword !== confirm) { toast("Les mots de passe ne correspondent pas"); return; }
+            localStorage.setItem(PASSWORD_KEY, newPassword);
+            closeModal("changePasswordModal");
+            toast("Mot de passe modifié");
+        }
+
+        // ---- STORE INFO ----
+        function saveStoreInfo() {
+            const info = {
+                name: document.getElementById("storeName").value.trim(),
+                address: document.getElementById("storeAddress").value.trim(),
+                phone: document.getElementById("storePhone").value.trim(),
+                email: document.getElementById("storeEmail").value.trim(),
+                taxId: document.getElementById("storeTaxId").value.trim()
+            };
+            localStorage.setItem(STORE_KEY, JSON.stringify(info));
+            db.settings.storeName = info.name || "Zarouali POS";
+            updateStorePreview();
+            toast("Infos du magasin enregistrées");
+        }
+
+        function updateStorePreview() {
+            const preview = document.getElementById("storePreview");
+            if (!preview) return;
+            const name = document.getElementById("storeName").value.trim() || "Zarouali POS";
+            const address = document.getElementById("storeAddress").value.trim() || "Adresse non renseignée";
+            const phone = document.getElementById("storePhone").value.trim() || "—";
+            const email = document.getElementById("storeEmail").value.trim() || "—";
+            preview.innerHTML = `
+                <strong>${escapeHTML(name)}</strong>
+                <span>${escapeHTML(address)}</span><br>
+                <span>Tél: ${escapeHTML(phone)}</span> &nbsp;|&nbsp; <span>Email: ${escapeHTML(email)}</span>
+                <br><span style="font-size:12px;color:var(--muted);">ICE: ${escapeHTML(document.getElementById('storeTaxId').value.trim() || '—')}</span>
+            `;
+        }
+
+        function getStoreInfo() {
+            const store = localStorage.getItem(STORE_KEY);
+            if (store) {
+                try { return JSON.parse(store); } catch (e) {}
+            }
+            return { name: "Zarouali POS", address: "", phone: "", email: "", taxId: "" };
+        }
+
+        // ---- CATÉGORIES ----
+        function renderCategories() {
+            const categories = ["Tous", ...new Set(db.products.map(p => p.category))];
+            const box = document.getElementById("categories");
+            if (!box) return;
+            box.innerHTML = categories.map(cat => `
+                <button class="category ${cat === activeCategory ? 'active' : ''}"
+                        onclick="selectCategory('${escapeAttr(cat)}')">
+                    ${escapeHTML(cat)}
+                </button>
+            `).join("");
+        }
+
+        function selectCategory(category) {
+            activeCategory = category;
+            renderCategories();
+            renderProducts();
+        }
+
+        // ---- PRODUITS ----
+        function renderProducts() {
+            const box = document.getElementById("products");
+            if (!box) return;
+            const q = (document.getElementById("search")?.value || "").toLowerCase().trim();
+            const list = db.products.filter(p => {
+                const catOK = activeCategory === "Tous" || p.category === activeCategory;
+                const searchOK = !q ||
+                    p.name.toLowerCase().includes(q) ||
+                    String(p.barcode).includes(q);
+                return catOK && searchOK;
+            });
+            if (!list.length) {
+                box.innerHTML =
+                    `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#777">Aucun produit trouvé.</div>`;
+                return;
+            }
+            box.innerHTML = list.map(p => {
+                const image = p.image || "";
+                const isLow = p.stock <= p.minStock;
+                const stockLabel = p.stock <= 0 ? "Rupture" : (isLow ? "⚠️ Stock faible" : `Stock : ${p.stock}`);
+                return `
+                    <div class="product" onclick="addToCart('${p.id}')">
+                        <div class="product-img">
+                            ${image ? `<img src="${escapeAttr(image)}" alt="">` :
+                            `<div class="product-placeholder">Image non disponible</div>`}
+                        </div>
+                        <div class="product-body">
+                            <div class="product-name">${escapeHTML(p.name)}</div>
+                            <div class="product-meta">
+                                <span class="product-price">${money(p.price)}</span>
+                                <span class="product-stock ${isLow ? 'low' : ''}">${stockLabel}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ---- PANIER ----
+        function addToCart(id) {
+            const product = db.products.find(p => p.id === id);
+            if (!product) return;
+            if (product.stock <= 0) { toast("Produit en rupture de stock"); return; }
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                if (item.qty >= product.stock) { toast("Stock insuffisant"); return; }
+                item.qty++;
+            } else {
+                cart.push({ id: product.id, name: product.name, barcode: product.barcode, price: Number(product.price),
+                    purchasePrice: Number(product.purchasePrice || 0), qty: 1 });
+            }
+            renderCart();
+            resetInactivityTimer();
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            const product = db.products.find(p => p.id === id);
+            item.qty += delta;
+            if (item.qty <= 0) { cart = cart.filter(i => i.id !== id); } else if (product && item.qty > product.stock) {
+                item.qty = product.stock;
+                toast("Stock insuffisant");
+            }
+            renderCart();
+        }
+
+        function setQtyFromInput(id, value) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            const product = db.products.find(p => p.id === id);
+            let qty = parseInt(value) || 0;
+            if (qty < 0) qty = 0;
+            if (product && qty > product.stock) { qty = product.stock;
+                toast("Stock insuffisant"); }
+            if (qty === 0) { cart = cart.filter(i => i.id !== id); } else { item.qty = qty; }
+            renderCart();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            renderCart();
+        }
+
+        function clearCart() {
+            if (!cart.length) return;
+            if (confirm("Vider le panier ?")) { cart = [];
+                renderCart(); }
+        }
+
+        function getSubtotal() {
+            return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+        }
+
+        function getTotal() {
+            const subtotal = getSubtotal();
+            const discount = Math.max(0, Number(document.getElementById("discount")?.value || 0));
+            return Math.max(0, subtotal - discount);
+        }
+
+        function getTotalCost() {
+            return cart.reduce((sum, item) => sum + (item.purchasePrice || 0) * item.qty, 0);
+        }
+
+        function renderCart() {
+            const box = document.getElementById("cartItems");
+            if (!box) return;
+            if (!cart.length) {
+                box.innerHTML = `<div class="cart-empty">🛒<br><br>Le panier est vide</div>`;
+            } else {
+                box.innerHTML = cart.map(item => `
+                    <div class="cart-item">
+                        <div>
+                            <div class="cart-name">${escapeHTML(item.name)}</div>
+                            <div class="cart-price">${money(item.price)} × ${item.qty}</div>
+                            <div class="qty-controls">
+                                <button class="qty-btn" onclick="changeQty('${item.id}',-1)">−</button>
+                                <input class="qty-input" type="number" min="0" value="${item.qty}"
+                                       onchange="setQtyFromInput('${item.id}',this.value)"
+                                       onfocus="this.select()">
+                                <button class="qty-btn" onclick="changeQty('${item.id}',1)">+</button>
+                            </div>
+                        </div>
+                        <div style="text-align:right">
+                            <strong>${money(item.price * item.qty)}</strong><br>
+                            <button class="remove" onclick="removeFromCart('${item.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join("");
+            }
+            const count = cart.reduce((s, i) => s + i.qty, 0);
+            document.getElementById("cartCount").textContent = count + " article" + (count > 1 ? "s" : "");
+            document.getElementById("subtotal").textContent = money(getSubtotal());
+            document.getElementById("total").textContent = money(getTotal());
+            calculateChange();
+            updateClientBadge();
+        }
+
+        // ---- CLIENTS ----
+        function renderClientSelect() {
+            const select = document.getElementById("saleClient");
+            if (!select) return;
+            const current = select.value;
+            select.innerHTML = `<option value="">— Client libre —</option>` +
+                db.clients.map(c =>
+                    `<option value="${c.id}">${escapeHTML(c.name)}${c.creditBalance > 0 ? ' (crédit: '+c.creditBalance.toFixed(2)+' DH)' : ''}</option>`
+                ).join("");
+            if (current) select.value = current;
+            updateClientBadge();
+        }
+
+        function updateClientBadge() {
+            const badge = document.getElementById("clientBadge");
+            if (!badge) return;
+            const clientId = document.getElementById("saleClient").value;
+            if (!clientId) { badge.textContent = "Solde: 0 DH";
+                badge.className = "client-badge"; return; }
+            const client = db.clients.find(c => c.id === clientId);
+            if (!client) { badge.textContent = "Solde: 0 DH";
+                badge.className = "client-badge"; return; }
+            const credit = client.creditBalance || 0;
+            badge.textContent = "Solde: " + money(credit);
+            badge.className = "client-badge" + (credit > 0 ? " credit" : "");
+        }
+
+        function onClientChange() {
+            updateClientBadge();
+            const clientId = document.getElementById("saleClient").value;
+            if (clientId) {
+                const client = db.clients.find(c => c.id === clientId);
+                if (client && (client.creditBalance || 0) > 0) {
+                    // Ne pas forcer, mais indiquer
+                }
+            }
+        }
+
+        function renderClientsAdmin() {
+            const tbody = document.getElementById("clientsAdmin");
+            if (!tbody) return;
+            const q = (document.getElementById("clientSearch")?.value || "").toLowerCase();
+            const list = db.clients.filter(c => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q));
+            tbody.innerHTML = list.map(c => {
+                const credit = c.creditBalance || 0;
+                return `
+                    <tr>
+                        <td><strong>${escapeHTML(c.name)}</strong></td>
+                        <td>${escapeHTML(c.phone || '—')}</td>
+                        <td>${escapeHTML(c.email || '—')}</td>
+                        <td class="client-credit ${credit > 0 ? 'positive' : (credit < 0 ? 'negative' : '')}">${money(credit)}</td>
+                        <td>
+                            <button class="secondary" onclick="openClientModal('${c.id}')">✏️</button>
+                            <button class="danger" onclick="deleteClient('${c.id}')">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join("") || `<tr><td colspan="5" style="text-align:center">Aucun client</td></tr>`;
+        }
+
+        function openClientModal(id = null) {
+            document.getElementById("editClientId").value = id || "";
+        }
+
+        function renderAll() {
+            renderCategories();
+            renderProducts();
+            renderCart();
+            renderClientSelect();
+            if (typeof renderCashierSelect === 'function') renderCashierSelect();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -30,7 +30,7 @@ jobs:
     - name: Prepare Web Assets & Generate Custom App Icons
       run: |
         npm install
-        
+
         if [ ! -d "www" ] && [ ! -d "dist" ] && [ ! -d "build" ]; then
           mkdir -p www
           echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Caisse App</title></head><body><h1>Caisse Mobile App</h1></body></html>' > www/index.html
@@ -43,6 +43,59 @@ jobs:
         npx @capacitor/assets generate --android
 
         npx cap sync android
+
+    - name: Enable Camera Permission (manifest + native handler)
+      run: |
+        set -e
+        MANIFEST="android/app/src/main/AndroidManifest.xml"
+        MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java")
+        echo "Manifest: $MANIFEST"
+        echo "MainActivity: $MAIN_ACTIVITY"
+
+        if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+          sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n\n    <application#' "$MANIFEST"
+          echo "Camera permission added to manifest."
+        else
+          echo "Camera permission already present."
+        fi
+
+        PACKAGE_LINE=$(grep "^package " "$MAIN_ACTIVITY")
+
+        cat > "$MAIN_ACTIVITY" << EOF
+        $PACKAGE_LINE
+
+        import android.Manifest;
+        import android.content.pm.PackageManager;
+        import android.os.Bundle;
+        import android.webkit.PermissionRequest;
+        import androidx.core.app.ActivityCompat;
+        import com.getcapacitor.BridgeActivity;
+        import com.getcapacitor.BridgeWebChromeClient;
+
+        public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1001);
+                }
+
+                this.bridge.getWebView().setWebChromeClient(new BridgeWebChromeClient(this.bridge) {
+                    @Override
+                    public void onPermissionRequest(final PermissionRequest request) {
+                        runOnUiThread(() -> request.grant(request.getResources()));
+                    }
+                });
+            }
+        }
+        EOF
+
+        echo "----- Manifest (camera lines) -----"
+        grep -i camera "$MANIFEST" || true
+        echo "----- MainActivity.java -----"
+        cat "$MAIN_ACTIVITY"
 
     - name: Build Android APK
       run: |

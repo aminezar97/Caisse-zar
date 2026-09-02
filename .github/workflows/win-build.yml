@@ -7,6 +7,7 @@ on:
 jobs:
   build-win:
     runs-on: windows-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -20,7 +21,7 @@ jobs:
         run: npm install
 
       - name: Build Windows Installer (EXE)
-        run: npx electron-builder --win --x64 -c.nsis.oneClick=false -c.nsis.allowToChangeInstallationDirectory=true
+        run: npx electron-builder --win --x64 --publish never
 
       - name: Upload Windows Setup Artifact
         uses: actions/upload-artifact@v4

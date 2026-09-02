@@ -17,11 +17,15 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Clean Install Dependencies
+        run: |
+          npm cache clean --force
+          npm install --legacy-peer-deps
 
       - name: Build Windows Installer (EXE)
-        run: npx electron-builder --win --x64 --publish never
+        run: npx electron-builder --win --x64 -c.publish=null
+        env:
+          CI: false
 
       - name: Upload Windows Setup Artifact
         uses: actions/upload-artifact@v4

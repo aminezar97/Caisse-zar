@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-win:
+
     runs-on: windows-latest
 
     steps:
@@ -17,13 +18,13 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install All Dependencies (Including devDependencies)
-        run: npm ci || npm install
+      - name: Install Dependencies
+        run: npm install
 
       - name: Build Windows Installer (EXE)
-        run: npx electron-builder --win --x64 --config.asar=false
+        run: npx electron-builder --win --x64 -c.publish=null
         env:
-          CI: true
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows Setup Artifact
         uses: actions/upload-artifact@v4

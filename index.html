@@ -6,7 +6,7 @@
     <title>Zarouali Caisse</title>
 
     <!-- html5-qrcode pour le scan de code-barres -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js?v=2">
     </script>
 
     <style>
@@ -1941,7 +1941,7 @@
                     <div style="padding:15px;display:grid;gap:10px">
                         <button class="primary" onclick="exportBackup()">📤 Exporter toute la base</button>
                         <button class="secondary" onclick="document.getElementById('backupInput').click()">📥 Restaurer une sauvegarde</button>
-                        <input id="backupInput" type="file" accept=".json" hidden onchange="importBackup(event)">
+                        <input id="backupInput" type="file" accept=".js?v=2on" hidden onchange="importBackup(event)">
                         <hr>
                         <button class="secondary" onclick="openChangePassword()">🔐 Changer le mot de passe</button>
                         <button class="secondary" onclick="downloadDailyReport()">📄 Exporter le rapport du jour</button>
@@ -3474,7 +3474,7 @@
         function exportBackup() {
             const data = { ...db, _timestamp: new Date().toISOString(), _version: "1.0" };
             const json = JSON.stringify(data, null, 2);
-            downloadFile("zarouali_backup_" + new Date().toISOString().slice(0, 10) + ".json", json, "application/json");
+            downloadFile("zarouali_backup_" + new Date().toISOString().slice(0, 10) + ".js?v=2on", json, "application/json");
             toast("Sauvegarde exportée");
         }
 

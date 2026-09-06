@@ -30,6 +30,9 @@ jobs:
       - name: Install and Generate App Icons
         run: npx --yes @capacitor/assets generate --android
 
+      - name: Add Android Platform (if missing)
+        run: npx cap add android || true
+
       - name: Sync Capacitor with Android
         run: npx cap sync android
 
@@ -37,7 +40,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew clean assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

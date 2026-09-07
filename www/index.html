@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zarouali Caisse</title>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    <script src="./html5-qrcode.min.js">
     </script>
     <style>
         /* =========================================================
@@ -2929,7 +2929,7 @@ setTimeout(() => {
             } else if (saved) {
                 try {
                     db = JSON.parse(saved);
-                    db.products = [];
+                    if (!Array.isArray(db.products)) db.products = [];
                 } catch (e) { createDefaultDB(); }
             } else {
                 createDefaultDB();
@@ -2943,6 +2943,9 @@ setTimeout(() => {
                 if (p.image === undefined) p.image = "";
                 if (p.expirationDate === undefined) p.expirationDate = "";
             });
+
+            // Charger le catalogue local au premier démarrage
+            await ensureProductCatalog();
 
             if (!db.clients) db.clients = [];
             if (!db.cashiers || !db.cashiers.length) {

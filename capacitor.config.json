@@ -1,0 +1,6 @@
+{
+  "appId": "com.zarouali.caisse",
+  "appName": "Zarouali Caisse",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

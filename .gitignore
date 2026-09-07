@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+android/
+*.apk
+*.aab
+*.exe
+*.msi
+.DS_Store
+Thumbs.db

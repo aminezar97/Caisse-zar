@@ -26,7 +26,7 @@
 .print-only{display:none}@media print{#app,.modal-root,#modal-root{display:none!important}.print-only{display:block!important}body{background:#fff}}
 @media(min-width:720px){.datetime{display:inline}.view{padding:20px 24px}}@media(max-width:720px){.vente-layout{flex-direction:column}.vente-products{height:auto;flex:none}#product-grid{overflow:visible;max-height:none}.vente-cart{max-width:none;min-width:0;height:auto}.ticket{height:auto}.cart-items{max-height:220px}.hist-columns{grid-template-columns:1fr}.cashier-select{max-width:110px}.form-grid{grid-template-columns:1fr}.form-grid label.span2{grid-column:1}}
 </style>
-</head>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#204A37"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Zarouali Caisse"></head>
 <body>
 <div id="app">
 <header class="topbar"><div class="topbar-left"><span class="logo-mark">SC</span><span id="store-name-label" class="store-name">Souk Caisse</span></div><div class="topbar-right"><span id="datetime-label" class="datetime"></span><select id="cashier-input" class="cashier-select" title="Caissier"></select></div></header>
@@ -43,7 +43,7 @@
 </main>
 <nav class="bottomnav"><button class="navbtn active" data-view="vente"><span class="nav-icon">🛒</span>Vente</button><button class="navbtn" data-view="produits"><span class="nav-icon">📦</span>Produits</button><button class="navbtn" data-view="historique"><span class="nav-icon">📊</span>Historique</button><button class="navbtn" data-view="parametres"><span class="nav-icon">⚙️</span>Réglages</button></nav>
 </div><div id="modal-root"></div><div id="print-area" class="print-only"></div>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="html5-qrcode.min.js"></script>
 <script>
 const DB_KEYS={products:'sc_products',categories:'sc_categories',sales:'sc_sales',settings:'sc_settings',ticketSeq:'sc_ticket_seq',cashiers:'sc_cashiers'};
 const DEFAULT_CATEGORIES=[['cat_fl','Fruits & Légumes','#2F6B4F'],['cat_ep','Épicerie','#C77D2E'],['cat_cn','Conserves & Pâtes','#4A7A5E'],['cat_bo','Boissons','#2E6E8E'],['cat_lt','Produits laitiers','#8E5B2E'],['cat_pn','Boulangerie','#A65D2E'],['cat_sn','Snacks & Confiserie','#9C3F6B'],['cat_hy','Hygiène & Entretien','#6B4E8E'],['cat_au','Autres','#5A6B63']].map(x=>({id:x[0],name:x[1],color:x[2]}));
@@ -108,5 +108,15 @@ function openKeypadModal({title,subtitle,initial,allowDecimal,onConfirm}){let v=
 function openBarcodeScanner({subtitle,onResult}){if(typeof Html5Qrcode==='undefined')return toast('Scanner caméra indisponible. Le lecteur externe reste utilisable.',true);openModal(`<div class="modal-card"><h3>Scanner un code-barres</h3><p class="muted">${escapeHtml(subtitle||'')}</p><div id="qr-reader"></div><div id="scanner-error" class="scanner-error" style="display:none"></div><div class="modal-actions"><button class="btn-secondary" id="sc">Annuler</button></div></div>`);document.getElementById('sc').onclick=closeModal;const formats=window.Html5QrcodeSupportedFormats?[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.QR_CODE]:undefined;const s=new Html5Qrcode('qr-reader',formats?{formatsToSupport:formats,verbose:false}:undefined);activeScanner=s;s.start({facingMode:'environment'},{fps:12,qrbox:{width:260,height:160}},code=>{stopActiveScanner().then(()=>{closeModal();onResult(code)})},()=>{}).catch(()=>{const e=document.getElementById('scanner-error');if(e){e.style.display='block';e.textContent="Impossible d'accéder à la caméra. Vérifiez l'autorisation."}})}
 function stopActiveScanner(){if(!activeScanner)return Promise.resolve();const s=activeScanner;activeScanner=null;return s.stop().then(()=>s.clear()).catch(()=>{})}
 let toastTimer;function toast(msg,error=false){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';document.body.appendChild(e)}e.textContent=msg;e.className=error?'show error':'show';clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.className='',2200)}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js')
+      .catch(function (error) {
+        console.log('Service Worker:', error);
+      });
+  });
+}
 </script>
 </body></html>

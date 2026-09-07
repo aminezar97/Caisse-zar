@@ -8,15 +8,18 @@
     "web": "echo Web files are in www",
     "electron": "electron .",
     "electron:build": "electron-builder --win nsis portable",
-    "cap:sync": "npx cap sync",
-    "cap:android": "npx cap open android"
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "assets:generate": "npx capacitor-assets generate --android"
   },
   "dependencies": {
-    "@capacitor/android": "latest",
-    "@capacitor/core": "latest"
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "latest",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.0",
     "electron": "latest",
     "electron-builder": "latest"
   },
@@ -33,20 +36,20 @@
       "package.json"
     ],
     "win": {
+      "icon": "resources/icon.png",
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
       ]
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "target": ["AppImage"],
+      "category": "Office"
+    },
+    "mac": {
+      "icon": "resources/icon.png",
+      "target": ["dmg"]
     },
     "nsis": {
       "oneClick": false,

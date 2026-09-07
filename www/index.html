@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="manifest" href="./manifest.webmanifest">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zarouali Caisse</title>
@@ -2193,7 +2196,7 @@
     <div id="loginScreen">
         <div class="login-box">
             <div class="login-logo">
-                <img src="icon.png" alt="Logo">
+                <img src="./icon.png" alt="Logo">
             </div>
             <div class="login-title">Zarouali POS</div>
             <div class="login-sub">Terminal de caisse</div>
@@ -2214,7 +2217,7 @@
     ÉCRAN DE VEILLE
     ========================================================= -->
     <div id="screensaver">
-        <img src="icon.png" alt="Logo">
+        <img src="./icon.png" alt="Logo">
     </div>
 
     <!-- =========================================================
@@ -2227,7 +2230,7 @@
             <div class="header-row">
                 <button class="menu-btn" onclick="toggleMenu()">☰</button>
                 <div class="logo-area">
-                    <img src="icon.png" alt="Logo">
+                    <img src="./icon.png" alt="Logo">
                     <span class="logo-text">Zarouali POS</span>
                 </div>
                 <div class="header-actions">
@@ -2241,7 +2244,7 @@
         <aside id="sideMenu" class="side-menu">
             <div class="menu-header">
                 <div class="menu-title">
-                    <img src="icon.png" alt="Logo"> Zarouali POS
+                    <img src="./icon.png" alt="Logo"> Zarouali POS
                 </div>
                 <button class="menu-close" onclick="closeMenu()">×</button>
             </div>
@@ -2714,7 +2717,7 @@
         const THEME_KEY = "zarouali_caisse_theme";
 
         // ---- URL DE BASE POUR LES IMAGES ----
-        const IMAGE_BASE_URL = "https://raw.githubusercontent.com/aminezar/Caisse-zar/main/images/";
+        const IMAGE_BASE_URL = "./images/";
 
         // ---- DB ----
         let db = {
@@ -2867,7 +2870,32 @@
             renderAll();
         }
 
-        // ---- INIT ----
+        
+// ---- TEST DES IMAGES LOCALES ----
+function testProductImage(imageName) {
+    const url = "./images/" + imageName;
+
+    const img = new Image();
+
+    img.onload = function () {
+        console.log("IMAGE OK:", url);
+    };
+
+    img.onerror = function () {
+        console.error("IMAGE NOT FOUND:", url);
+    };
+
+    img.src = url;
+}
+
+// Vérification automatique
+setTimeout(() => {
+    testProductImage("1.jpg");
+    testProductImage("2.jpg");
+    testProductImage("3.jpg");
+}, 1500);
+
+// ---- INIT ----
         async function init() {
             loadTheme();
 
@@ -3320,7 +3348,7 @@
 
                 let imgHtml = `<div class="product-placeholder">Image non disponible</div>`;
                 if (image) {
-                    imgHtml = `<img src="${escapeAttr(image)}" alt="" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=product-placeholder>Image non disponible</div>';">`;
+                    imgHtml = `<img src="${escapeAttr(image)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class="product-placeholder">Image non disponible</div>';">`;
                 }
 
                 return `
@@ -4392,7 +4420,32 @@
             toast("Base de données réinitialisée");
         }
 
-        // ---- INIT ----
+        
+// ---- TEST DES IMAGES LOCALES ----
+function testProductImage(imageName) {
+    const url = "./images/" + imageName;
+
+    const img = new Image();
+
+    img.onload = function () {
+        console.log("IMAGE OK:", url);
+    };
+
+    img.onerror = function () {
+        console.error("IMAGE NOT FOUND:", url);
+    };
+
+    img.src = url;
+}
+
+// Vérification automatique
+setTimeout(() => {
+    testProductImage("1.jpg");
+    testProductImage("2.jpg");
+    testProductImage("3.jpg");
+}, 1500);
+
+// ---- INIT ----
         document.addEventListener("DOMContentLoaded", init);
     </script>
 

@@ -515,6 +515,7 @@
             .products { max-height: none; }
         }
     </style>
+    <script src="./data/catalog.js"></script>
 </head>
 <body>
 
@@ -1024,7 +1025,7 @@
         const STORE_KEY = "zarouali_caisse_store";
         const THEME_KEY = "zarouali_caisse_theme";
         const LANG_KEY = "zarouali_lang";
-        const IMAGE_BASE_URL = "./images/";
+        const IMAGE_BASE_URL = "./images/"; // legacy constant; image paths are normalized by normalizeProductImage()
 
         // ---- TRADUCTIONS ----
         const translations = {
@@ -1656,67 +1657,75 @@
         }
 
         // ---- FONCTIONS DE BASE (DB, CSV, etc.) ----
-        function parseCSVLine(line, separator) {
-            const result = [];
-            let current = "", inside = false;
-            for (let i = 0; i < line.length; i++) {
-                const c = line[i];
+        function parseCSV(text, preferredSeparator = null) {
+            text = String(text ?? "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+            if (!text.trim()) return [];
+            const firstLine = text.split("\n", 1)[0];
+            const separator = preferredSeparator || (firstLine.includes(";") ? ";" : ",");
+            const rows = [];
+            let row = [], field = "", quoted = false;
+            for (let i=0; i<text.length; i++) {
+                const c = text[i];
                 if (c === '"') {
-                    if (inside && line[i + 1] === '"') { current += '"'; i++; } else { inside = !inside; }
-                } else if (c === separator && !inside) {
-                    result.push(current);
-                    current = "";
-                } else {
-                    current += c;
-                }
+                    if (quoted && text[i+1] === '"') { field += '"'; i++; }
+                    else quoted = !quoted;
+                } else if (c === separator && !quoted) {
+                    row.push(field); field = "";
+                } else if (c === "\n" && !quoted) {
+                    row.push(field); field = "";
+                    if (row.some(v => String(v).trim() !== "")) rows.push(row);
+                    row = [];
+                } else field += c;
             }
-            result.push(current);
-            return result;
+            row.push(field);
+            if (row.some(v => String(v).trim() !== "")) rows.push(row);
+            return rows;
         }
-
+        function parseCSVLine(line, separator) {
+            const rows = parseCSV(line, separator || (String(line).includes(";") ? ";" : ","));
+            return rows[0] || [];
+        }
+        function normalizeHeader(h) {
+            return String(h ?? "").replace(/^\uFEFF/, "").trim().toLowerCase();
+        }
+        function parseNumber(value, fallback=0) {
+            const s = String(value ?? "").trim().replace(/\s/g, "").replace(",", ".");
+            if (!s) return fallback;
+            const n = Number(s);
+            return Number.isFinite(n) ? n : fallback;
+        }
+        function normalizeBarcode(value) {
+            const s = String(value ?? "").trim().replace(/\s/g, "");
+            return /^\d{8,14}$/.test(s) ? s : "";
+        }
         function parseCSVToProducts(csvText) {
-            const lines = csvText.split("\n").filter(l => l.trim());
-            if (lines.length < 2) return [];
-            const first = lines[0];
-            const sep = first.includes(';') ? ';' : ',';
-            const headers = parseCSVLine(first, sep);
-            const idIdx = headers.indexOf("id");
-            const nameIdx = headers.indexOf("name");
-            const catIdx = headers.indexOf("category");
-            const barIdx = headers.indexOf("barcode");
-            const priceIdx = headers.indexOf("price");
-            const purIdx = headers.indexOf("purchasePrice");
-            const stockIdx = headers.indexOf("stock");
-            const minIdx = headers.indexOf("minStock");
-            const imgIdx = headers.indexOf("image");
-            const expIdx = headers.indexOf("expirationDate");
-
+            const rows = parseCSV(csvText);
+            if (rows.length < 2) return [];
+            const headers = rows[0].map(normalizeHeader);
+            const idx = key => headers.indexOf(key);
+            const get = (row,key,def="") => { const i=idx(key); return i>=0 ? String(row[i] ?? "").trim() : def; };
             const products = [];
-            for (let i = 1; i < lines.length; i++) {
-                const cols = parseCSVLine(lines[i], sep);
-                if (cols.length < 2) continue;
-                const id = (idIdx >= 0 && cols[idIdx]) ? cols[idIdx].trim() : "P" + String(i).padStart(3, "0");
-                const name = (nameIdx >= 0 && cols[nameIdx]) ? cols[nameIdx].trim() : "Produit " + i;
-                const category = (catIdx >= 0 && cols[catIdx]) ? cols[catIdx].trim() : "Autre";
-                const barcode = (barIdx >= 0 && cols[barIdx]) ? cols[barIdx].trim() : "";
-                let price = 0;
-                if (priceIdx >= 0 && cols[priceIdx]) {
-                    price = parseFloat(cols[priceIdx]) || 0;
-                }
-                if (price === 0) price = 5.00; // Prix par défaut
-                let purchasePrice = (purIdx >= 0 && cols[purIdx]) ? parseFloat(cols[purIdx]) : 0;
-                if (!purchasePrice) purchasePrice = Math.round(price * 0.65 * 100) / 100;
-                const stock = parseInt((stockIdx >= 0 && cols[stockIdx]) ? cols[stockIdx] : 50) || 50;
-                const minStock = parseInt((minIdx >= 0 && cols[minIdx]) ? cols[minIdx] : 5) || 5;
-                const image = (imgIdx >= 0 && cols[imgIdx]) ? cols[imgIdx].trim() : "";
-                const expirationDate = (expIdx >= 0 && cols[expIdx]) ? cols[expIdx].trim() : "";
-                if (id && name) {
-                    products.push({ id, name, category, barcode, price, purchasePrice, stock, minStock, image, expirationDate });
-                }
+            const ids = new Set();
+            const barcodes = new Set();
+            for (let i=1; i<rows.length; i++) {
+                const row=rows[i];
+                const name=get(row,"name");
+                if (!name) continue;
+                let id=get(row,"id") || `P${String(i).padStart(4,"0")}`;
+                if (ids.has(id)) id=`P${String(i).padStart(4,"0")}`;
+                let barcode=normalizeBarcode(get(row,"barcode"));
+                if (barcode && barcodes.has(barcode)) barcode="";
+                const price=parseNumber(get(row,"price"),0);
+                const purchasePrice=parseNumber(get(row,"purchaseprice"), price>0 ? Math.round(price*0.65*100)/100 : 0);
+                const stock=Math.max(0,Math.floor(parseNumber(get(row,"stock"),50)));
+                const minStock=Math.max(0,Math.floor(parseNumber(get(row,"minstock"),5)));
+                const image=normalizeProductImage(get(row,"image"));
+                const expirationDate=get(row,"expirationdate");
+                const product={id,name,category:get(row,"category","Autre")||"Autre",barcode,price,purchasePrice,stock,minStock,image,expirationDate};
+                products.push(product); ids.add(id); if(barcode) barcodes.add(barcode);
             }
             return products;
         }
-
         function createDefaultDB() {
             db.products = [];
             db.cashiers = [
@@ -1760,13 +1769,12 @@
         }
 
         function normalizeProductImage(image) {
-            const value = String(image || "").trim();
+            const value = String(image || "").trim().replace(/\\/g, "/");
             if (!value) return "";
             if (/^(https?:|data:|blob:)/i.test(value)) return value;
-            const clean = value.replace(/^\.\/+/, "").replace(/^images\/+/i, "");
-            return "./images/" + clean;
+            const clean = value.replace(/^\.\/+/, "").replace(/^images\/+?/i, "").replace(/^\/+/, "");
+            return "./images/" + clean.split("/").pop();
         }
-
         function normalizeCatalogProduct(product) {
             return {
                 ...product,
@@ -1785,24 +1793,28 @@
 
         async function loadLocalProductCatalog() {
             try {
-                const response = await fetch("./data/products.csv?v=" + Date.now(), { cache: "no-store" });
-                if (!response.ok) throw new Error("CSV HTTP " + response.status);
-                const csvText = await response.text();
-                const products = parseCSVToProducts(csvText).map(normalizeCatalogProduct).filter(p => p.id && p.name);
+                let products = [];
+                try {
+                    const response = await fetch("./data/products.csv?v=" + Date.now(), { cache: "no-store" });
+                    if (response.ok) products = parseCSVToProducts(await response.text());
+                } catch (e) {
+                    console.warn("CSV fetch unavailable, trying embedded catalog", e);
+                }
+                if (!products.length && Array.isArray(window.ZAROUALI_CATALOG)) {
+                    products = window.ZAROUALI_CATALOG;
+                }
+                products = products.map(normalizeCatalogProduct).filter(p => p.id && p.name);
                 if (!products.length) {
-                    console.warn("⚠️ CSV empty or invalid");
+                    console.warn("⚠️ Aucun produit valide");
                     return false;
                 }
                 db.products = products;
-                if (typeof saveDB === "function") saveDB();
-                console.log("✅ Catalogue loaded:", products.length, "products");
                 return true;
             } catch (error) {
-                console.warn("⚠️ Failed to load CSV:", error);
+                console.warn("⚠️ Catalogue local indisponible:", error);
                 return false;
             }
         }
-
         async function ensureLocalProductCatalog() {
             if (!Array.isArray(db.products)) db.products = [];
             if (db.products.length > 0) {
@@ -1895,7 +1907,17 @@
 
             if (window.fsListen) {
                 window.fsListen(function(remoteData) {
-                    db = remoteData;
+                    if (!remoteData || typeof remoteData !== "object") return;
+                    const localProducts = Array.isArray(db.products) ? db.products : [];
+                    db = { ...db, ...remoteData };
+                    if (Array.isArray(remoteData.products) && remoteData.products.length) {
+                        db.products = remoteData.products.map(normalizeCatalogProduct);
+                    } else if (localProducts.length) {
+                        db.products = localProducts;
+                    }
+                    if (!Array.isArray(db.clients)) db.clients=[];
+                    if (!Array.isArray(db.cashiers)) db.cashiers=[];
+                    if (!Array.isArray(db.sales)) db.sales=[];
                     localStorage.setItem(DB_KEY, JSON.stringify(db));
                     renderAll();
                 });
@@ -2272,11 +2294,8 @@
                 let image = p.image || "";
                 let imgHtml = `<div class="product-placeholder">📷 ${t('noImage')}</div>`;
                 if (image) {
-                    if (!image.startsWith('http://') && !image.startsWith('https://')) {
-                        image = IMAGE_BASE_URL + image;
-                    }
-                    imgHtml = `<img src="${escapeAttr(image)}" alt="${escapeHTML(p.name)}" loading="lazy"
-                                 onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\"product-placeholder\">📷 ${t('noImage')}</div>';">`;
+                    image = normalizeProductImage(image);
+                    imgHtml = `<img src="${escapeAttr(image)}" alt="${escapeHTML(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\"product-placeholder\">📷 ${t('noImage')}</div>';">`;
                 }
 
                 const isLow = p.stock <= p.minStock;
@@ -2843,10 +2862,7 @@
                 document.getElementById("pMinStock").value = data.minStock || 5;
                 if (data.expirationDate) document.getElementById("pExpiration").value = data.expirationDate;
                 if (data.image) {
-                    let image = data.image;
-                    if (image && !image.startsWith('http://') && !image.startsWith('https://')) {
-                        image = IMAGE_BASE_URL + image;
-                    }
+                    let image = normalizeProductImage(data.image);
                     currentImage = data.image;
                     document.getElementById("imagePreview").innerHTML = `<img src="${escapeAttr(image)}" alt="${t('noImage')}">`;
                 }
@@ -3253,46 +3269,34 @@
 
         // ---- EXPORT / IMPORT CSV ----
         function exportProductsCSV() {
-            const headers = ["id", "name", "category", "barcode", "price", "purchasePrice", "stock", "minStock", "image", "expirationDate"];
-            const rows = db.products.map(p => headers.map(h => csvEscape(p[h] || "")));
-            const content = headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
-            downloadFile("produits.csv", content, "text/csv");
+            const headers=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];
+            const rows=db.products.map(p=>headers.map(h=>csvEscape(p[h] ?? "")));
+            const content="\uFEFF"+headers.join(";")+"\n"+rows.map(r=>r.join(";")).join("\n");
+            downloadFile("produits_zarouali_caisse.csv",content,"text/csv;charset=utf-8");
             toast(t('exportCSV'));
         }
-
         function importProductsCSV(event) {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const text = e.target.result;
-                    const importedProducts = parseCSVToProducts(text);
-                    if (!importedProducts.length) {
-                        toast(t('noProductsCSV'));
-                        return;
-                    }
-                    let count = 0;
-                    for (const prod of importedProducts) {
-                        const existing = db.products.find(p => p.id === prod.id);
-                        if (existing) {
-                            Object.assign(existing, prod);
-                        } else {
-                            db.products.push(prod);
-                        }
+            const file=event.target.files?.[0];
+            if(!file) return;
+            const reader=new FileReader();
+            reader.onload=function(e){
+                try{
+                    const imported=parseCSVToProducts(e.target.result);
+                    if(!imported.length){toast(t('noProductsCSV'));return;}
+                    let count=0;
+                    for(const prod of imported){
+                        let existing=prod.barcode ? db.products.find(p=>String(p.barcode)===prod.barcode) : null;
+                        if(!existing) existing=db.products.find(p=>String(p.id)===String(prod.id));
+                        if(existing) Object.assign(existing,prod); else db.products.push(prod);
                         count++;
                     }
-                    saveDB();
-                    renderAll();
-                    toast(t('importedProducts') + " " + count);
-                } catch (err) {
-                    toast(t('importError') + ": " + err.message);
-                }
-                event.target.value = "";
+                    db.products=db.products.map(normalizeCatalogProduct);
+                    saveDB(); renderAll(); toast(t('importedProducts')+" "+count);
+                }catch(err){toast(t('importError')+": "+err.message);}
+                event.target.value="";
             };
-            reader.readAsText(file);
+            reader.readAsText(file,"UTF-8");
         }
-
         // ---- BACKUP ----
         function exportBackup() {
             const data = { ...db, _timestamp: new Date().toISOString(), _version: "1.0" };

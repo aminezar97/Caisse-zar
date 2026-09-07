@@ -1025,7 +1025,7 @@
         const STORE_KEY = "zarouali_caisse_store";
         const THEME_KEY = "zarouali_caisse_theme";
         const LANG_KEY = "zarouali_lang";
-        const IMAGE_BASE_URL = "./images/"; // legacy constant; image paths are normalized by normalizeProductImage()
+        const IMAGE_BASE_URL = "./images/"; // legacy constant; image paths are normalized by normalizeProductImage() // legacy constant; image paths are normalized by normalizeProductImage()
 
         // ---- TRADUCTIONS ----
         const translations = {
@@ -1657,6 +1657,30 @@
         }
 
         // ---- FONCTIONS DE BASE (DB, CSV, etc.) ----
+        function parseCSV(text, preferredSeparator = null) {
+            text = String(text ?? "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+            if (!text.trim()) return [];
+            const firstLine = text.split("\n", 1)[0];
+            const separator = preferredSeparator || (firstLine.includes(";") ? ";" : ",");
+            const rows = [];
+            let row = [], field = "", quoted = false;
+            for (let i=0; i<text.length; i++) {
+                const c = text[i];
+                if (c === '"') {
+                    if (quoted && text[i+1] === '"') { field += '"'; i++; }
+                    else quoted = !quoted;
+                } else if (c === separator && !quoted) {
+                    row.push(field); field = "";
+                } else if (c === "\n" && !quoted) {
+                    row.push(field); field = "";
+                    if (row.some(v => String(v).trim() !== "")) rows.push(row);
+                    row = [];
+                } else field += c;
+            }
+            row.push(field);
+            if (row.some(v => String(v).trim() !== "")) rows.push(row);
+            return rows;
+        }
         function parseCSV(text, preferredSeparator = null) {
             text = String(text ?? "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
             if (!text.trim()) return [];

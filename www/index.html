@@ -2895,6 +2895,144 @@ setTimeout(() => {
     testProductImage("3.jpg");
 }, 1500);
 
+
+// =====================================================
+// ZAROUALI CAISSE - LOCAL PRODUCT CATALOG
+// =====================================================
+
+function normalizeProductImage(image) {
+    const value = String(image || "").trim();
+
+    if (!value) return "";
+
+    // URLs / data images
+    if (/^(https?:|data:|blob:)/i.test(value)) {
+        return value;
+    }
+
+    const clean = value
+        .replace(/^\.\/+/, "")
+        .replace(/^images\/+/i, "");
+
+    return "./images/" + clean;
+}
+
+function normalizeCatalogProduct(product) {
+    return {
+        ...product,
+
+        id: String(product.id || "").trim(),
+
+        name: String(product.name || "").trim(),
+
+        category:
+            String(product.category || "Épicerie").trim(),
+
+        barcode:
+            String(product.barcode || "").trim(),
+
+        price:
+            Number(product.price || 0),
+
+        purchasePrice:
+            Number(product.purchasePrice || 0),
+
+        stock:
+            Number.isFinite(Number(product.stock))
+                ? Number(product.stock)
+                : 50,
+
+        minStock:
+            Number.isFinite(Number(product.minStock))
+                ? Number(product.minStock)
+                : 5,
+
+        image:
+            normalizeProductImage(product.image),
+
+        expirationDate:
+            String(product.expirationDate || "").trim()
+    };
+}
+
+async function loadLocalProductCatalog() {
+
+    try {
+
+        const response = await fetch(
+            "./data/products.csv?v=" + Date.now(),
+            {
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "CSV HTTP " + response.status
+            );
+        }
+
+        const csvText = await response.text();
+
+        const products =
+            parseCSVToProducts(csvText)
+            .map(normalizeCatalogProduct)
+            .filter(p => p.id && p.name);
+
+        if (!products.length) {
+            console.warn(
+                "⚠️ products.csv ne contient aucun produit valide"
+            );
+            return false;
+        }
+
+        db.products = products;
+
+        if (typeof saveDB === "function") {
+            saveDB();
+        }
+
+        console.log(
+            "✅ Catalogue chargé:",
+            products.length,
+            "produits"
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.warn(
+            "⚠️ Impossible de charger products.csv:",
+            error
+        );
+
+        return false;
+    }
+}
+
+async function ensureLocalProductCatalog() {
+
+    if (!Array.isArray(db.products)) {
+        db.products = [];
+    }
+
+    // Ne pas écraser une base existante
+    if (db.products.length > 0) {
+
+        db.products =
+            db.products.map(
+                normalizeCatalogProduct
+            );
+
+        return;
+    }
+
+    // Première installation
+    await loadLocalProductCatalog();
+}
+
+
 // ---- INIT ----
         async function init() {
             loadTheme();
@@ -2946,6 +3084,8 @@ setTimeout(() => {
 
             // Charger le catalogue local au premier démarrage
             await ensureProductCatalog();
+
+            await ensureLocalProductCatalog();
 
             if (!db.clients) db.clients = [];
             if (!db.cashiers || !db.cashiers.length) {
@@ -4447,6 +4587,144 @@ setTimeout(() => {
     testProductImage("2.jpg");
     testProductImage("3.jpg");
 }, 1500);
+
+
+// =====================================================
+// ZAROUALI CAISSE - LOCAL PRODUCT CATALOG
+// =====================================================
+
+function normalizeProductImage(image) {
+    const value = String(image || "").trim();
+
+    if (!value) return "";
+
+    // URLs / data images
+    if (/^(https?:|data:|blob:)/i.test(value)) {
+        return value;
+    }
+
+    const clean = value
+        .replace(/^\.\/+/, "")
+        .replace(/^images\/+/i, "");
+
+    return "./images/" + clean;
+}
+
+function normalizeCatalogProduct(product) {
+    return {
+        ...product,
+
+        id: String(product.id || "").trim(),
+
+        name: String(product.name || "").trim(),
+
+        category:
+            String(product.category || "Épicerie").trim(),
+
+        barcode:
+            String(product.barcode || "").trim(),
+
+        price:
+            Number(product.price || 0),
+
+        purchasePrice:
+            Number(product.purchasePrice || 0),
+
+        stock:
+            Number.isFinite(Number(product.stock))
+                ? Number(product.stock)
+                : 50,
+
+        minStock:
+            Number.isFinite(Number(product.minStock))
+                ? Number(product.minStock)
+                : 5,
+
+        image:
+            normalizeProductImage(product.image),
+
+        expirationDate:
+            String(product.expirationDate || "").trim()
+    };
+}
+
+async function loadLocalProductCatalog() {
+
+    try {
+
+        const response = await fetch(
+            "./data/products.csv?v=" + Date.now(),
+            {
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "CSV HTTP " + response.status
+            );
+        }
+
+        const csvText = await response.text();
+
+        const products =
+            parseCSVToProducts(csvText)
+            .map(normalizeCatalogProduct)
+            .filter(p => p.id && p.name);
+
+        if (!products.length) {
+            console.warn(
+                "⚠️ products.csv ne contient aucun produit valide"
+            );
+            return false;
+        }
+
+        db.products = products;
+
+        if (typeof saveDB === "function") {
+            saveDB();
+        }
+
+        console.log(
+            "✅ Catalogue chargé:",
+            products.length,
+            "produits"
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.warn(
+            "⚠️ Impossible de charger products.csv:",
+            error
+        );
+
+        return false;
+    }
+}
+
+async function ensureLocalProductCatalog() {
+
+    if (!Array.isArray(db.products)) {
+        db.products = [];
+    }
+
+    // Ne pas écraser une base existante
+    if (db.products.length > 0) {
+
+        db.products =
+            db.products.map(
+                normalizeCatalogProduct
+            );
+
+        return;
+    }
+
+    // Première installation
+    await loadLocalProductCatalog();
+}
+
 
 // ---- INIT ----
         document.addEventListener("DOMContentLoaded", init);

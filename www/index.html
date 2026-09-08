@@ -3584,105 +3584,89 @@
         window.fsListen = function(callback) { authReady.then(function() { onSnapshot(dbDocRef, function(snap) { if (snap.exists()) callback(snap.data()); }, function(err) { console.warn("Firestore listen error", err); }); }); };
     </script>
 
-/* LOGIN BUTTON HARD FIX */
+
+<script>
+/* LOGIN BUTTON HARD FIX - FINAL */
 (function () {
-  function installLoginButtonFix() {
-    const btn = document.getElementById("loginBtn");
-    const user = document.getElementById("loginUser");
-    const pass = document.getElementById("loginPass");
+    function installLoginFix() {
+        var btn = document.getElementById("loginBtn");
+        var user = document.getElementById("loginUser");
+        var pass = document.getElementById("loginPass");
+        var screen = document.getElementById("loginScreen");
+        var error = document.getElementById("loginError");
 
-    if (!btn) {
-      console.warn("LOGIN FIX: loginBtn not found");
-      return;
+        if (!btn || !user || !pass || !screen) {
+            return;
+        }
+
+        btn.onclick = function (event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            var username = String(user.value || "").trim();
+            var password = String(pass.value || "");
+
+            /*
+             * FINAL EMERGENCY LOGIN
+             * Completely independent from localStorage,
+             * Firebase and the original doLogin().
+             */
+            if (username === "admin" && password === "1234") {
+
+                screen.style.display = "none";
+                screen.classList.add("hidden");
+
+                window.__ZAROUALI_LOGIN_OK__ = true;
+
+                try {
+                    if (typeof isLoggedIn !== "undefined") {
+                        isLoggedIn = true;
+                    }
+                } catch (e) {}
+
+                try {
+                    if (typeof resetInactivityTimer === "function") {
+                        resetInactivityTimer();
+                    }
+                } catch (e) {}
+
+                try {
+                    if (typeof renderAll === "function") {
+                        renderAll();
+                    }
+                } catch (e) {}
+
+                return false;
+            }
+
+            if (error) {
+                error.textContent = "Identifiants incorrects";
+                error.style.display = "block";
+            }
+
+            return false;
+        };
+
+        pass.onkeydown = function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                btn.click();
+                return false;
+            }
+        };
     }
 
-    console.log("LOGIN FIX: button connected");
-
-    btn.onclick = function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      console.log("LOGIN FIX: button clicked");
-
-      const username = user ? String(user.value || "").trim() : "";
-      const password = pass ? String(pass.value || "") : "";
-
-      console.log("LOGIN FIX: username =", username);
-
-      if (username === "admin" && password === "1234") {
-        const screen = document.getElementById("loginScreen");
-
-        try {
-          localStorage.setItem(
-            "zarouali_caisse_login",
-            JSON.stringify({
-              username: "admin",
-              password: "1234"
-            })
-          );
-        } catch (e) {
-          console.warn("LOGIN FIX: localStorage unavailable");
-        }
-
-        if (screen) {
-          screen.style.display = "none";
-          screen.classList.add("hidden");
-        }
-
-        window.__ZAROUALI_LOGGED_IN__ = true;
-
-        try {
-          if (typeof resetInactivityTimer === "function") {
-            resetInactivityTimer();
-          }
-        } catch (e) {}
-
-        try {
-          if (typeof renderAll === "function") {
-            renderAll();
-          }
-        } catch (e) {
-          console.warn("LOGIN FIX: renderAll error", e);
-        }
-
-        console.log("LOGIN FIX: LOGIN SUCCESS");
-        return false;
-      }
-
-      console.log("LOGIN FIX: invalid credentials");
-
-      const msg =
-        document.getElementById("loginError") ||
-        document.getElementById("loginMessage");
-
-      if (msg) {
-        msg.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
-        msg.style.display = "block";
-      } else {
-        alert("اسم المستخدم أو كلمة المرور غير صحيحة");
-      }
-
-      return false;
-    };
-
-    if (pass) {
-      pass.onkeydown = function (event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          btn.click();
-        }
-      };
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", installLoginFix);
+    } else {
+        installLoginFix();
     }
-  }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", installLoginButtonFix);
-  } else {
-    installLoginButtonFix();
-  }
-
-  window.installLoginButtonFix = installLoginButtonFix;
+    window.installLoginFix = installLoginFix;
 })();
+</script>
 
 </body>
 </html>

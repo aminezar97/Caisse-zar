@@ -1876,10 +1876,13 @@
                 const name = (idx.name >= 0 && cols[idx.name]) ? cols[idx.name].trim() : "Produit " + i;
                 const category = (idx.category >= 0 && cols[idx.category]) ? cols[idx.category].trim() : "Autre";
                 const barcode = (idx.barcode >= 0 && cols[idx.barcode]) ? cols[idx.barcode].trim() : "";
-                let price = (idx.price >= 0 && cols[idx.price]) ? parseFloat(cols[idx.price]) || 0 : 0;
-                if (price === 0) price = 5.00;
-                let purchasePrice = (idx.purchasePrice >= 0 && cols[idx.purchasePrice]) ? parseFloat(cols[idx.purchasePrice]) : 0;
-                if (!purchasePrice) purchasePrice = Math.round(price * 0.65 * 100) / 100;
+                let price = (idx.price >= 0 && cols[idx.price] !== undefined && cols[idx.price].trim() !== "")
+                    ? (parseFloat(cols[idx.price].trim().replace(",", ".")) || 0)
+                    : 0;
+
+                let purchasePrice = (idx.purchasePrice >= 0 && cols[idx.purchasePrice] !== undefined && cols[idx.purchasePrice].trim() !== "")
+                    ? (parseFloat(cols[idx.purchasePrice].trim().replace(",", ".")) || 0)
+                    : 0;
                 const stock = (idx.stock >= 0 && cols[idx.stock]) ? parseInt(cols[idx.stock]) || 50 : 50;
                 const minStock = (idx.minStock >= 0 && cols[idx.minStock]) ? parseInt(cols[idx.minStock]) || 5 : 5;
                 const image = (idx.image >= 0 && cols[idx.image]) ? cols[idx.image].trim() : "";
@@ -1919,11 +1922,33 @@
         }
 
         function normalizeProductImage(image) {
-            const value = String(image || "").trim();
+            let value = String(image || "").trim();
+
             if (!value) return "";
-            if (/^(https?:|data:|blob:)/i.test(value)) return value;
-            const clean = value.replace(/^\.\/+/, "").replace(/^images\/+/i, "");
-            return "./images/" + clean;
+
+            // External / Base64 / Blob images
+            if (/^(https?:|data:|blob:)/i.test(value)) {
+                return value;
+            }
+
+            // Remove quotes possibly coming from CSV
+            value = value.replace(/^["']+|["']+$/g, "").trim();
+
+            // Normalize Windows paths
+            value = value.replace(/\\/g, "/");
+
+            // Remove ./ and images/ prefixes
+            value = value
+                .replace(/^\.\/+/, "")
+                .replace(/^images\/+/, "")
+                .replace(/^www\/+images\/+/, "");
+
+            // Numeric CSV images such as 187.jpg
+            if (value) {
+                return IMAGE_BASE_URL + value;
+            }
+
+            return "";
         }
 
         function normalizeCatalogProduct(product) {
@@ -1946,8 +1971,76 @@
 
         async function ensureLocalProductCatalog() {
             if (!Array.isArray(db.products)) db.products = [];
-            if (db.products.length > 0) { db.products = db.products.map(normalizeCatalogProduct); return; }
-            await loadLocalProductCatalog();
+
+            try {
+                const response = await fetch("./data/products.csv?v=" + Date.now(), {
+                    cache: "no-store"
+                });
+
+                if (!response.ok) throw new Error("CSV HTTP " + response.status);
+
+                const csvText = await response.text();
+
+                const catalogProducts = parseCSVToProducts(csvText)
+                    .map(normalizeCatalogProduct)
+                    .filter(p => p.id && p.name);
+
+                if (!catalogProducts.length) {
+                    console.warn("⚠️ Catalogue CSV vide");
+                    db.products = db.products.map(normalizeCatalogProduct);
+                    return;
+                }
+
+                // CSV = source principale des produits/images.
+                // On conserve les produits locaux supplémentaires,
+                // mais les produits présents dans le CSV sont synchronisés.
+                const localMap = new Map(
+                    db.products.map(p => [String(p.id), p])
+                );
+
+                const merged = catalogProducts.map(csvProduct => {
+                    const local = localMap.get(String(csvProduct.id));
+
+                    if (!local) {
+                        return csvProduct;
+                    }
+
+                    return {
+                        ...local,
+                        ...csvProduct,
+
+                        // Image du CSV prioritaire
+                        image: normalizeProductImage(
+                            csvProduct.image || local.image || ""
+                        )
+                    };
+                });
+
+                // Conserver d'éventuels produits créés localement
+                const csvIds = new Set(catalogProducts.map(p => String(p.id)));
+
+                for (const local of db.products) {
+                    if (!csvIds.has(String(local.id))) {
+                        merged.push(normalizeCatalogProduct(local));
+                    }
+                }
+
+                db.products = merged;
+
+                console.log(
+                    "✅ Catalogue synchronisé:",
+                    catalogProducts.length,
+                    "produits"
+                );
+
+            } catch (error) {
+                console.warn(
+                    "⚠️ Impossible de synchroniser products.csv:",
+                    error
+                );
+
+                db.products = db.products.map(normalizeCatalogProduct);
+            }
         }
 
         // ---- INIT ----
@@ -2580,84 +2673,443 @@
         // saveCashier, deleteCashier, editCashier, openCashierModal sont identiques à la version précédente.
         // Pour la clarté, je les ai gardées identiques dans le code complet, mais je les résume ici.)
 
-        // ---- SCANNER (CORRIGÉ) ----
-        function openScanner() {
-            document.getElementById("scannerModal").classList.add("show");
-            document.getElementById("scannerStatus").textContent = t('scanReady');
-            document.getElementById("scannerStatus").className = "scanner-status";
-            document.querySelector('.scanner-retry-btn').style.display = 'none';
-            scannerRetryCount = 0;
-            setTimeout(() => startScanner(), 300);
-        }
-        function closeScanner() {
-            if (scannerInstance) { try { scannerInstance.stop(); } catch (e) {} scannerInstance = null; }
-            scannerRunning = false;
-            document.getElementById("scannerModal").classList.remove("show");
-        }
+        // =========================================================
+        // ZAROUALI CAISSE — BARCODE SCANNER V2
+        // Camera arrière + EAN/UPC/Code128/Code39/ITF/QR
+        // =========================================================
+
+        let scannerInstance = null;
+        let scannerRunning = false;
+        let scannerLocked = false;
         let scannerRetryCount = 0;
-        function retryScanner() {
-            document.getElementById('scannerStatus').textContent = t('scanReady');
-            document.getElementById('scannerStatus').className = "scanner-status";
-            document.querySelector('.scanner-retry-btn').style.display = 'none';
+
+        function openScanner() {
+            const modal = document.getElementById("scannerModal");
+            const status = document.getElementById("scannerStatus");
+            const retry = document.querySelector(".scanner-retry-btn");
+
+            if (!modal) return;
+
+            modal.classList.add("show");
+
+            scannerLocked = false;
             scannerRetryCount = 0;
-            startScanner();
+
+            if (status) {
+                status.textContent = t("scanReady");
+                status.className = "scanner-status";
+            }
+
+            if (retry) retry.style.display = "none";
+
+            // attendre que le modal soit réellement visible
+            setTimeout(() => {
+                startScanner();
+            }, 400);
         }
-        function startScanner() {
+
+        async function closeScanner() {
+            scannerLocked = true;
+
+            if (scannerInstance) {
+                try {
+                    if (scannerRunning) {
+                        await scannerInstance.stop();
+                    }
+                } catch (e) {
+                    console.warn("Scanner stop:", e);
+                }
+
+                try {
+                    scannerInstance.clear();
+                } catch (e) {}
+
+                scannerInstance = null;
+            }
+
+            scannerRunning = false;
+
+            const container = document.getElementById("scannerContainer");
+
+            if (container) {
+                container.innerHTML = '<div class="scanner-overlay"></div>';
+            }
+
+            const modal = document.getElementById("scannerModal");
+
+            if (modal) {
+                modal.classList.remove("show");
+            }
+        }
+
+        function retryScanner() {
+            scannerLocked = false;
+
+            const status = document.getElementById("scannerStatus");
+            const retry = document.querySelector(".scanner-retry-btn");
+
+            if (status) {
+                status.textContent = t("scanReady");
+                status.className = "scanner-status";
+            }
+
+            if (retry) retry.style.display = "none";
+
+            if (scannerInstance) {
+                try {
+                    scannerInstance.stop();
+                } catch (e) {}
+
+                try {
+                    scannerInstance.clear();
+                } catch (e) {}
+
+                scannerInstance = null;
+            }
+
+            scannerRunning = false;
+
+            setTimeout(startScanner, 250);
+        }
+
+        async function startScanner() {
+
             if (scannerRunning) return;
+
             const container = document.getElementById("scannerContainer");
             const status = document.getElementById("scannerStatus");
+            const retry = document.querySelector(".scanner-retry-btn");
 
-            if (typeof Html5Qrcode === 'undefined' && typeof window.html5qrcode === 'undefined') {
-                status.textContent = "❌ " + t('scannerError') + " (bibliothèque manquante)";
+            if (!container || !status) return;
+
+            scannerLocked = false;
+
+            // Check library
+            const ScannerClass =
+                window.Html5Qrcode ||
+                window.html5qrcode ||
+                null;
+
+            if (!ScannerClass) {
+                status.textContent =
+                    "❌ " + t("scannerError") +
+                    " — html5-qrcode introuvable";
+
                 status.className = "scanner-status error";
-                document.querySelector('.scanner-retry-btn').style.display = 'inline-block';
+
+                if (retry) retry.style.display = "inline-block";
+
                 return;
             }
-            const Html5QrcodeLib = window.Html5Qrcode || window.html5qrcode;
 
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                status.textContent = "❌ " + t('scannerError') + " (caméra non supportée)";
+            // Check camera API
+            if (!navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia) {
+
+                status.textContent =
+                    "❌ " + t("scannerError") +
+                    " — caméra non disponible";
+
                 status.className = "scanner-status error";
-                document.querySelector('.scanner-retry-btn').style.display = 'inline-block';
+
+                if (retry) retry.style.display = "inline-block";
+
                 return;
             }
 
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(stream => {
-                    stream.getTracks().forEach(track => track.stop());
-                    if (scannerInstance) { try { scannerInstance.stop(); } catch (e) {} scannerInstance = null; }
-                    try { scannerInstance = new Html5QrcodeLib("scannerContainer"); }
-                    catch (e) {
-                        status.textContent = "❌ " + t('scannerError') + ": " + e.message;
-                        status.className = "scanner-status error";
-                        document.querySelector('.scanner-retry-btn').style.display = 'inline-block';
-                        return;
-                    }
-                    const config = { fps: 15, qrbox: { width: 250, height: 200 }, aspectRatio: 1.333 };
-                    scannerInstance.start({ facingMode: "environment" }, config,
-                        (decodedText) => {
-                            status.textContent = "✅ " + t('scanCode') + ": " + decodedText;
-                            status.className = "scanner-status success";
-                            const product = db.products.find(p => String(p.barcode) === decodedText);
-                            if (product) { addToCart(product.id); playBeep(); toast(t('productAdded') + ": " + product.name); }
-                            else { playErrorBeep(); openProductModal(null, decodedText); toast(t('barcodeNotFound')); }
-                            closeScanner();
-                        },
-                        (error) => {}
-                    ).then(() => { scannerRunning = true; status.textContent = t('scannerReady'); status.className = "scanner-status"; })
-                    .catch((err) => {
-                        status.textContent = "❌ " + t('scannerError') + ": " + err.message;
-                        status.className = "scanner-status error";
-                        document.querySelector('.scanner-retry-btn').style.display = 'inline-block';
-                        scannerRunning = false;
-                    });
-                })
-                .catch(err => {
-                    status.textContent = "❌ " + t('scannerError') + ": " + err.message;
-                    status.className = "scanner-status error";
-                    document.querySelector('.scanner-retry-btn').style.display = 'inline-block';
+            try {
+
+                // Stop old scanner
+                if (scannerInstance) {
+                    try {
+                        await scannerInstance.stop();
+                    } catch (e) {}
+
+                    try {
+                        scannerInstance.clear();
+                    } catch (e) {}
+
+                    scannerInstance = null;
                     scannerRunning = false;
-                });
+                }
+
+                // Remove old video elements
+                container.innerHTML = "";
+
+                status.textContent = "📷 Recherche de la caméra arrière...";
+
+                // =====================================================
+                // Get available cameras
+                // =====================================================
+
+                let cameras = [];
+
+                try {
+                    cameras = await ScannerClass.getCameras();
+                } catch (e) {
+                    console.warn("getCameras:", e);
+                }
+
+                let cameraId = null;
+
+                if (cameras && cameras.length) {
+
+                    // Prefer rear/back/environment camera
+                    const rear = cameras.find(camera => {
+                        const label = String(camera.label || "").toLowerCase();
+
+                        return (
+                            label.includes("back") ||
+                            label.includes("rear") ||
+                            label.includes("environment") ||
+                            label.includes("arrière") ||
+                            label.includes("trasera")
+                        );
+                    });
+
+                    cameraId = rear
+                        ? rear.id
+                        : cameras[cameras.length - 1].id;
+                }
+
+                // =====================================================
+                // Create scanner
+                // =====================================================
+
+                scannerInstance = new ScannerClass("scannerContainer");
+
+                // Formats commonly used in supermarkets
+                const formats = [];
+
+                if (window.Html5QrcodeSupportedFormats) {
+
+                    const F =
+                        window.Html5QrcodeSupportedFormats;
+
+                    [
+                        "EAN_13",
+                        "EAN_8",
+                        "UPC_A",
+                        "UPC_E",
+                        "CODE_128",
+                        "CODE_39",
+                        "CODE_93",
+                        "ITF",
+                        "CODABAR",
+                        "QR_CODE"
+                    ].forEach(name => {
+                        if (F[name] !== undefined) {
+                            formats.push(F[name]);
+                        }
+                    });
+                }
+
+                const config = {
+                    fps: 12,
+
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+
+                        const width =
+                            Math.min(
+                                Math.floor(viewfinderWidth * 0.90),
+                                420
+                            );
+
+                        const height =
+                            Math.min(
+                                Math.floor(viewfinderHeight * 0.38),
+                                180
+                            );
+
+                        return {
+                            width: Math.max(width, 240),
+                            height: Math.max(height, 120)
+                        };
+                    },
+
+                    aspectRatio: 1.7777778,
+
+                    disableFlip: false
+                };
+
+                if (formats.length) {
+                    config.formatsToSupport = formats;
+                }
+
+                // =====================================================
+                // Start camera
+                // =====================================================
+
+                const cameraConfig = cameraId
+                    ? cameraId
+                    : {
+                        facingMode: {
+                            exact: "environment"
+                        }
+                    };
+
+                status.textContent = "📷 Ouverture de la caméra...";
+
+                await scannerInstance.start(
+                    cameraConfig,
+                    config,
+
+                    async function(decodedText) {
+
+                        if (scannerLocked) return;
+
+                        const barcode =
+                            String(decodedText || "")
+                                .trim();
+
+                        if (!barcode) return;
+
+                        // Prevent duplicate rapid scans
+                        scannerLocked = true;
+
+                        status.textContent =
+                            "✅ " +
+                            t("scanCode") +
+                            ": " +
+                            barcode;
+
+                        status.className =
+                            "scanner-status success";
+
+                        // =================================================
+                        // Find product by exact barcode
+                        // =================================================
+
+                        const product = db.products.find(p => {
+
+                            const pBarcode =
+                                String(p.barcode || "").trim();
+
+                            return pBarcode === barcode;
+                        });
+
+                        if (product) {
+
+                            try {
+                                addToCart(product.id);
+                                playBeep();
+
+                                toast(
+                                    t("productAdded") +
+                                    ": " +
+                                    product.name
+                                );
+
+                            } catch (e) {
+                                console.error(
+                                    "Add scanned product:",
+                                    e
+                                );
+                            }
+
+                            setTimeout(() => {
+                                closeScanner();
+                            }, 250);
+
+                        } else {
+
+                            try {
+                                playErrorBeep();
+                            } catch (e) {}
+
+                            toast(
+                                t("barcodeNotFound") +
+                                ": " +
+                                barcode
+                            );
+
+                            // Open product form with scanned barcode
+                            setTimeout(() => {
+
+                                closeScanner();
+
+                                setTimeout(() => {
+                                    openProductModal(
+                                        null,
+                                        barcode
+                                    );
+                                }, 250);
+
+                            }, 250);
+                        }
+                    },
+
+                    function(errorMessage) {
+                        // Normal:
+                        // scanner tries many frames before finding a code.
+                        // Do not show errors continuously.
+                    }
+                );
+
+                scannerRunning = true;
+
+                status.textContent =
+                    "🔦 " +
+                    t("scannerReady") +
+                    " — " +
+                    (cameraId ? "Caméra arrière" : "Caméra");
+
+                status.className = "scanner-status";
+
+                console.log(
+                    "✅ Barcode scanner started",
+                    cameras
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Barcode scanner error:",
+                    error
+                );
+
+                scannerRunning = false;
+
+                let message =
+                    error?.message ||
+                    String(error);
+
+                if (
+                    message.toLowerCase().includes("permission") ||
+                    message.toLowerCase().includes("notallowed")
+                ) {
+                    message =
+                        "Autorisation caméra refusée. " +
+                        "Autorisez la caméra dans les paramètres Android.";
+                }
+
+                status.textContent =
+                    "❌ " +
+                    t("scannerError") +
+                    ": " +
+                    message;
+
+                status.className =
+                    "scanner-status error";
+
+                if (retry) {
+                    retry.style.display = "inline-block";
+                }
+
+                try {
+                    if (scannerInstance) {
+                        await scannerInstance.stop();
+                    }
+                } catch (e) {}
+
+                try {
+                    if (scannerInstance) {
+                        scannerInstance.clear();
+                    }
+                } catch (e) {}
+
+                scannerInstance = null;
+            }
         }
 
         // ---- IMAGES ----

@@ -2218,51 +2218,93 @@
 
             if (errorEl) errorEl.textContent = "";
 
+            // =====================================================
+            // ZAROUALI CAISSE - ROBUST LOGIN
+            // =====================================================
+
             let valid = false;
+            let loginUser = "admin";
+            let loginPassword = "1234";
 
-            // ---------------------------------------------------------
-            // Primary login
-            // ---------------------------------------------------------
-            const loginData = localStorage.getItem(LOGIN_KEY);
+            // -----------------------------------------------------
+            // Read saved login
+            // -----------------------------------------------------
+            try {
+                const savedLogin = localStorage.getItem(LOGIN_KEY);
 
-            if (loginData) {
-                try {
-                    const d = JSON.parse(loginData);
+                if (savedLogin) {
+                    const data = JSON.parse(savedLogin);
 
-                    const savedUser = String(d.username || "").trim();
-                    const savedPass = String(d.password || "").trim();
-
-                    if (savedUser && savedPass &&
-                        savedUser === user &&
-                        savedPass === pass) {
-                        valid = true;
+                    if (data && data.username) {
+                        loginUser = String(data.username).trim();
                     }
-                } catch (e) {
-                    console.warn("Invalid saved login data:", e);
+
+                    if (data && data.password !== undefined) {
+                        loginPassword = String(data.password).trim();
+                    }
                 }
+            } catch (e) {
+                console.warn("LOGIN_KEY invalid:", e);
             }
 
-            // ---------------------------------------------------------
-            // Legacy / default administrator
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // PASSWORD_KEY has priority when available
+            // -----------------------------------------------------
+            try {
+                const savedPassword =
+                    localStorage.getItem(PASSWORD_KEY);
+
+                if (savedPassword !== null &&
+                    String(savedPassword).trim() !== "") {
+
+                    loginPassword =
+                        String(savedPassword).trim();
+                }
+            } catch (e) {
+                console.warn("PASSWORD_KEY error:", e);
+            }
+
+            // -----------------------------------------------------
+            // Accept saved credentials
+            // -----------------------------------------------------
+            if (
+                user === loginUser &&
+                pass === loginPassword
+            ) {
+                valid = true;
+            }
+
+            // -----------------------------------------------------
+            // Emergency/default administrator
+            // This does NOT delete products or sales.
+            // -----------------------------------------------------
             if (!valid && user === "admin" && pass === "1234") {
                 valid = true;
 
-                // Repair old/corrupted login data automatically.
-                localStorage.setItem(
-                    LOGIN_KEY,
-                    JSON.stringify({
-                        username: "admin",
-                        password: "1234"
-                    })
-                );
+                try {
+                    localStorage.setItem(
+                        LOGIN_KEY,
+                        JSON.stringify({
+                            username: "admin",
+                            password: "1234"
+                        })
+                    );
 
-                localStorage.setItem(PASSWORD_KEY, "1234");
+                    localStorage.setItem(
+                        PASSWORD_KEY,
+                        "1234"
+                    );
+                } catch (e) {
+                    console.warn(
+                        "Could not repair login storage:",
+                        e
+                    );
+                }
             }
 
-            // ---------------------------------------------------------
-            // Success
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // LOGIN SUCCESS
+            // -----------------------------------------------------
             if (valid) {
 
                 isLoggedIn = true;
@@ -2282,23 +2324,44 @@
                     errorEl.textContent = "";
                 }
 
-                toast(t('welcome') + " " + user + " !");
-                resetInactivityTimer();
-                renderAll();
+                try {
+                    toast(
+                        t("welcome") +
+                        " " +
+                        user +
+                        " !"
+                    );
+                } catch (e) {}
 
-                return;
+                resetInactivityTimer();
+
+                try {
+                    renderAll();
+                } catch (e) {
+                    console.error(
+                        "renderAll after login:",
+                        e
+                    );
+                }
+
+                return true;
             }
 
-            // ---------------------------------------------------------
-            // Failed login
-            // ---------------------------------------------------------
+            // -----------------------------------------------------
+            // LOGIN FAILED
+            // -----------------------------------------------------
             if (errorEl) {
-                errorEl.textContent = t('loginError');
+                errorEl.textContent =
+                    t("loginError") ||
+                    "Identifiants incorrects";
             }
 
             if (passEl) {
+                passEl.focus();
                 passEl.select();
             }
+
+            return false;
         }
 
         function resetInactivityTimer() {

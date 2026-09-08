@@ -3586,16 +3586,56 @@
 
 
 <script>
-/* LOGIN BUTTON HARD FIX - FINAL */
+/* LOGIN BUTTON FIX - APPLICATION INITIALIZATION */
 (function () {
+    var loginReady = false;
+
+    function finishLogin() {
+        var screen = document.getElementById("loginScreen");
+
+        if (screen) {
+            screen.style.display = "none";
+            screen.classList.add("hidden");
+        }
+
+        window.__ZAROUALI_LOGIN_OK__ = true;
+        loginReady = true;
+
+        /*
+         * Restore normal application initialization.
+         * Do not replace the application's original init().
+         */
+        try {
+            if (typeof resetInactivityTimer === "function") {
+                resetInactivityTimer();
+            }
+        } catch (e) {
+            console.warn("Login init:", e);
+        }
+
+        try {
+            if (typeof renderAll === "function") {
+                renderAll();
+            }
+        } catch (e) {
+            console.warn("Render:", e);
+        }
+
+        /*
+         * IMPORTANT:
+         * init() is already started by the application startup.
+         * Do NOT call init() a second time after login.
+         * Calling it twice can reload Firebase/CSV and reset db.
+         */
+    }
+
     function installLoginFix() {
         var btn = document.getElementById("loginBtn");
         var user = document.getElementById("loginUser");
         var pass = document.getElementById("loginPass");
-        var screen = document.getElementById("loginScreen");
         var error = document.getElementById("loginError");
 
-        if (!btn || !user || !pass || !screen) {
+        if (!btn || !user || !pass) {
             return;
         }
 
@@ -3608,42 +3648,27 @@
             var username = String(user.value || "").trim();
             var password = String(pass.value || "");
 
-            /*
-             * FINAL EMERGENCY LOGIN
-             * Completely independent from localStorage,
-             * Firebase and the original doLogin().
-             */
             if (username === "admin" && password === "1234") {
 
-                screen.style.display = "none";
-                screen.classList.add("hidden");
-
-                window.__ZAROUALI_LOGIN_OK__ = true;
-
                 try {
-                    if (typeof isLoggedIn !== "undefined") {
-                        isLoggedIn = true;
-                    }
+                    localStorage.setItem(
+                        "zarouali_caisse_login",
+                        JSON.stringify({
+                            username: "admin",
+                            password: "1234"
+                        })
+                    );
                 } catch (e) {}
 
-                try {
-                    if (typeof resetInactivityTimer === "function") {
-                        resetInactivityTimer();
-                    }
-                } catch (e) {}
-
-                try {
-                    if (typeof renderAll === "function") {
-                        renderAll();
-                    }
-                } catch (e) {}
-
+                finishLogin();
                 return false;
             }
 
             if (error) {
                 error.textContent = "Identifiants incorrects";
                 error.style.display = "block";
+            } else {
+                alert("Identifiants incorrects");
             }
 
             return false;

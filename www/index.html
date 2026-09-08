@@ -2212,75 +2212,38 @@
             const userEl = document.getElementById("loginUser");
             const passEl = document.getElementById("loginPass");
             const errorEl = document.getElementById("loginError");
+            const loginScreen = document.getElementById("loginScreen");
 
             const user = String(userEl?.value || "").trim();
             const pass = String(passEl?.value || "").trim();
 
             if (errorEl) errorEl.textContent = "";
 
-            // =====================================================
-            // ZAROUALI CAISSE - ROBUST LOGIN
-            // =====================================================
+            /*
+             * =====================================================
+             * ZAROUALI CAISSE - CLEAN LOGIN
+             * =====================================================
+             *
+             * Default administrator:
+             * username = admin
+             * password = 1234
+             *
+             * This login is intentionally independent from
+             * Firebase and previous corrupted login storage.
+             */
 
             let valid = false;
-            let loginUser = "admin";
-            let loginPassword = "1234";
 
-            // -----------------------------------------------------
-            // Read saved login
-            // -----------------------------------------------------
-            try {
-                const savedLogin = localStorage.getItem(LOGIN_KEY);
-
-                if (savedLogin) {
-                    const data = JSON.parse(savedLogin);
-
-                    if (data && data.username) {
-                        loginUser = String(data.username).trim();
-                    }
-
-                    if (data && data.password !== undefined) {
-                        loginPassword = String(data.password).trim();
-                    }
-                }
-            } catch (e) {
-                console.warn("LOGIN_KEY invalid:", e);
-            }
-
-            // -----------------------------------------------------
-            // PASSWORD_KEY has priority when available
-            // -----------------------------------------------------
-            try {
-                const savedPassword =
-                    localStorage.getItem(PASSWORD_KEY);
-
-                if (savedPassword !== null &&
-                    String(savedPassword).trim() !== "") {
-
-                    loginPassword =
-                        String(savedPassword).trim();
-                }
-            } catch (e) {
-                console.warn("PASSWORD_KEY error:", e);
-            }
-
-            // -----------------------------------------------------
-            // Accept saved credentials
-            // -----------------------------------------------------
-            if (
-                user === loginUser &&
-                pass === loginPassword
-            ) {
-                valid = true;
-            }
-
-            // -----------------------------------------------------
-            // Emergency/default administrator
-            // This does NOT delete products or sales.
-            // -----------------------------------------------------
-            if (!valid && user === "admin" && pass === "1234") {
+            /*
+             * Always accept the factory administrator credentials.
+             */
+            if (user === "admin" && pass === "1234") {
                 valid = true;
 
+                /*
+                 * Repair saved credentials without touching
+                 * products, sales, clients or settings.
+                 */
                 try {
                     localStorage.setItem(
                         LOGIN_KEY,
@@ -2295,25 +2258,60 @@
                         "1234"
                     );
                 } catch (e) {
-                    console.warn(
-                        "Could not repair login storage:",
-                        e
-                    );
+                    console.warn("Login storage unavailable:", e);
                 }
             }
 
-            // -----------------------------------------------------
-            // LOGIN SUCCESS
-            // -----------------------------------------------------
+            /*
+             * Also accept the currently saved credentials.
+             * This preserves the existing Change Password feature.
+             */
+            if (!valid) {
+                try {
+                    const savedLogin = localStorage.getItem(LOGIN_KEY);
+                    const savedPassword = localStorage.getItem(PASSWORD_KEY);
+
+                    let savedUser = "admin";
+                    let savedPass = "1234";
+
+                    if (savedLogin) {
+                        try {
+                            const data = JSON.parse(savedLogin);
+
+                            if (data && data.username) {
+                                savedUser = String(data.username).trim();
+                            }
+
+                            if (data && data.password !== undefined) {
+                                savedPass = String(data.password).trim();
+                            }
+                        } catch (e) {}
+                    }
+
+                    if (savedPassword !== null &&
+                        String(savedPassword).trim() !== "") {
+                        savedPass = String(savedPassword).trim();
+                    }
+
+                    if (user === savedUser && pass === savedPass) {
+                        valid = true;
+                    }
+
+                } catch (e) {
+                    console.warn("Saved login error:", e);
+                }
+            }
+
+            /*
+             * LOGIN SUCCESS
+             */
             if (valid) {
 
                 isLoggedIn = true;
 
-                const loginScreen =
-                    document.getElementById("loginScreen");
-
                 if (loginScreen) {
                     loginScreen.classList.add("hidden");
+                    loginScreen.style.display = "";
                 }
 
                 if (passEl) {
@@ -2326,34 +2324,36 @@
 
                 try {
                     toast(
-                        t("welcome") +
+                        (typeof t === "function" ? t("welcome") : "Bienvenue") +
                         " " +
                         user +
                         " !"
                     );
                 } catch (e) {}
 
+                /*
+                 * Do NOT call init() here.
+                 * init() already runs once at application startup.
+                 */
                 resetInactivityTimer();
 
                 try {
                     renderAll();
                 } catch (e) {
-                    console.error(
-                        "renderAll after login:",
-                        e
-                    );
+                    console.error("renderAll after login:", e);
                 }
 
-                return true;
+                return false;
             }
 
-            // -----------------------------------------------------
-            // LOGIN FAILED
-            // -----------------------------------------------------
+            /*
+             * LOGIN FAILED
+             */
             if (errorEl) {
                 errorEl.textContent =
-                    t("loginError") ||
-                    "Identifiants incorrects";
+                    (typeof t === "function" && t("loginError"))
+                        ? t("loginError")
+                        : "Identifiants incorrects";
             }
 
             if (passEl) {
@@ -3583,115 +3583,5 @@
         window.fsLoadDB = function() { return authReady.then(function() { return getDoc(dbDocRef); }).then(function(snap) { return snap.exists() ? snap.data() : null; }); };
         window.fsListen = function(callback) { authReady.then(function() { onSnapshot(dbDocRef, function(snap) { if (snap.exists()) callback(snap.data()); }, function(err) { console.warn("Firestore listen error", err); }); }); };
     </script>
-
-
-<script>
-/* LOGIN BUTTON FIX - APPLICATION INITIALIZATION */
-(function () {
-    var loginReady = false;
-
-    function finishLogin() {
-        var screen = document.getElementById("loginScreen");
-
-        if (screen) {
-            screen.style.display = "none";
-            screen.classList.add("hidden");
-        }
-
-        window.__ZAROUALI_LOGIN_OK__ = true;
-        loginReady = true;
-
-        /*
-         * Restore normal application initialization.
-         * Do not replace the application's original init().
-         */
-        try {
-            if (typeof resetInactivityTimer === "function") {
-                resetInactivityTimer();
-            }
-        } catch (e) {
-            console.warn("Login init:", e);
-        }
-
-        try {
-            if (typeof renderAll === "function") {
-                renderAll();
-            }
-        } catch (e) {
-            console.warn("Render:", e);
-        }
-
-        /*
-         * IMPORTANT:
-         * init() is already started by the application startup.
-         * Do NOT call init() a second time after login.
-         * Calling it twice can reload Firebase/CSV and reset db.
-         */
-    }
-
-    function installLoginFix() {
-        var btn = document.getElementById("loginBtn");
-        var user = document.getElementById("loginUser");
-        var pass = document.getElementById("loginPass");
-        var error = document.getElementById("loginError");
-
-        if (!btn || !user || !pass) {
-            return;
-        }
-
-        btn.onclick = function (event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-
-            var username = String(user.value || "").trim();
-            var password = String(pass.value || "");
-
-            if (username === "admin" && password === "1234") {
-
-                try {
-                    localStorage.setItem(
-                        "zarouali_caisse_login",
-                        JSON.stringify({
-                            username: "admin",
-                            password: "1234"
-                        })
-                    );
-                } catch (e) {}
-
-                finishLogin();
-                return false;
-            }
-
-            if (error) {
-                error.textContent = "Identifiants incorrects";
-                error.style.display = "block";
-            } else {
-                alert("Identifiants incorrects");
-            }
-
-            return false;
-        };
-
-        pass.onkeydown = function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                btn.click();
-                return false;
-            }
-        };
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", installLoginFix);
-    } else {
-        installLoginFix();
-    }
-
-    window.installLoginFix = installLoginFix;
-})();
-</script>
-
 </body>
 </html>

@@ -2209,20 +2209,95 @@
         }
 
         function doLogin() {
-            const user = document.getElementById("loginUser").value.trim();
-            const pass = document.getElementById("loginPass").value.trim();
-            const loginData = localStorage.getItem(LOGIN_KEY);
+            const userEl = document.getElementById("loginUser");
+            const passEl = document.getElementById("loginPass");
+            const errorEl = document.getElementById("loginError");
+
+            const user = String(userEl?.value || "").trim();
+            const pass = String(passEl?.value || "").trim();
+
+            if (errorEl) errorEl.textContent = "";
+
             let valid = false;
-            if (loginData) { try { const d = JSON.parse(loginData); if (d.username === user && d.password === pass) valid = true; } catch (e) {} }
-            if (!valid && user === "admin" && pass === "1234") valid = true;
+
+            // ---------------------------------------------------------
+            // Primary login
+            // ---------------------------------------------------------
+            const loginData = localStorage.getItem(LOGIN_KEY);
+
+            if (loginData) {
+                try {
+                    const d = JSON.parse(loginData);
+
+                    const savedUser = String(d.username || "").trim();
+                    const savedPass = String(d.password || "").trim();
+
+                    if (savedUser && savedPass &&
+                        savedUser === user &&
+                        savedPass === pass) {
+                        valid = true;
+                    }
+                } catch (e) {
+                    console.warn("Invalid saved login data:", e);
+                }
+            }
+
+            // ---------------------------------------------------------
+            // Legacy / default administrator
+            // ---------------------------------------------------------
+            if (!valid && user === "admin" && pass === "1234") {
+                valid = true;
+
+                // Repair old/corrupted login data automatically.
+                localStorage.setItem(
+                    LOGIN_KEY,
+                    JSON.stringify({
+                        username: "admin",
+                        password: "1234"
+                    })
+                );
+
+                localStorage.setItem(PASSWORD_KEY, "1234");
+            }
+
+            // ---------------------------------------------------------
+            // Success
+            // ---------------------------------------------------------
             if (valid) {
+
                 isLoggedIn = true;
-                document.getElementById("loginScreen").classList.add("hidden");
-                toast(t('welcome') + ' ' + user + ' !');
+
+                const loginScreen =
+                    document.getElementById("loginScreen");
+
+                if (loginScreen) {
+                    loginScreen.classList.add("hidden");
+                }
+
+                if (passEl) {
+                    passEl.value = "";
+                }
+
+                if (errorEl) {
+                    errorEl.textContent = "";
+                }
+
+                toast(t('welcome') + " " + user + " !");
                 resetInactivityTimer();
                 renderAll();
-            } else {
-                document.getElementById("loginError").textContent = t('loginError');
+
+                return;
+            }
+
+            // ---------------------------------------------------------
+            // Failed login
+            // ---------------------------------------------------------
+            if (errorEl) {
+                errorEl.textContent = t('loginError');
+            }
+
+            if (passEl) {
+                passEl.select();
             }
         }
 

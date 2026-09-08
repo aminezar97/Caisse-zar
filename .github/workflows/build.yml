@@ -87,17 +87,49 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create Android project
+      - name: Verify current web source
         run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          set -e
+          test -f www/index.html
+          test -f www/data/products.csv
+          test -f www/html5-qrcode.min.js
+          grep -q "ROBUST LOGIN" www/index.html
+          grep -q "zarouali_caisse_password" www/index.html
+          echo "======================================"
+          echo "WEB SOURCE VERIFIED"
+          echo "Latest index.html will be used"
+          echo "======================================"
+
+      - name: Create FRESH Android project
+        run: |
+          set -e
+          rm -rf android
+          npx cap add android
+          echo "======================================"
+          echo "FRESH ANDROID PROJECT CREATED"
+          echo "======================================"
 
       - name: Generate Android icons & splash from real logo
         run: npx capacitor-assets generate --android
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Sync Capacitor with latest web files
+        run: |
+          set -e
+          npx cap sync android
+
+      - name: Verify APK web assets
+        run: |
+          set -e
+          APK_INDEX="android/app/src/main/assets/public/index.html"
+
+          test -f "$APK_INDEX"
+          grep -q "ROBUST LOGIN" "$APK_INDEX"
+          grep -q "zarouali_caisse_password" "$APK_INDEX"
+
+          echo "======================================"
+          echo "ANDROID WEB ASSETS VERIFIED"
+          echo "ROBUST LOGIN FOUND INSIDE APK ASSETS"
+          echo "======================================"
 
       - name: Fix junitVersion property (known Capacitor/AGP template issue)
         run: |

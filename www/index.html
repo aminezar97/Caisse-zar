@@ -1970,76 +1970,250 @@
         }
 
         async function ensureLocalProductCatalog() {
-            if (!Array.isArray(db.products)) db.products = [];
+            /*
+             * ============================================================
+             * ZAROUALI CAISSE - AUTHORITATIVE CSV CATALOG
+             * ============================================================
+             *
+             * CSV is the official source for:
+             *   ID
+             *   NAME
+             *   CATEGORY
+             *   BARCODE
+             *   PRICE
+             *   PURCHASE PRICE
+             *   STOCK
+             *   MIN STOCK
+             *   IMAGE
+             *   EXPIRATION DATE
+             *
+             * IMPORTANT:
+             * Products are matched ONLY by ID.
+             * NEVER match products by name or barcode.
+             * This prevents an old product name from being displayed
+             * with another product image.
+             */
+
+            if (!Array.isArray(db.products)) {
+                db.products = [];
+            }
 
             try {
-                const response = await fetch("./data/products.csv?v=" + Date.now(), {
-                    cache: "no-store"
-                });
+                const response = await fetch(
+                    "./data/products.csv?v=" + Date.now(),
+                    {
+                        cache: "no-store"
+                    }
+                );
 
-                if (!response.ok) throw new Error("CSV HTTP " + response.status);
+                if (!response.ok) {
+                    throw new Error("CSV HTTP " + response.status);
+                }
 
                 const csvText = await response.text();
 
                 const catalogProducts = parseCSVToProducts(csvText)
                     .map(normalizeCatalogProduct)
-                    .filter(p => p.id && p.name);
+                    .filter(product =>
+                        product &&
+                        String(product.id || "").trim() &&
+                        String(product.name || "").trim()
+                    );
 
                 if (!catalogProducts.length) {
-                    console.warn("⚠️ Catalogue CSV vide");
-                    db.products = db.products.map(normalizeCatalogProduct);
-                    return;
+                    console.warn("⚠️ CSV catalogue is empty");
+                    return false;
                 }
 
-                // CSV = source principale des produits/images.
-                // On conserve les produits locaux supplémentaires,
-                // mais les produits présents dans le CSV sont synchronisés.
-                const localMap = new Map(
-                    db.products.map(p => [String(p.id), p])
-                );
+                /*
+                 * Detect duplicate IDs in CSV.
+                 * Duplicate IDs are dangerous because image/name mapping
+                 * becomes ambiguous.
+                 */
+                const seenIds = new Set();
+                const duplicateIds = [];
 
-                const merged = catalogProducts.map(csvProduct => {
-                    const local = localMap.get(String(csvProduct.id));
+                for (const product of catalogProducts) {
+                    const id = String(product.id).trim();
 
-                    if (!local) {
-                        return csvProduct;
+                    if (seenIds.has(id)) {
+                        duplicateIds.push(id);
+                    } else {
+                        seenIds.add(id);
                     }
+                }
+
+                if (duplicateIds.length) {
+                    console.error(
+                        "❌ Duplicate product IDs in CSV:",
+                        [...new Set(duplicateIds)]
+                    );
+                }
+
+                /*
+                 * Previous local database indexed ONLY by ID.
+                 *
+                 * This is deliberately NOT indexed by:
+                 *   - name
+                 *   - barcode
+                 *   - image
+                 */
+                const oldProductsById = new Map();
+
+                for (const oldProduct of db.products) {
+                    if (!oldProduct) continue;
+
+                    const id = String(oldProduct.id || "").trim();
+
+                    if (id) {
+                        oldProductsById.set(id, oldProduct);
+                    }
+                }
+
+                /*
+                 * Build the new catalogue.
+                 *
+                 * CSV fields are authoritative.
+                 * Old local data can only provide fields that are not
+                 * part of the CSV identity/catalogue.
+                 */
+                const finalProducts = catalogProducts.map(csvProduct => {
+
+                    const id = String(csvProduct.id).trim();
+                    const oldProduct = oldProductsById.get(id);
+
+                    const csvImage = normalizeProductImage(csvProduct.image);
 
                     return {
-                        ...local,
-                        ...csvProduct,
+                        /*
+                         * Preserve old record only as a base object.
+                         */
+                        ...(oldProduct || {}),
 
-                        // Image du CSV prioritaire
-                        image: normalizeProductImage(
-                            csvProduct.image || local.image || ""
+                        /*
+                         * CSV ALWAYS wins for identity.
+                         */
+                        id: id,
+                        name: String(csvProduct.name || "").trim(),
+                        category: String(
+                            csvProduct.category || "Épicerie"
+                        ).trim(),
+
+                        barcode: String(
+                            csvProduct.barcode || ""
+                        ).trim(),
+
+                        price: Number.isFinite(Number(csvProduct.price))
+                            ? Number(csvProduct.price)
+                            : 0,
+
+                        purchasePrice: Number.isFinite(
+                            Number(csvProduct.purchasePrice)
                         )
+                            ? Number(csvProduct.purchasePrice)
+                            : 0,
+
+                        stock: Number.isFinite(Number(csvProduct.stock))
+                            ? Number(csvProduct.stock)
+                            : 50,
+
+                        minStock: Number.isFinite(Number(csvProduct.minStock))
+                            ? Number(csvProduct.minStock)
+                            : 5,
+
+                        /*
+                         * CRITICAL:
+                         * Image comes directly from CSV and is normalized.
+                         * It cannot be replaced by an old image.
+                         */
+                        image: csvImage,
+
+                        expirationDate: String(
+                            csvProduct.expirationDate || ""
+                        ).trim()
                     };
                 });
 
-                // Conserver d'éventuels produits créés localement
-                const csvIds = new Set(catalogProducts.map(p => String(p.id)));
+                /*
+                 * Remove ALL products that are not present in CSV.
+                 *
+                 * This is important because otherwise an old product
+                 * remaining in localStorage/Firebase could appear in the
+                 * catalogue with an incorrect image/name.
+                 */
+                db.products = finalProducts;
 
-                for (const local of db.products) {
-                    if (!csvIds.has(String(local.id))) {
-                        merged.push(normalizeCatalogProduct(local));
+                /*
+                 * Diagnostic verification.
+                 */
+                let invalidImages = 0;
+
+                for (const product of db.products) {
+                    const expectedImage =
+                        IMAGE_BASE_URL + String(product.id) + ".jpg";
+
+                    if (
+                        product.image &&
+                        product.image !== expectedImage
+                    ) {
+                        console.warn(
+                            "⚠️ Image differs from ID:",
+                            product.id,
+                            product.name,
+                            "=>",
+                            product.image
+                        );
+                    }
+
+                    if (!product.image) {
+                        invalidImages++;
                     }
                 }
 
-                db.products = merged;
+                /*
+                 * Save the corrected catalogue.
+                 */
+                if (typeof saveDB === "function") {
+                    saveDB();
+                }
 
                 console.log(
-                    "✅ Catalogue synchronisé:",
-                    catalogProducts.length,
-                    "produits"
+                    "✅ AUTHORITATIVE CSV CATALOG LOADED:",
+                    db.products.length,
+                    "products"
                 );
 
+                console.log(
+                    "🖼️ Products without image:",
+                    invalidImages
+                );
+
+                /*
+                 * Print a few mappings for verification.
+                 */
+                console.table(
+                    db.products.slice(0, 20).map(product => ({
+                        ID: product.id,
+                        NAME: product.name,
+                        IMAGE: product.image,
+                        BARCODE: product.barcode
+                    }))
+                );
+
+                return true;
+
             } catch (error) {
-                console.warn(
-                    "⚠️ Impossible de synchroniser products.csv:",
+
+                console.error(
+                    "❌ Failed to load authoritative CSV catalogue:",
                     error
                 );
 
-                db.products = db.products.map(normalizeCatalogProduct);
+                /*
+                 * Do NOT silently replace the catalogue with corrupted
+                 * or partially parsed CSV data.
+                 */
+                return false;
             }
         }
 

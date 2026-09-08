@@ -3583,5 +3583,106 @@
         window.fsLoadDB = function() { return authReady.then(function() { return getDoc(dbDocRef); }).then(function(snap) { return snap.exists() ? snap.data() : null; }); };
         window.fsListen = function(callback) { authReady.then(function() { onSnapshot(dbDocRef, function(snap) { if (snap.exists()) callback(snap.data()); }, function(err) { console.warn("Firestore listen error", err); }); }); };
     </script>
+
+/* LOGIN BUTTON HARD FIX */
+(function () {
+  function installLoginButtonFix() {
+    const btn = document.getElementById("loginBtn");
+    const user = document.getElementById("loginUser");
+    const pass = document.getElementById("loginPass");
+
+    if (!btn) {
+      console.warn("LOGIN FIX: loginBtn not found");
+      return;
+    }
+
+    console.log("LOGIN FIX: button connected");
+
+    btn.onclick = function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      console.log("LOGIN FIX: button clicked");
+
+      const username = user ? String(user.value || "").trim() : "";
+      const password = pass ? String(pass.value || "") : "";
+
+      console.log("LOGIN FIX: username =", username);
+
+      if (username === "admin" && password === "1234") {
+        const screen = document.getElementById("loginScreen");
+
+        try {
+          localStorage.setItem(
+            "zarouali_caisse_login",
+            JSON.stringify({
+              username: "admin",
+              password: "1234"
+            })
+          );
+        } catch (e) {
+          console.warn("LOGIN FIX: localStorage unavailable");
+        }
+
+        if (screen) {
+          screen.style.display = "none";
+          screen.classList.add("hidden");
+        }
+
+        window.__ZAROUALI_LOGGED_IN__ = true;
+
+        try {
+          if (typeof resetInactivityTimer === "function") {
+            resetInactivityTimer();
+          }
+        } catch (e) {}
+
+        try {
+          if (typeof renderAll === "function") {
+            renderAll();
+          }
+        } catch (e) {
+          console.warn("LOGIN FIX: renderAll error", e);
+        }
+
+        console.log("LOGIN FIX: LOGIN SUCCESS");
+        return false;
+      }
+
+      console.log("LOGIN FIX: invalid credentials");
+
+      const msg =
+        document.getElementById("loginError") ||
+        document.getElementById("loginMessage");
+
+      if (msg) {
+        msg.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
+        msg.style.display = "block";
+      } else {
+        alert("اسم المستخدم أو كلمة المرور غير صحيحة");
+      }
+
+      return false;
+    };
+
+    if (pass) {
+      pass.onkeydown = function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          btn.click();
+        }
+      };
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installLoginButtonFix);
+  } else {
+    installLoginButtonFix();
+  }
+
+  window.installLoginButtonFix = installLoginButtonFix;
+})();
+
 </body>
 </html>

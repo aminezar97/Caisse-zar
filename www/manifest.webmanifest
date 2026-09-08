@@ -1,5 +1,5 @@
 {
-  "name": "Zarouali Supermarché - Caisse",
+  "name": "Zarouali Caisse",
   "short_name": "Zarouali Caisse",
   "description": "Application POS et gestion de caisse pour Zarouali Supermarché",
   "lang": "fr",
@@ -11,7 +11,17 @@
   "background_color": "#F1EDE1",
   "theme_color": "#204A37",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

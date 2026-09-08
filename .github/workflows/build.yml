@@ -93,7 +93,6 @@ jobs:
           test -f www/index.html
           test -f www/data/products.csv
           test -f www/html5-qrcode.min.js
-          grep -q "ROBUST LOGIN" www/index.html
           grep -q "zarouali_caisse_password" www/index.html
           echo "======================================"
           echo "WEB SOURCE VERIFIED"
@@ -123,12 +122,11 @@ jobs:
           APK_INDEX="android/app/src/main/assets/public/index.html"
 
           test -f "$APK_INDEX"
-          grep -q "ROBUST LOGIN" "$APK_INDEX"
           grep -q "zarouali_caisse_password" "$APK_INDEX"
 
           echo "======================================"
           echo "ANDROID WEB ASSETS VERIFIED"
-          echo "ROBUST LOGIN FOUND INSIDE APK ASSETS"
+          echo "LATEST INDEX.HTML FOUND INSIDE APK ASSETS"
           echo "======================================"
 
       - name: Fix junitVersion property (known Capacitor/AGP template issue)

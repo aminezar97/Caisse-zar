@@ -1,0 +1,621 @@
+﻿id;name;category;barcode;price;purchasePrice;stock;minStock;image;expirationDate;priceStatus;imageStatus
+1;Biscotti;Biscuits & Gâteaux;6111259347434;0.0;0.0;50;5;1.jpg;;MISSING;MISSING
+2;Chocup;Biscuits & Gâteaux;6111259340060;0.0;0.0;50;5;2.jpg;;MISSING;MISSING
+3;Cuetara Digesta Light 200G Marie Cookies;Biscuits & Gâteaux;8434165437418;0.0;0.0;50;5;3.jpg;;MISSING;MISSING
+4;Eyoo cover;Biscuits & Gâteaux;6111259340992;0.0;0.0;50;5;4.jpg;;MISSING;MISSING
+5;Golden;Biscuits & Gâteaux;6111031005651;0.0;0.0;50;5;5.jpg;;MISSING;MISSING
+6;Henry's Petit Surfin;Biscuits & Gâteaux;3362600011006;0.0;0.0;50;5;6.jpg;;MISSING;MISSING
+7;Henry’s;Biscuits & Gâteaux;3362600011044;0.0;0.0;50;5;7.jpg;;MISSING;MISSING
+8;Kenz Biscuits;Biscuits & Gâteaux;;0.0;0.0;50;5;8.jpg;;MISSING;MISSING
+9;Lotus biscoff;Biscuits & Gâteaux;5410126006049;0.0;0.0;50;5;9.jpg;;MISSING;MISSING
+10;Megachok;Biscuits & Gâteaux;8412674005021;0.0;0.0;50;5;10.jpg;;MISSING;MISSING
+11;Merendina;Biscuits & Gâteaux;6111031005453;0.0;0.0;50;5;11.jpg;;MISSING;MISSING
+12;Pauz;Biscuits & Gâteaux;6111259347861;0.0;0.0;50;5;12.jpg;;MISSING;MISSING
+13;Suprême;Biscuits & Gâteaux;6111259346741;0.0;0.0;50;5;13.jpg;;MISSING;MISSING
+14;Tagger;Biscuits & Gâteaux;6111031005033;0.0;0.0;50;5;14.jpg;;MISSING;MISSING
+15;Tango;Biscuits & Gâteaux;6111031005095;0.0;0.0;50;5;15.jpg;;MISSING;MISSING
+16;Tonik;Biscuits & Gâteaux;6111031005064;0.0;0.0;50;5;16.jpg;;MISSING;MISSING
+17;Top cookies;Biscuits & Gâteaux;6111259341517;0.0;0.0;50;5;17.jpg;;MISSING;MISSING
+18;Whola Digestive Biscuits Classic;Biscuits & Gâteaux;8690526082004;0.0;0.0;50;5;18.jpg;;MISSING;MISSING
+19;tuc original;Biscuits & Gâteaux;7622202026980;0.0;0.0;50;5;19.jpg;;MISSING;MISSING
+20;vamos;Biscuits & Gâteaux;6111271590498;0.0;0.0;50;5;20.jpg;;MISSING;MISSING
+21;Печиво zero sugar free;Biscuits & Gâteaux;8410376009392;0.0;0.0;50;5;21.jpg;;MISSING;MISSING
+22;7UP;Boissons;;0.0;0.0;50;5;22.jpg;;MISSING;MISSING
+23;Abtal;Boissons;6111251752762;0.0;0.0;50;5;23.jpg;;MISSING;MISSING
+24;Aiguebelle;Boissons;6111017046548;0.0;0.0;50;5;24.jpg;;MISSING;MISSING
+25;Ain Saïss;Boissons;6111128000071;0.0;0.0;50;5;25.jpg;;MISSING;MISSING
+26;Andros Jus Pomme;Boissons;;0.0;0.0;50;5;26.jpg;;MISSING;MISSING
+27;Biscuits Tacos au Cacao;Boissons;6111242600553;0.0;0.0;50;5;27.jpg;;MISSING;MISSING
+28;Boustan Mangue;Boissons;;0.0;0.0;50;5;28.jpg;;MISSING;MISSING
+29;Boustan Nectar Orange;Boissons;;0.0;0.0;50;5;29.jpg;;MISSING;MISSING
+30;Bouteilles de jus;Boissons;;0.0;0.0;50;5;30.jpg;;MISSING;MISSING
+31;Caobel;Boissons;6111017007013;0.0;0.0;50;5;31.jpg;;MISSING;MISSING
+32;Cappy PULPY;Boissons;90382383;0.0;0.0;50;5;32.jpg;;MISSING;MISSING
+33;Cappy PULPY;Boissons;5449000147417;0.0;0.0;50;5;33.jpg;;MISSING;MISSING
+34;Chocao energie;Boissons;6111180010414;0.0;0.0;50;5;34.jpg;;MISSING;MISSING
+35;Chocolat Noir 92% cacao;Boissons;8410510012196;0.0;0.0;50;5;35.jpg;;MISSING;MISSING
+36;Chocolat Tentation Noir Gourmand Amandes;Boissons;6111017042427;0.0;0.0;50;5;36.jpg;;MISSING;MISSING
+37;Chocolat monogram;Boissons;6111025120605;0.0;0.0;50;5;37.jpg;;MISSING;MISSING
+38;Chocolate con leche y almendras;Boissons;8425197712024;0.0;0.0;50;5;38.jpg;;MISSING;MISSING
+39;Classic;Boissons;6111250470254;0.0;0.0;50;5;39.jpg;;MISSING;MISSING
+40;Coca - Cola;Boissons;42105220;0.0;0.0;50;5;40.jpg;;MISSING;MISSING
+41;Coca - Cola;Boissons;5449000000286;0.0;0.0;50;5;41.jpg;;MISSING;MISSING
+42;Coca - Cola;Boissons;;0.0;0.0;50;5;42.jpg;;MISSING;MISSING
+43;Coca - Cola Original Taste;Boissons;5449000054227;0.0;0.0;50;5;43.jpg;;MISSING;MISSING
+44;Coca - Cola original taste;Boissons;90338243;0.0;0.0;50;5;44.jpg;;MISSING;MISSING
+45;Coca - Cola slim 25cl;Boissons;5449000008046;0.0;0.0;50;5;45.jpg;;MISSING;MISSING
+46;Coca Cola Original taste;Boissons;5449000000439;0.0;0.0;50;5;46.jpg;;MISSING;MISSING
+47;Coca cola zero;Boissons;90375323;0.0;0.0;50;5;47.jpg;;MISSING;MISSING
+48;Cocacola zero sugar;Boissons;5449000133328;0.0;0.0;50;5;48.jpg;;MISSING;MISSING
+49;Cooky chocolate;Boissons;6111259346352;0.0;0.0;50;5;49.jpg;;MISSING;MISSING
+50;Danettz Chocolat;Boissons;6111032006749;0.0;0.0;50;5;50.jpg;;MISSING;MISSING
+51;Danone max red fruit;Boissons;6111032009412;0.0;0.0;50;5;51.jpg;;MISSING;MISSING
+52;Disfruta Frutas Y Vitaminas Brik imp;Boissons;8410707000241;0.0;0.0;50;5;52.jpg;;MISSING;MISSING
+53;Disfruta Jus;Boissons;;0.0;0.0;50;5;53.jpg;;MISSING;MISSING
+54;FRUT MAX;Boissons;6111242926806;0.0;0.0;50;5;54.jpg;;MISSING;MISSING
+55;Fanta Orange;Boissons;6111259347106;0.0;0.0;50;5;55.jpg;;MISSING;MISSING
+56;Fanta Orange;Boissons;;0.0;0.0;50;5;56.jpg;;MISSING;MISSING
+57;Flash Wondermint Gum;Boissons;6111199000017;0.0;0.0;50;5;57.jpg;;MISSING;MISSING
+58;Glass Orange;Boissons;;0.0;0.0;50;5;58.jpg;;MISSING;MISSING
+59;Granola chocolate / pieces of chocolate;Boissons;5900617002983;0.0;0.0;50;5;59.jpg;;MISSING;MISSING
+60;Gullon ostya Kakaó 60g;Boissons;8410376059373;0.0;0.0;50;5;60.jpg;;MISSING;MISSING
+61;HAWAI ANANAS;Boissons;5449000036919;0.0;0.0;50;5;61.jpg;;MISSING;MISSING
+62;Hawai Tropical;Boissons;5449000036872;0.0;0.0;50;5;62.jpg;;MISSING;MISSING
+63;Hawaii;Boissons;90418235;0.0;0.0;50;5;63.jpg;;MISSING;MISSING
+64;Haway tropical;Boissons;5449000025272;0.0;0.0;50;5;64.jpg;;MISSING;MISSING
+65;Ice Passion;Boissons;6111243860376;0.0;0.0;50;5;65.jpg;;MISSING;MISSING
+66;Jibi;Boissons;6111032007128;0.0;0.0;50;5;66.jpg;;MISSING;MISSING
+67;Jutos;Boissons;6111242106666;0.0;0.0;50;5;67.jpg;;MISSING;MISSING
+68;Jutos;Boissons;6111242106673;0.0;0.0;50;5;68.jpg;;MISSING;MISSING
+69;Jutos Orange;Boissons;;0.0;0.0;50;5;69.jpg;;MISSING;MISSING
+70;Jutos cocktail;Boissons;6111242106277;0.0;0.0;50;5;70.jpg;;MISSING;MISSING
+71;King cookies choco;Boissons;6111259343344;0.0;0.0;50;5;71.jpg;;MISSING;MISSING
+72;Lemon;Boissons;50112784;0.0;0.0;50;5;72.jpg;;MISSING;MISSING
+73;Marhaba;Boissons;6111260680452;0.0;0.0;50;5;73.jpg;;MISSING;MISSING
+74;Marjane Nectar Orange;Boissons;;0.0;0.0;50;5;74.jpg;;MISSING;MISSING
+75;Mejora;Boissons;6111017045404;0.0;0.0;50;5;75.jpg;;MISSING;MISSING
+76;Merendina;Boissons;6111031005439;0.0;0.0;50;5;76.jpg;;MISSING;MISSING
+77;Momo black;Boissons;6111259341197;0.0;0.0;50;5;77.jpg;;MISSING;MISSING
+78;Napolitain Noir;Boissons;6111017045329;0.0;0.0;50;5;78.jpg;;MISSING;MISSING
+79;Nectar Orange;Boissons;6111179003847;0.0;0.0;50;5;79.jpg;;MISSING;MISSING
+80;Nectar Orange;Boissons;;0.0;0.0;50;5;80.jpg;;MISSING;MISSING
+81;Nesquik Cereal;Boissons;7613287366665;0.0;0.0;50;5;81.jpg;;MISSING;MISSING
+82;Nesquik Cocoa;Boissons;7613287431943;0.0;0.0;50;5;82.jpg;;MISSING;MISSING
+83;Nutabella;Boissons;6111265980243;0.0;0.0;50;5;83.jpg;;MISSING;MISSING
+84;Orangina et sa Pulpe !;Boissons;8435185101112;0.0;0.0;50;5;84.jpg;;MISSING;MISSING
+85;Oreo chocolate;Boissons;6111031005590;0.0;0.0;50;5;85.jpg;;MISSING;MISSING
+86;Oulmes virgin mojito;Boissons;6111035002113;0.0;0.0;50;5;86.jpg;;MISSING;MISSING
+87;Pepsi;Boissons;;0.0;0.0;50;5;87.jpg;;MISSING;MISSING
+88;Pepsi 2L;Boissons;6111252420059;0.0;0.0;50;5;88.jpg;;MISSING;MISSING
+89;Poms 2;Boissons;5449000036957;0.0;0.0;50;5;89.jpg;;MISSING;MISSING
+90;Press Up moyen;Boissons;6111242107366;0.0;0.0;50;5;90.jpg;;MISSING;MISSING
+91;Príncipe crema de chocolate;Boissons;7622210204424;0.0;0.0;50;5;91.jpg;;MISSING;MISSING
+92;Pulpy pècne;Boissons;5449000203823;0.0;0.0;50;5;92.jpg;;MISSING;MISSING
+93;Pâte à tartiner;Boissons;6111262820245;0.0;0.0;50;5;93.jpg;;MISSING;MISSING
+94;Rubicon Jus;Boissons;;0.0;0.0;50;5;94.jpg;;MISSING;MISSING
+95;Rubicon Orange;Boissons;;0.0;0.0;50;5;95.jpg;;MISSING;MISSING
+96;Sandwich Zero Sin Azúcares;Boissons;8410376037784;0.0;0.0;50;5;96.jpg;;MISSING;MISSING
+97;Schweppes citron 45cl;Boissons;5449000318947;0.0;0.0;50;5;97.jpg;;MISSING;MISSING
+98;Simon life;Boissons;8410261643014;0.0;0.0;50;5;98.jpg;;MISSING;MISSING
+99;Spofy;Boissons;3362600017619;0.0;0.0;50;5;99.jpg;;MISSING;MISSING
+100;Sprite;Boissons;5449000015105;0.0;0.0;50;5;100.jpg;;MISSING;MISSING
+101;Sting - Berry Blast;Boissons;6111252422169;0.0;0.0;50;5;101.jpg;;MISSING;MISSING
+102;Tentation;Boissons;6111017046029;0.0;0.0;50;5;102.jpg;;MISSING;MISSING
+103;Tentation aiguebelle;Boissons;6111017046043;0.0;0.0;50;5;103.jpg;;MISSING;MISSING
+104;Zero sin azúcares Chip Choco;Boissons;8410376009415;0.0;0.0;50;5;104.jpg;;MISSING;MISSING
+105;cola;Boissons;54022263;0.0;0.0;50;5;105.jpg;;MISSING;MISSING
+106;délice noir;Boissons;6111017046470;0.0;0.0;50;5;106.jpg;;MISSING;MISSING
+107;fanta tops lemon 1.5l;Boissons;5449000132277;0.0;0.0;50;5;107.jpg;;MISSING;MISSING
+108;frut;Boissons;6111242926035;0.0;0.0;50;5;108.jpg;;MISSING;MISSING
+109;ice POMME 1.5l;Boissons;6111243860383;0.0;0.0;50;5;109.jpg;;MISSING;MISSING
+110;ice cola strong;Boissons;6111243860352;0.0;0.0;50;5;110.jpg;;MISSING;MISSING
+111;lipton yellow label tea x25;Boissons;8720608632633;0.0;0.0;50;5;111.jpg;;MISSING;MISSING
+112;original oreo;Boissons;6111031005576;0.0;0.0;50;5;112.jpg;;MISSING;MISSING
+113;press up jaouda petit orange;Boissons;6111266962910;0.0;0.0;50;5;113.jpg;;MISSING;MISSING
+114;refresco de naranja;Boissons;5449000036889;0.0;0.0;50;5;114.jpg;;MISSING;MISSING
+115;saveur fruit rouge ice tea;Boissons;6111252422428;0.0;0.0;50;5;115.jpg;;MISSING;MISSING
+116;برس اب الخوخ جودة 1لتر;Boissons;6111242104198;0.0;0.0;50;5;116.jpg;;MISSING;MISSING
+117;برس اب الخوخ جودة 1لتر;Boissons;6111242104549;0.0;0.0;50;5;117.jpg;;MISSING;MISSING
+118;عصري بناشي;Boissons;6111032002970;0.0;0.0;50;5;118.jpg;;MISSING;MISSING
+119;Aicha Confiture;Confitures & Tartinables;;0.0;0.0;50;5;119.jpg;;MISSING;MISSING
+120;Confiture;Confitures & Tartinables;;0.0;0.0;50;5;120.jpg;;MISSING;MISSING
+121;Confiture De Fraises Aicha;Confitures & Tartinables;6111021013208;0.0;0.0;50;5;121.jpg;;MISSING;MISSING
+122;Confiture d'Abricots Extra;Confitures & Tartinables;6111021013109;0.0;0.0;50;5;122.jpg;;MISSING;MISSING
+123;Confiture d'abricot;Confitures & Tartinables;6111162000716;0.0;0.0;50;5;123.jpg;;MISSING;MISSING
+124;Confiture d'abricots;Confitures & Tartinables;6111184000244;0.0;0.0;50;5;124.jpg;;MISSING;MISSING
+125;Confiture de fraise;Confitures & Tartinables;6111162000822;0.0;0.0;50;5;125.jpg;;MISSING;MISSING
+126;Confiture de fraise;Confitures & Tartinables;6111184001180;0.0;0.0;50;5;126.jpg;;MISSING;MISSING
+127;Confiture de fraise;Confitures & Tartinables;6111021012201;0.0;0.0;50;5;127.jpg;;MISSING;MISSING
+128;Confiture de fraise;Confitures & Tartinables;6111162000839;0.0;0.0;50;5;128.jpg;;MISSING;MISSING
+129;Confiture de fraise;Confitures & Tartinables;6111184001074;0.0;0.0;50;5;129.jpg;;MISSING;MISSING
+130;Confiture de fraises;Confitures & Tartinables;6111184001173;0.0;0.0;50;5;130.jpg;;MISSING;MISSING
+131;Delicia;Confitures & Tartinables;6111162001164;0.0;0.0;50;5;131.jpg;;MISSING;MISSING
+132;Double concentré de tomates;Confitures & Tartinables;6111162001195;0.0;0.0;50;5;132.jpg;;MISSING;MISSING
+133;Délicia - Confiture d'abricot;Confitures & Tartinables;6111162000723;0.0;0.0;50;5;133.jpg;;MISSING;MISSING
+134;Délicia - confiture d'abricot;Confitures & Tartinables;6111162001188;0.0;0.0;50;5;134.jpg;;MISSING;MISSING
+135;El Baraka Confiture D'abricots 430 G;Confitures & Tartinables;6111184000213;0.0;0.0;50;5;135.jpg;;MISSING;MISSING
+136;Konfitura Morelowa 240g*EL Baraka*;Confitures & Tartinables;6111184000190;0.0;0.0;50;5;136.jpg;;MISSING;MISSING
+137;La delicieuse;Confitures & Tartinables;6111250471565;0.0;0.0;50;5;137.jpg;;MISSING;MISSING
+138;Nutella;Confitures & Tartinables;80176800;89.95;0.0;50;5;138.jpg;;OK;MISSING
+139;Peripella;Confitures & Tartinables;6111250474405;0.0;0.0;50;5;139.jpg;;MISSING;MISSING
+140;Pâte à tartiner aux noisettes et au cacao;Confitures & Tartinables;6111037002753;0.0;0.0;50;5;140.jpg;;MISSING;OK
+141;Tchico peanuts;Confitures & Tartinables;6111266750753;0.0;0.0;50;5;141.jpg;;MISSING;MISSING
+142;confiture;Confitures & Tartinables;6111184001098;0.0;0.0;50;5;142.jpg;;MISSING;MISSING
+143;Boustan Cocktail de fruits;Conserves;;0.0;0.0;50;5;143.jpg;;MISSING;MISSING
+144;Connétable Filets de sardines à l’huile d’olive vierge extra;Conserves;6111035000027;0.0;0.0;50;5;144.jpg;;MISSING;MISSING
+145;Cornichons;Conserves;;0.0;0.0;50;5;145.jpg;;MISSING;MISSING
+146;Daucy Flageolets verts;Conserves;;0.0;0.0;50;5;146.jpg;;MISSING;MISSING
+147;Daucy Haricots rouges;Conserves;;0.0;0.0;50;5;147.jpg;;MISSING;MISSING
+148;Daucy Haricots verts;Conserves;;0.0;0.0;50;5;148.jpg;;MISSING;MISSING
+149;Daucy Haricots verts - lot;Conserves;;0.0;0.0;50;5;149.jpg;;MISSING;MISSING
+150;Fayz Champignons;Conserves;;0.0;0.0;50;5;150.jpg;;MISSING;MISSING
+151;Karina Cornichons;Conserves;;0.0;0.0;50;5;151.jpg;;MISSING;MISSING
+152;Maille Cornichons;Conserves;;0.0;0.0;50;5;152.jpg;;MISSING;MISSING
+153;Marjane Champignons de Paris entiers;Conserves;;0.0;0.0;50;5;153.jpg;;MISSING;MISSING
+154;Panzani Cornichons;Conserves;;0.0;0.0;50;5;154.jpg;;MISSING;MISSING
+155;Petit Navire / Thon;Conserves;;0.0;0.0;50;5;155.jpg;;MISSING;MISSING
+156;Star Cornichons;Conserves;;0.0;0.0;50;5;156.jpg;;MISSING;MISSING
+157;Tamima Filets de thon;Conserves;;0.0;0.0;50;5;157.jpg;;MISSING;MISSING
+158;Thon Garcia;Conserves;;0.0;0.0;50;5;158.jpg;;MISSING;MISSING
+159;Thon a lhuile;Conserves;3341430490380;11.9;0.0;50;5;159.jpg;;OK;MISSING
+160;AQUAFINA;Eaux;6111252422008;0.0;0.0;50;5;160.jpg;;MISSING;MISSING
+161;Acyl;Eaux;6111273590021;0.0;0.0;50;5;161.jpg;;MISSING;MISSING
+162;Acyl;Eaux;6111273590007;0.0;0.0;50;5;162.jpg;;MISSING;MISSING
+163;Ain Atlas;Eaux;6111035001710;0.0;0.0;50;5;163.jpg;;MISSING;MISSING
+164;Ain Atlas;Eaux;6111035001659;0.0;0.0;50;5;164.jpg;;MISSING;MISSING
+165;Ain Atlas;Eaux;6111035001635;0.0;0.0;50;5;165.jpg;;MISSING;MISSING
+166;Ain Saiss;Eaux;6111128000217;0.0;0.0;50;5;166.jpg;;MISSING;MISSING
+167;Ain Saiss Eau Minerale Naturelle;Eaux;6111128000163;0.0;0.0;50;5;167.jpg;;MISSING;MISSING
+168;Ain soltane 50cl;Eaux;6111248360123;0.0;0.0;50;5;168.jpg;;MISSING;MISSING
+169;Aquafina;Eaux;6111252421971;0.0;0.0;50;5;169.jpg;;MISSING;MISSING
+170;Aquafina 50cl;Eaux;6111252421575;0.0;0.0;50;5;170.jpg;;MISSING;MISSING
+171;Aïn Atlas 50cl;Eaux;6111035001673;0.0;0.0;50;5;171.jpg;;MISSING;MISSING
+172;Aïn Ifran Eau minérale naturelle;Eaux;6111251420272;0.0;0.0;50;5;172.jpg;;MISSING;MISSING
+173;Aïn Ifrane;Eaux;6111251420135;0.0;0.0;50;5;173.jpg;;MISSING;MISSING
+174;Aïn Soltane;Eaux;6111248360130;0.0;0.0;50;5;174.jpg;;MISSING;MISSING
+175;Bahia, Eau De Table;Eaux;6111035003509;0.0;0.0;50;5;175.jpg;;MISSING;MISSING
+176;Bul'tropicale;Eaux;6111035002052;0.0;0.0;50;5;176.jpg;;MISSING;MISSING
+177;Ciel;Eaux;5449000061515;0.0;0.0;50;5;177.jpg;;MISSING;MISSING
+178;Ciel 33cl;Eaux;42104964;0.0;0.0;50;5;178.jpg;;MISSING;MISSING
+179;Ciel 50cl;Eaux;5449000135544;0.0;0.0;50;5;179.jpg;;MISSING;MISSING
+180;Eau;Eaux;6111248360116;0.0;0.0;50;5;180.jpg;;MISSING;MISSING
+181;Eau;Eaux;6111251420166;0.0;0.0;50;5;181.jpg;;MISSING;MISSING
+182;Eau de source naturelle La Source;Eaux;6111271800030;0.0;0.0;50;5;182.jpg;;MISSING;MISSING
+183;Eau de table;Eaux;5449000206770;0.0;0.0;50;5;183.jpg;;MISSING;MISSING
+184;Eau de table purifiée;Eaux;6111248360291;0.0;0.0;50;5;184.jpg;;MISSING;MISSING
+185;Eau mineral 33cl aman;Eaux;6111248360376;0.0;0.0;50;5;185.jpg;;MISSING;MISSING
+186;Eau minerale;Eaux;6111035001383;0.0;0.0;50;5;186.jpg;;MISSING;MISSING
+187;Eau minéral naturelle;Eaux;6111035502828;0.0;0.0;50;5;187.jpg;;MISSING;MISSING
+188;Eau minérale;Eaux;6111128000477;0.0;0.0;50;5;188.jpg;;MISSING;MISSING
+189;Eau minérale naturelle;Eaux;6111035000058;0.0;0.0;50;5;189.jpg;;MISSING;MISSING
+190;Eau minérale naturelle gazeuse;Eaux;6111035502941;0.0;0.0;50;5;190.jpg;;MISSING;MISSING
+191;Filets De Maquereaux À L’huile Végétale;Eaux;769503575261;0.0;0.0;50;5;191.jpg;;MISSING;MISSING
+192;Filets de maquereau;Eaux;6111162001218;0.0;0.0;50;5;192.jpg;;MISSING;MISSING
+193;Filets de maquereaux;Eaux;6111249190279;0.0;0.0;50;5;193.jpg;;MISSING;MISSING
+194;Ghaut;Eaux;6111128001115;0.0;0.0;50;5;194.jpg;;MISSING;MISSING
+195;La Source العين;Eaux;6111271800023;0.0;0.0;50;5;195.jpg;;MISSING;MISSING
+196;Oulmes Eau Gazeuse;Eaux;6111035003004;0.0;0.0;50;5;196.jpg;;MISSING;MISSING
+197;Oulmes natural carbonated water;Eaux;6111035003035;0.0;0.0;50;5;197.jpg;;MISSING;MISSING
+198;Oulmès eau minerale naturellement gazeuse;Eaux;6111035001024;0.0;0.0;50;5;198.jpg;;MISSING;MISSING
+199;Schweppes tonic 1l;Eaux;5449000280206;12.0;0.0;50;5;199.jpg;;OK;MISSING
+200;Sidi Ali;Eaux;6111035000430;2.0;0.0;50;5;200.jpg;;OK;MISSING
+201;Sidi Ali;Eaux;6111035002175;6.0;0.0;50;5;201.jpg;;OK;MISSING
+202;Sidi Ali Kids;Eaux;6111035002359;0.0;0.0;50;5;202.jpg;;MISSING;MISSING
+203;Sidi Harazem;Eaux;6111128000026;0.0;0.0;50;5;203.jpg;;MISSING;MISSING
+204;Vitalya;Eaux;6111035503153;0.0;0.0;50;5;204.jpg;;MISSING;MISSING
+205;ain saiss 50cl;Eaux;6111128000088;0.0;0.0;50;5;205.jpg;;MISSING;MISSING
+206;filets de maquereaux à l'huile végétale;Eaux;6111263000202;0.0;0.0;50;5;206.jpg;;MISSING;MISSING
+207;filets de sardines sans peau sans arêtes à l'huile végétale;Eaux;6111260550595;0.0;0.0;50;5;207.jpg;;MISSING;MISSING
+208;vitalya;Eaux;6111035503115;0.0;0.0;50;5;208.jpg;;MISSING;MISSING
+209;اكوافينا;Eaux;6111252421568;0.0;0.0;50;5;209.jpg;;MISSING;MISSING
+210;اكوافينا;Eaux;6111252421582;0.0;0.0;50;5;210.jpg;;MISSING;MISSING
+211;العين;Eaux;6111271800054;0.0;0.0;50;5;211.jpg;;MISSING;MISSING
+212;Afia;Huiles & Vinaigres;6111245470023;0.0;0.0;50;5;212.jpg;;MISSING;MISSING
+213;Afia;Huiles & Vinaigres;6111245470016;0.0;0.0;50;5;213.jpg;;MISSING;MISSING
+214;Afia huile de table;Huiles & Vinaigres;6111245470030;0.0;0.0;50;5;214.jpg;;MISSING;MISSING
+215;Hemani Coconut Oil Pure & Natural (400ML);Huiles & Vinaigres;8964000577066;0.0;0.0;50;5;215.jpg;;MISSING;MISSING
+216;HuilOr - RICHE EN Vitamine E Oméga 3 et 6;Huiles & Vinaigres;6111024001226;0.0;0.0;50;5;216.jpg;;MISSING;MISSING
+217;Huile Halal;Huiles & Vinaigres;;0.0;0.0;50;5;217.jpg;;MISSING;MISSING
+218;Huile Lesieur 3 Graines;Huiles & Vinaigres;6111024001530;0.0;0.0;50;5;218.jpg;;MISSING;MISSING
+219;Huile d'olive;Huiles & Vinaigres;6111099000254;0.0;0.0;50;5;219.jpg;;MISSING;MISSING
+220;Huile d'olive vierge de Maroc;Huiles & Vinaigres;6111024004746;0.0;0.0;50;5;220.jpg;;MISSING;MISSING
+221;Huile de grignon d’olive;Huiles & Vinaigres;6111062000175;0.0;0.0;50;5;221.jpg;;MISSING;MISSING
+222;Huile de table;Huiles & Vinaigres;6111099000629;0.0;0.0;50;5;222.jpg;;MISSING;MISSING
+223;Huile de table;Huiles & Vinaigres;6111099000599;0.0;0.0;50;5;223.jpg;;MISSING;MISSING
+224;Huile de table équilibrée;Huiles & Vinaigres;6111024001974;0.0;0.0;50;5;224.jpg;;MISSING;MISSING
+225;Huile de table équilibrée riche en vitamines A,E,D3;Huiles & Vinaigres;6111024001516;0.0;0.0;50;5;225.jpg;;MISSING;MISSING
+226;Huile de tournesol;Huiles & Vinaigres;6111024001202;0.0;0.0;50;5;226.jpg;;MISSING;MISSING
+227;Huile d’olive;Huiles & Vinaigres;;0.0;0.0;50;5;227.jpg;;MISSING;MISSING
+228;Huile végétale;Huiles & Vinaigres;;0.0;0.0;50;5;228.jpg;;MISSING;MISSING
+229;Huile végétale - lot;Huiles & Vinaigres;;0.0;0.0;50;5;229.jpg;;MISSING;MISSING
+230;Huille;Huiles & Vinaigres;6111024004753;0.0;0.0;50;5;230.jpg;;MISSING;MISSING
+231;Hule D'olive;Huiles & Vinaigres;6111099000247;0.0;0.0;50;5;231.jpg;;MISSING;MISSING
+232;Joly;Huiles & Vinaigres;6111162000464;0.0;0.0;50;5;232.jpg;;MISSING;MISSING
+233;Joly Thon Entier;Huiles & Vinaigres;6111162000181;0.0;0.0;50;5;233.jpg;;MISSING;MISSING
+234;La Española Extra Virgin Olive Oil;Huiles & Vinaigres;8410660098804;0.0;0.0;50;5;234.jpg;;MISSING;MISSING
+235;Lio huile de table;Huiles & Vinaigres;6111099000582;0.0;0.0;50;5;235.jpg;;MISSING;MISSING
+236;Louisa Huile;Huiles & Vinaigres;;0.0;0.0;50;5;236.jpg;;MISSING;MISSING
+237;Okior Huile;Huiles & Vinaigres;;0.0;0.0;50;5;237.jpg;;MISSING;MISSING
+238;Oleor;Huiles & Vinaigres;6111024001288;0.0;0.0;50;5;238.jpg;;MISSING;MISSING
+239;Oni Huile;Huiles & Vinaigres;;0.0;0.0;50;5;239.jpg;;MISSING;MISSING
+240;Oni Huile - lot;Huiles & Vinaigres;;0.0;0.0;50;5;240.jpg;;MISSING;MISSING
+241;Oregan Huile de coco;Huiles & Vinaigres;;0.0;0.0;50;5;241.jpg;;MISSING;MISSING
+242;Pipas;Huiles & Vinaigres;6111214004747;0.0;0.0;50;5;242.jpg;;MISSING;MISSING
+243;Sardine à l’huile végétale;Huiles & Vinaigres;769503575445;0.0;0.0;50;5;243.jpg;;MISSING;MISSING
+244;Star vinaigre de table BLANC;Huiles & Vinaigres;6111184001661;0.0;0.0;50;5;244.jpg;;MISSING;MISSING
+245;TAM thon entier a l'huile;Huiles & Vinaigres;3341430510019;0.0;0.0;50;5;245.jpg;;MISSING;MISSING
+246;Thon Joly;Huiles & Vinaigres;6111162001102;0.0;0.0;50;5;246.jpg;;MISSING;MISSING
+247;Thon entier à l'huile;Huiles & Vinaigres;3341430551449;0.0;0.0;50;5;247.jpg;;MISSING;MISSING
+248;Vinaigre Alcool Colore,;Huiles & Vinaigres;6111184001036;0.0;0.0;50;5;248.jpg;;MISSING;MISSING
+249;Vinaigre blanc;Huiles & Vinaigres;;0.0;0.0;50;5;249.jpg;;MISSING;MISSING
+250;Wilor;Huiles & Vinaigres;6111024002186;0.0;0.0;50;5;250.jpg;;MISSING;MISSING
+251;Zaman Oil - Huile d’amande 250 ml;Huiles & Vinaigres;6111251753912;0.0;0.0;50;5;251.jpg;;MISSING;MISSING
+252;vinaigre de table blanc;Huiles & Vinaigres;6111250474191;0.0;0.0;50;5;252.jpg;;MISSING;MISSING
+253;زيت المائدة المختارة;Huiles & Vinaigres;6111024001295;0.0;0.0;50;5;253.jpg;;MISSING;MISSING
+254;30 u;Produits laitiers;;0.0;0.0;50;5;254.jpg;;MISSING;MISSING
+255;Actimel;Produits laitiers;6111032009146;0.0;0.0;50;5;255.jpg;;MISSING;MISSING
+256;Actimel;Produits laitiers;6111032009153;0.0;0.0;50;5;256.jpg;;MISSING;MISSING
+257;Activia;Produits laitiers;6111032009436;0.0;0.0;50;5;257.jpg;;MISSING;MISSING
+258;Activia Céréales;Produits laitiers;6111032002208;0.0;0.0;50;5;258.jpg;;MISSING;MISSING
+259;Activia ananas fraise;Produits laitiers;6111032009443;0.0;0.0;50;5;259.jpg;;MISSING;MISSING
+260;Albane Lait Entier UHT 1L;Produits laitiers;6111265800497;0.0;0.0;50;5;260.jpg;;MISSING;MISSING
+261;Assil vanille;Produits laitiers;6111032001003;0.0;0.0;50;5;261.jpg;;MISSING;MISSING
+262;Beurre Badaouia;Produits laitiers;6111242660373;0.0;0.0;50;5;262.jpg;;MISSING;MISSING
+263;Beurre Frais Pasteurisé;Produits laitiers;6111242105331;0.0;0.0;50;5;263.jpg;;MISSING;MISSING
+264;Campo Verde;Produits laitiers;6111266680098;0.0;0.0;50;5;264.jpg;;MISSING;MISSING
+265;Campo verde;Produits laitiers;6111266680883;0.0;0.0;50;5;265.jpg;;MISSING;MISSING
+266;Chergui Lait;Produits laitiers;6111126005580;0.0;0.0;50;5;266.jpg;;MISSING;MISSING
+267;Chergui creme fruit de bois;Produits laitiers;6111126001872;0.0;0.0;50;5;267.jpg;;MISSING;MISSING
+268;Chergui creme 🥭 mangue;Produits laitiers;6111126001865;0.0;0.0;50;5;268.jpg;;MISSING;MISSING
+269;Chergui protéine vanille;Produits laitiers;6111126005702;0.0;0.0;50;5;269.jpg;;MISSING;MISSING
+270;Classique Douceur de lait;Produits laitiers;6111203007377;0.0;0.0;50;5;270.jpg;;MISSING;MISSING
+271;Coeur de lait;Produits laitiers;6111206000696;0.0;0.0;50;5;271.jpg;;MISSING;MISSING
+272;Cream Cheese;Produits laitiers;6111246721964;0.0;0.0;50;5;272.jpg;;MISSING;MISSING
+273;Cream cheese;Produits laitiers;6111246721278;0.0;0.0;50;5;273.jpg;;MISSING;MISSING
+274;Creem cheese;Produits laitiers;6111246721971;0.0;0.0;50;5;274.jpg;;MISSING;MISSING
+275;Crem Pro Premium - Crème de Cuisson et Liaison;Produits laitiers;6111259093522;0.0;0.0;50;5;275.jpg;;MISSING;MISSING
+276;Croissance réduit en sucre;Produits laitiers;6111242103528;0.0;0.0;50;5;276.jpg;;MISSING;MISSING
+277;Crème caramel;Produits laitiers;6111032007968;0.0;0.0;50;5;277.jpg;;MISSING;MISSING
+278;Crème cuisson;Produits laitiers;6111242109391;0.0;0.0;50;5;278.jpg;;MISSING;MISSING
+279;DANONE ASSIL BANANE;Produits laitiers;6111032001010;0.0;0.0;50;5;279.jpg;;MISSING;MISSING
+280;Dan up;Produits laitiers;6111032004455;0.0;0.0;50;5;280.jpg;;MISSING;MISSING
+281;Danao Pèche - Abricot;Produits laitiers;6111032006985;0.0;0.0;50;5;281.jpg;;MISSING;MISSING
+282;Danette;Produits laitiers;6111032006718;0.0;0.0;50;5;282.jpg;;MISSING;MISSING
+283;Danone (zéro sucre ajouté zéro matière grasse);Produits laitiers;6111032010128;0.0;0.0;50;5;283.jpg;;MISSING;MISSING
+284;Danone - Peche;Produits laitiers;6111032010333;0.0;0.0;50;5;284.jpg;;MISSING;MISSING
+285;Danone nature;Produits laitiers;6111032002925;0.0;0.0;50;5;285.jpg;;MISSING;MISSING
+286;Danup fraise;Produits laitiers;6111032004448;0.0;0.0;50;5;286.jpg;;MISSING;MISSING
+287;Dari Riz au lait / dessert;Produits laitiers;;0.0;0.0;50;5;287.jpg;;MISSING;MISSING
+288;Daya Avocat;Produits laitiers;6111126002763;0.0;0.0;50;5;288.jpg;;MISSING;MISSING
+289;Dessert gourmand choco;Produits laitiers;6111242102552;0.0;0.0;50;5;289.jpg;;MISSING;MISSING
+290;Douceur fromage frais;Produits laitiers;6111126005085;0.0;0.0;50;5;290.jpg;;MISSING;MISSING
+291;Délicimo : Stracciatella;Produits laitiers;6111242106789;0.0;0.0;50;5;291.jpg;;MISSING;MISSING
+292;El Mejor Chef;Produits laitiers;6111260232095;0.0;0.0;50;5;292.jpg;;MISSING;MISSING
+293;Familia 200g;Produits laitiers;6111037000599;9.0;0.0;50;5;293.jpg;;OK;MISSING
+294;Fawakih mchmach khokh;Produits laitiers;6111126001599;0.0;0.0;50;5;294.jpg;;MISSING;MISSING
+295;Fromage;Produits laitiers;6111203003263;0.0;0.0;50;5;295.jpg;;MISSING;MISSING
+296;Fromage Fondu;Produits laitiers;6111265930385;0.0;0.0;50;5;296.jpg;;MISSING;MISSING
+297;Fromage blanc nature;Produits laitiers;6111246721261;0.0;0.0;50;5;297.jpg;;MISSING;MISSING
+298;Fromage blanc nature;Produits laitiers;6111246721735;0.0;0.0;50;5;298.jpg;;MISSING;MISSING
+299;Fromage complet socrech;Produits laitiers;6111242190146;0.0;0.0;50;5;299.jpg;;MISSING;MISSING
+300;Fromage fondu Tartine & Cuisson;Produits laitiers;6111246722169;0.0;0.0;50;5;300.jpg;;MISSING;MISSING
+301;Frommage fondu;Produits laitiers;6111246722107;0.0;0.0;50;5;301.jpg;;MISSING;MISSING
+302;Ftoury Fromage Blanc;Produits laitiers;6111246721339;0.0;0.0;50;5;302.jpg;;MISSING;MISSING
+303;Gervais fromage frais nature sucré;Produits laitiers;6111032008583;0.0;0.0;50;5;303.jpg;;MISSING;MISSING
+304;Gervais fromage à la créme;Produits laitiers;6111032008125;0.0;0.0;50;5;304.jpg;;MISSING;MISSING
+305;Ghani;Produits laitiers;6111242102187;0.0;0.0;50;5;305.jpg;;MISSING;MISSING
+306;Ghani;Produits laitiers;6111242102194;0.0;0.0;50;5;306.jpg;;MISSING;MISSING
+307;Ghilal;Produits laitiers;6111242105270;0.0;0.0;50;5;307.jpg;;MISSING;MISSING
+308;Goldium Blanc Nature;Produits laitiers;6111259092525;0.0;0.0;50;5;308.jpg;;MISSING;MISSING
+309;Goldium Premium Sauce Tacos au Fromage;Produits laitiers;6111259093140;0.0;0.0;50;5;309.jpg;;MISSING;MISSING
+310;Goldium crémeux;Produits laitiers;6111259092495;0.0;0.0;50;5;310.jpg;;MISSING;MISSING
+311;Hohos;Produits laitiers;6223000496022;0.0;0.0;50;5;311.jpg;;MISSING;MISSING
+312;JBEN CHERGUI;Produits laitiers;6111126005221;0.0;0.0;50;5;312.jpg;;MISSING;MISSING
+313;Jamila رايبي;Produits laitiers;6111032006619;0.0;0.0;50;5;313.jpg;;MISSING;MISSING
+314;Jben;Produits laitiers;6111126005306;0.0;0.0;50;5;314.jpg;;MISSING;MISSING
+315;Jben;Produits laitiers;6111242106949;0.0;0.0;50;5;315.jpg;;MISSING;MISSING
+316;Jben AKNAZ;Produits laitiers;6111250472708;0.0;0.0;50;5;316.jpg;;MISSING;MISSING
+317;Jebli;Produits laitiers;6111206000733;0.0;0.0;50;5;317.jpg;;MISSING;MISSING
+318;Jnane;Produits laitiers;6111126001698;0.0;0.0;50;5;318.jpg;;MISSING;MISSING
+319;Jnane;Produits laitiers;6111126001704;0.0;0.0;50;5;319.jpg;;MISSING;MISSING
+320;Jnane - Saveur coco;Produits laitiers;6111126001674;0.0;0.0;50;5;320.jpg;;MISSING;MISSING
+321;Jnane nature sans sucre;Produits laitiers;6111126001711;0.0;0.0;50;5;321.jpg;;MISSING;MISSING
+322;Kiri;Produits laitiers;6111028001024;0.0;0.0;50;5;322.jpg;;MISSING;MISSING
+323;Kiri;Produits laitiers;;0.0;0.0;50;5;323.jpg;;MISSING;MISSING
+324;Kiri carré 12p;Produits laitiers;6111028000997;0.0;0.0;50;5;324.jpg;;MISSING;MISSING
+325;Kiri carré 8p;Produits laitiers;6111028000980;15.95;0.0;50;5;325.jpg;;OK;MISSING
+326;Kéfir Nature;Produits laitiers;6111126005894;0.0;0.0;50;5;326.jpg;;MISSING;MISSING
+327;LA HOLLANDAISE CLASSIQUE 64P;Produits laitiers;6111203007384;0.0;0.0;50;5;327.jpg;;MISSING;MISSING
+328;LADID;Produits laitiers;6111242105676;0.0;0.0;50;5;328.jpg;;MISSING;MISSING
+329;LBEN CARTON PASTEURISER;Produits laitiers;6111242101050;0.0;0.0;50;5;329.jpg;;MISSING;MISSING
+330;La Hollandaise Cheddar;Produits laitiers;6111203006653;0.0;0.0;50;5;330.jpg;;MISSING;MISSING
+331;Lait Demi écrème Uht Jaouda;Produits laitiers;6111242101197;0.0;0.0;50;5;331.jpg;;MISSING;MISSING
+332;Lait Frais 15 jours;Produits laitiers;6111126003821;0.0;0.0;50;5;332.jpg;;MISSING;MISSING
+333;Lait U.H.T entier;Produits laitiers;6111250470742;0.0;0.0;50;5;333.jpg;;MISSING;MISSING
+334;Lait UHT Entier;Produits laitiers;6111250474276;0.0;0.0;50;5;334.jpg;;MISSING;MISSING
+335;Lait colainord;Produits laitiers;6111046003109;0.0;0.0;50;5;335.jpg;;MISSING;MISSING
+336;Lait de la ferme jaouda;Produits laitiers;6111266962187;0.0;0.0;50;5;336.jpg;;MISSING;MISSING
+337;Lait en poudre Almarai;Produits laitiers;;0.0;0.0;50;5;337.jpg;;MISSING;MISSING
+338;Lait fermenté;Produits laitiers;6111126001582;0.0;0.0;50;5;338.jpg;;MISSING;MISSING
+339;Lait frais pasteurisé;Produits laitiers;6111243590433;0.0;0.0;50;5;339.jpg;;MISSING;MISSING
+340;Lait naturel;Produits laitiers;6111032000624;0.0;0.0;50;5;340.jpg;;MISSING;MISSING
+341;Lait sans lactose;Produits laitiers;6111242105638;0.0;0.0;50;5;341.jpg;;MISSING;MISSING
+342;Le Bloc;Produits laitiers;3073781077025;0.0;0.0;50;5;342.jpg;;MISSING;MISSING
+343;Le Lait demi écrémé;Produits laitiers;6111242100817;0.0;0.0;50;5;343.jpg;;MISSING;MISSING
+344;Le Plaisir à tartiner;Produits laitiers;6111245341019;0.0;0.0;50;5;344.jpg;;MISSING;MISSING
+345;Le berger From blanc Nat;Produits laitiers;6111246721957;0.0;0.0;50;5;345.jpg;;MISSING;MISSING
+346;Le bon lait;Produits laitiers;6111250012416;0.0;0.0;50;5;346.jpg;;MISSING;MISSING
+347;Le nature;Produits laitiers;6111242100206;0.0;0.0;50;5;347.jpg;;MISSING;MISSING
+348;Leben;Produits laitiers;6111242104556;0.0;0.0;50;5;348.jpg;;MISSING;MISSING
+349;Leben;Produits laitiers;6111266962774;0.0;0.0;50;5;349.jpg;;MISSING;MISSING
+350;Leben BELDI;Produits laitiers;6111126001988;0.0;0.0;50;5;350.jpg;;MISSING;MISSING
+351;Leben JAOUDA;Produits laitiers;6111242100022;0.0;0.0;50;5;351.jpg;;MISSING;MISSING
+352;Lilia Tartine & Cuisine;Produits laitiers;6111099005396;0.0;0.0;50;5;352.jpg;;MISSING;MISSING
+353;Linea;Produits laitiers;6111242101203;0.0;0.0;50;5;353.jpg;;MISSING;MISSING
+354;Mantequilla;Produits laitiers;6111099005495;0.0;0.0;50;5;354.jpg;;MISSING;MISSING
+355;Masło orzechowe;Produits laitiers;5900617012197;0.0;0.0;50;5;355.jpg;;MISSING;MISSING
+356;Milo;Produits laitiers;;0.0;0.0;50;5;356.jpg;;MISSING;MISSING
+357;Nescafé Classic;Produits laitiers;6111018903161;0.0;0.0;50;5;357.jpg;;MISSING;OK
+358;Nesquik / Lait en poudre;Produits laitiers;;0.0;0.0;50;5;358.jpg;;MISSING;MISSING
+359;Olla Crème de Cuisson Onctueuse;Produits laitiers;6111251754247;0.0;0.0;50;5;359.jpg;;MISSING;MISSING
+360;Or Blanc;Produits laitiers;6111245340487;0.0;0.0;50;5;360.jpg;;MISSING;MISSING
+361;Original Doux & crémeux;Produits laitiers;6111245342696;0.0;0.0;50;5;361.jpg;;MISSING;MISSING
+362;Peanut Butter Crunchy;Produits laitiers;5900617003454;0.0;0.0;50;5;362.jpg;;MISSING;MISSING
+363;Perly;Produits laitiers;6111242100992;0.0;0.0;50;5;363.jpg;;MISSING;MISSING
+364;Perly fromage;Produits laitiers;6111266960336;0.0;0.0;50;5;364.jpg;;MISSING;MISSING
+365;Petit Frais Nature;Produits laitiers;6111246720783;0.0;0.0;50;5;365.jpg;;MISSING;MISSING
+366;Petit beurre;Produits laitiers;6111259342828;0.0;0.0;50;5;366.jpg;;MISSING;MISSING
+367;Petit frais;Produits laitiers;6111246720790;0.0;0.0;50;5;367.jpg;;MISSING;MISSING
+368;Pindakaas;Produits laitiers;6111262821150;0.0;0.0;50;5;368.jpg;;MISSING;MISSING
+369;Pizzarella Premium;Produits laitiers;6111259090132;0.0;0.0;50;5;369.jpg;;MISSING;MISSING
+370;Produit laitier;Produits laitiers;;0.0;0.0;50;5;370.jpg;;MISSING;MISSING
+371;Produit laitier / préparation;Produits laitiers;;0.0;0.0;50;5;371.jpg;;MISSING;MISSING
+372;Proteines Mangue;Produits laitiers;6111126005696;0.0;0.0;50;5;372.jpg;;MISSING;MISSING
+373;Préparation en poudre pour Crème pâtissière saveur vanille;Produits laitiers;6111180005342;0.0;0.0;50;5;373.jpg;;MISSING;MISSING
+374;Purisima;Produits laitiers;8716200334808;0.0;0.0;50;5;374.jpg;;MISSING;MISSING
+375;Pâte d'arachide;Produits laitiers;8198701234564;0.0;0.0;50;5;375.jpg;;MISSING;MISSING
+376;Queso Edam Bola Tierno;Produits laitiers;8710912074922;0.0;0.0;50;5;376.jpg;;MISSING;MISSING
+377;Queso cremoso;Produits laitiers;7622210103314;0.0;0.0;50;5;377.jpg;;MISSING;MISSING
+378;Raib banan sghir;Produits laitiers;6111126000424;0.0;0.0;50;5;378.jpg;;MISSING;MISSING
+379;Raib vani jaouda;Produits laitiers;6111242102361;0.0;0.0;50;5;379.jpg;;MISSING;MISSING
+380;Raibi jamila;Produits laitiers;6111032009870;0.0;0.0;50;5;380.jpg;;MISSING;MISSING
+381;Ricotta 1%;Produits laitiers;6111246721384;0.0;0.0;50;5;381.jpg;;MISSING;MISSING
+382;Salim;Produits laitiers;6111032000631;0.0;0.0;50;5;382.jpg;;MISSING;MISSING
+383;Salim;Produits laitiers;6111032000600;0.0;0.0;50;5;383.jpg;;MISSING;MISSING
+384;Sour Cream & Onion;Produits laitiers;5053990101597;0.0;0.0;50;5;384.jpg;;MISSING;MISSING
+385;Sour Cream & Onion;Produits laitiers;7622202025587;0.0;0.0;50;5;385.jpg;;MISSING;MISSING
+386;Tartine & Cuisine;Produits laitiers;6111099003897;0.0;0.0;50;5;386.jpg;;MISSING;MISSING
+387;Tendre nature;Produits laitiers;6111242102781;0.0;0.0;50;5;387.jpg;;MISSING;MISSING
+388;Tranches Au Goût Cheddar;Produits laitiers;6111260230619;0.0;0.0;50;5;388.jpg;;MISSING;MISSING
+389;Velouté Fraise;Produits laitiers;6111032002888;0.0;0.0;50;5;389.jpg;;MISSING;MISSING
+390;Viva - Fromage;Produits laitiers;6111260232101;0.0;0.0;50;5;390.jpg;;MISSING;MISSING
+391;Yaourt Grec Muesli;Produits laitiers;6111242103702;0.0;0.0;50;5;391.jpg;;MISSING;MISSING
+392;Yaourt Jnane;Produits laitiers;6111126001681;0.0;0.0;50;5;392.jpg;;MISSING;MISSING
+393;Yaourt grec;Produits laitiers;6111242103696;0.0;0.0;50;5;393.jpg;;MISSING;MISSING
+394;Yaourt tendre;Produits laitiers;6111242102767;0.0;0.0;50;5;394.jpg;;MISSING;MISSING
+395;Yawmi velouté pistache;Produits laitiers;6111032002918;0.0;0.0;50;5;395.jpg;;MISSING;MISSING
+396;Yogurt Bnine BANANA;Produits laitiers;6111242102941;0.0;0.0;50;5;396.jpg;;MISSING;MISSING
+397;asiri fraise;Produits laitiers;6111032002963;0.0;0.0;50;5;397.jpg;;MISSING;MISSING
+398;beurre central 1kg;Produits laitiers;6111032007043;0.0;0.0;50;5;398.jpg;;MISSING;MISSING
+399;cream - cheese;Produits laitiers;6111246722084;0.0;0.0;50;5;399.jpg;;MISSING;MISSING
+400;crème cuisson;Produits laitiers;6111242104617;0.0;0.0;50;5;400.jpg;;MISSING;MISSING
+401;danino;Produits laitiers;6111032008453;0.0;0.0;50;5;401.jpg;;MISSING;MISSING
+402;delicemo;Produits laitiers;6111266962446;0.0;0.0;50;5;402.jpg;;MISSING;MISSING
+403;double zéro Cerise;Produits laitiers;6111032010135;0.0;0.0;50;5;403.jpg;;MISSING;MISSING
+404;fawakih mangue 900ml;Produits laitiers;6111126001605;0.0;0.0;50;5;404.jpg;;MISSING;MISSING
+405;fondiz;Produits laitiers;6111266680135;0.0;0.0;50;5;405.jpg;;MISSING;MISSING
+406;fromage blanc nature;Produits laitiers;6111246721995;0.0;0.0;50;5;406.jpg;;MISSING;MISSING
+407;fromage herbes milky food;Produits laitiers;6111246722039;0.0;0.0;50;5;407.jpg;;MISSING;MISSING
+408;fromage perly 64p;Produits laitiers;6111266960350;0.0;0.0;50;5;408.jpg;;MISSING;MISSING
+409;hollandis class 16p;Produits laitiers;6111203007360;0.0;0.0;50;5;409.jpg;;MISSING;MISSING
+410;jaouda Cremy;Produits laitiers;6111242100305;0.0;0.0;50;5;410.jpg;;MISSING;MISSING
+411;kiri 36p;Produits laitiers;6111028001017;48.95;0.0;50;5;411.jpg;;OK;MISSING
+412;kéfir 500g;Produits laitiers;8424893600352;0.0;0.0;50;5;412.jpg;;MISSING;MISSING
+413;kéfir nature;Produits laitiers;8420756010320;0.0;0.0;50;5;413.jpg;;MISSING;MISSING
+414;la hollandaise;Produits laitiers;6111203006646;0.0;0.0;50;5;414.jpg;;MISSING;MISSING
+415;la hollandaise 16p cheddar;Produits laitiers;6111203004451;0.0;0.0;50;5;415.jpg;;MISSING;MISSING
+416;la vache qui rit;Produits laitiers;6111028001222;0.0;0.0;50;5;416.jpg;;MISSING;MISSING
+417;lait;Produits laitiers;6111266962651;0.0;0.0;50;5;417.jpg;;MISSING;MISSING
+418;lait sans lactose;Produits laitiers;6111242107441;0.0;0.0;50;5;418.jpg;;MISSING;MISSING
+419;le blanc nature 900g araai;Produits laitiers;6111246721940;0.0;0.0;50;5;419.jpg;;MISSING;MISSING
+420;nido;Produits laitiers;6111018908999;0.0;0.0;50;5;420.jpg;;MISSING;OK
+421;plaisirs nature sucre fmg;Produits laitiers;6111126005535;0.0;0.0;50;5;421.jpg;;MISSING;MISSING
+422;predator;Produits laitiers;5061013962506;0.0;0.0;50;5;422.jpg;;MISSING;MISSING
+423;tartine la Prairie classique 450g;Produits laitiers;6111203007520;0.0;0.0;50;5;423.jpg;;MISSING;MISSING
+424;uht jaouda 1L;Produits laitiers;6111242101180;0.0;0.0;50;5;424.jpg;;MISSING;MISSING
+425;uht jibal 1/2L;Produits laitiers;6111246950876;0.0;0.0;50;5;425.jpg;;MISSING;MISSING
+426;vach;Produits laitiers;6111028001246;0.0;0.0;50;5;426.jpg;;MISSING;MISSING
+427;الهاندس;Produits laitiers;6111203005779;0.0;0.0;50;5;427.jpg;;MISSING;MISSING
+428;دان شركي حامض;Produits laitiers;6111126001841;0.0;0.0;50;5;428.jpg;;MISSING;MISSING
+429;ديليسيوس بيرلي;Produits laitiers;6111266962576;0.0;0.0;50;5;429.jpg;;MISSING;MISSING
+430;رايبي جودة;Produits laitiers;6111242100930;0.0;0.0;50;5;430.jpg;;MISSING;MISSING
+431;غلال القمح;Produits laitiers;6111242102002;0.0;0.0;50;5;431.jpg;;MISSING;MISSING
+432;قشدة طرية;Produits laitiers;6111126000905;0.0;0.0;50;5;432.jpg;;MISSING;MISSING
+433;كريميو;Produits laitiers;6191585701858;0.0;0.0;50;5;433.jpg;;MISSING;MISSING
+434;كيفير;Produits laitiers;6111266963207;0.0;0.0;50;5;434.jpg;;MISSING;MISSING
+435;لذيذ;Produits laitiers;6111266962644;0.0;0.0;50;5;435.jpg;;MISSING;MISSING
+436;ياغورت ممزوج ناعم كريمي;Produits laitiers;6111242100299;0.0;0.0;50;5;436.jpg;;MISSING;MISSING
+437;Ariel Lessive;Produits ménagers;;0.0;0.0;50;5;437.jpg;;MISSING;MISSING
+438;Ariel Lessive Automatique 6 kg;Produits ménagers;;0.0;0.0;50;5;438.jpg;;MISSING;MISSING
+439;Doussy Lessive;Produits ménagers;;0.0;0.0;50;5;439.jpg;;MISSING;MISSING
+440;Ecore Lessive;Produits ménagers;;0.0;0.0;50;5;440.jpg;;MISSING;MISSING
+441;Fairy Liquide vaisselle;Produits ménagers;;0.0;0.0;50;5;441.jpg;;MISSING;MISSING
+442;Grefort Lessive;Produits ménagers;;0.0;0.0;50;5;442.jpg;;MISSING;MISSING
+443;Grefort Lessive - lot;Produits ménagers;;0.0;0.0;50;5;443.jpg;;MISSING;MISSING
+444;Lessive liquide;Produits ménagers;;0.0;0.0;50;5;444.jpg;;MISSING;MISSING
+445;Liquide vaisselle;Produits ménagers;;0.0;0.0;50;5;445.jpg;;MISSING;MISSING
+446;Maxis Lessive;Produits ménagers;;0.0;0.0;50;5;446.jpg;;MISSING;MISSING
+447;Maxis Liquide vaisselle;Produits ménagers;;0.0;0.0;50;5;447.jpg;;MISSING;MISSING
+448;Mio Liquide vaisselle;Produits ménagers;;0.0;0.0;50;5;448.jpg;;MISSING;MISSING
+449;OMO Lessive;Produits ménagers;;0.0;0.0;50;5;449.jpg;;MISSING;MISSING
+450;Oni Liquide vaisselle;Produits ménagers;;0.0;0.0;50;5;450.jpg;;MISSING;MISSING
+451;Produit ménager;Produits ménagers;;0.0;0.0;50;5;451.jpg;;MISSING;MISSING
+452;Rubikaine;Produits ménagers;;0.0;0.0;50;5;452.jpg;;MISSING;MISSING
+453;Sanytol;Produits ménagers;;0.0;0.0;50;5;453.jpg;;MISSING;MISSING
+454;Soupline Adoucissant;Produits ménagers;;0.0;0.0;50;5;454.jpg;;MISSING;MISSING
+455;Spray nettoyant;Produits ménagers;;0.0;0.0;50;5;455.jpg;;MISSING;MISSING
+456;Vanish Détachant;Produits ménagers;;0.0;0.0;50;5;456.jpg;;MISSING;MISSING
+457;Blé tendre cuisson 10 min Ebly 500 g;Pâtes, Riz & Céréales;3487400000392;0.0;0.0;50;5;457.jpg;;MISSING;MISSING
+458;Cerelac;Pâtes, Riz & Céréales;6221007032540;0.0;0.0;50;5;458.jpg;;MISSING;MISSING
+459;Cerelac Blé;Pâtes, Riz & Céréales;6221007032724;0.0;0.0;50;5;459.jpg;;MISSING;MISSING
+460;Cuor di Cereale;Pâtes, Riz & Céréales;8410376040425;0.0;0.0;50;5;460.jpg;;MISSING;MISSING
+461;Dari Berekouch;Pâtes, Riz & Céréales;;0.0;0.0;50;5;461.jpg;;MISSING;MISSING
+462;Dari Couscous;Pâtes, Riz & Céréales;;0.0;0.0;50;5;462.jpg;;MISSING;MISSING
+463;Digestive Muesli;Pâtes, Riz & Céréales;8410376026979;0.0;0.0;50;5;463.jpg;;MISSING;MISSING
+464;Farine;Pâtes, Riz & Céréales;;0.0;0.0;50;5;464.jpg;;MISSING;MISSING
+465;Farine / produit alimentaire;Pâtes, Riz & Céréales;;0.0;0.0;50;5;465.jpg;;MISSING;MISSING
+466;Farine d’amande bio;Pâtes, Riz & Céréales;;0.0;0.0;50;5;466.jpg;;MISSING;MISSING
+467;Gullon Cuordi Cereale Tradizionale, Alto Contenuto Di Fibra;Pâtes, Riz & Céréales;8410376039986;0.0;0.0;50;5;467.jpg;;MISSING;MISSING
+468;Ideal Farine;Pâtes, Riz & Céréales;;0.0;0.0;50;5;468.jpg;;MISSING;MISSING
+469;Indomie instant noodles baladi chicken flavor;Pâtes, Riz & Céréales;;0.0;0.0;50;5;469.jpg;;MISSING;MISSING
+470;Jibal / Produit céréales;Pâtes, Riz & Céréales;;0.0;0.0;50;5;470.jpg;;MISSING;MISSING
+471;Kayna Coquillettes;Pâtes, Riz & Céréales;;0.0;0.0;50;5;471.jpg;;MISSING;MISSING
+472;Kayna Couscous;Pâtes, Riz & Céréales;;0.0;0.0;50;5;472.jpg;;MISSING;MISSING
+473;Kayna Spaghetti;Pâtes, Riz & Céréales;;0.0;0.0;50;5;473.jpg;;MISSING;MISSING
+474;Kenz Farine / Préparation;Pâtes, Riz & Céréales;;0.0;0.0;50;5;474.jpg;;MISSING;MISSING
+475;Musli Oat biscuits (Blueberry);Pâtes, Riz & Céréales;8595229901075;0.0;0.0;50;5;475.jpg;;MISSING;MISSING
+476;Müsli oat biscuits;Pâtes, Riz & Céréales;8595229900504;0.0;0.0;50;5;476.jpg;;MISSING;MISSING
+477;Pain de mie complet;Pâtes, Riz & Céréales;6111246910023;0.0;0.0;50;5;477.jpg;;MISSING;MISSING
+478;Pain de mie complet;Pâtes, Riz & Céréales;6111245460345;0.0;0.0;50;5;478.jpg;;MISSING;MISSING
+479;Pain de sucre;Pâtes, Riz & Céréales;6111029000040;0.0;0.0;50;5;479.jpg;;MISSING;MISSING
+480;Peripella;Pâtes, Riz & Céréales;6111250477567;0.0;0.0;50;5;480.jpg;;MISSING;MISSING
+481;Pâtes alimentaires;Pâtes, Riz & Céréales;;0.0;0.0;50;5;481.jpg;;MISSING;MISSING
+482;Quinoa;Pâtes, Riz & Céréales;;0.0;0.0;50;5;482.jpg;;MISSING;MISSING
+483;Sable coco Henry s 42g;Pâtes, Riz & Céréales;3362600011228;0.0;0.0;50;5;483.jpg;;MISSING;MISSING
+484;Sablé Coco;Pâtes, Riz & Céréales;3362600001106;0.0;0.0;50;5;484.jpg;;MISSING;MISSING
+485;Semoule / couscous;Pâtes, Riz & Céréales;;0.0;0.0;50;5;485.jpg;;MISSING;MISSING
+486;Sergio;Pâtes, Riz & Céréales;6111259344129;0.0;0.0;50;5;486.jpg;;MISSING;MISSING
+487;special burger;Pâtes, Riz & Céréales;6111260231548;0.0;0.0;50;5;487.jpg;;MISSING;MISSING
+488;سيرجيو صغيرة;Pâtes, Riz & Céréales;6111259344051;0.0;0.0;50;5;488.jpg;;MISSING;MISSING
+489;Amora Ketchup;Sauces & Condiments;;0.0;0.0;50;5;489.jpg;;MISSING;MISSING
+490;Assaisonnement aromatisé au citron;Sauces & Condiments;6111184003276;0.0;0.0;50;5;490.jpg;;MISSING;MISSING
+491;Assaisonnement aromatisé au citron;Sauces & Condiments;6111250472265;0.0;0.0;50;5;491.jpg;;MISSING;MISSING
+492;Atún con tomate;Sauces & Condiments;8410111000707;0.0;0.0;50;5;492.jpg;;MISSING;MISSING
+493;Barilla Arrabbiata;Sauces & Condiments;;0.0;0.0;50;5;493.jpg;;MISSING;MISSING
+494;Barilla Sauce Bolognese;Sauces & Condiments;;0.0;0.0;50;5;494.jpg;;MISSING;MISSING
+495;Bol Bol Ketchup;Sauces & Condiments;6111250472241;0.0;0.0;50;5;495.jpg;;MISSING;MISSING
+496;Dami Sauce / Préparation;Sauces & Condiments;;0.0;0.0;50;5;496.jpg;;MISSING;MISSING
+497;Heinz Ketchup;Sauces & Condiments;;0.0;0.0;50;5;497.jpg;;MISSING;MISSING
+498;Hot Sauce;Sauces & Condiments;6111184009520;0.0;0.0;50;5;498.jpg;;MISSING;MISSING
+499;Ketchup Star;Sauces & Condiments;6111184004730;0.0;0.0;50;5;499.jpg;;MISSING;MISSING
+500;Ketchup Star;Sauces & Condiments;;0.0;0.0;50;5;500.jpg;;MISSING;MISSING
+501;Lesieur Mayonnaise légère;Sauces & Condiments;;0.0;0.0;50;5;501.jpg;;MISSING;MISSING
+502;Lugo Sauce piquante;Sauces & Condiments;;0.0;0.0;50;5;502.jpg;;MISSING;MISSING
+503;Mario Mayonnaise;Sauces & Condiments;;0.0;0.0;50;5;503.jpg;;MISSING;MISSING
+504;Mayonesa sabor tradicional;Sauces & Condiments;8410066131334;0.0;0.0;50;5;504.jpg;;MISSING;MISSING
+505;Mayonnaise;Sauces & Condiments;6111250475129;0.0;0.0;50;5;505.jpg;;MISSING;MISSING
+506;Mayonnaise;Sauces & Condiments;;0.0;0.0;50;5;506.jpg;;MISSING;MISSING
+507;Mayonnaise;Sauces & Condiments;6111184000619;0.0;0.0;50;5;507.jpg;;MISSING;MISSING
+508;Mayonnaise recette originale;Sauces & Condiments;6111184004129;0.0;0.0;50;5;508.jpg;;MISSING;MISSING
+509;Moutarde;Sauces & Condiments;6111250474641;0.0;0.0;50;5;509.jpg;;MISSING;MISSING
+510;Moutarde de Dijon;Sauces & Condiments;6111184001203;0.0;0.0;50;5;510.jpg;;MISSING;MISSING
+511;Olla;Sauces & Condiments;6111251753899;0.0;0.0;50;5;511.jpg;;MISSING;MISSING
+512;Panzani Sauce tomate;Sauces & Condiments;;0.0;0.0;50;5;512.jpg;;MISSING;MISSING
+513;Sacla Pesto;Sauces & Condiments;;0.0;0.0;50;5;513.jpg;;MISSING;MISSING
+514;Sauce Algérienne;Sauces & Condiments;6111184008356;0.0;0.0;50;5;514.jpg;;MISSING;MISSING
+515;Sauce De Soja Supérieure Claire;Sauces & Condiments;8681480324484;0.0;0.0;50;5;515.jpg;;MISSING;MISSING
+516;Sauce algérienne;Sauces & Condiments;6111184007618;0.0;0.0;50;5;516.jpg;;MISSING;MISSING
+517;Sauce barbecue;Sauces & Condiments;;0.0;0.0;50;5;517.jpg;;MISSING;MISSING
+518;Sauce piquante;Sauces & Condiments;;0.0;0.0;50;5;518.jpg;;MISSING;MISSING
+519;Sauce pizza star 350 g;Sauces & Condiments;6111184006413;0.0;0.0;50;5;519.jpg;;MISSING;MISSING
+520;Sauce tomate;Sauces & Condiments;;0.0;0.0;50;5;520.jpg;;MISSING;MISSING
+521;Star Ketchup;Sauces & Condiments;;0.0;0.0;50;5;521.jpg;;MISSING;MISSING
+522;Star Mayonnaise;Sauces & Condiments;6111184000657;0.0;0.0;50;5;522.jpg;;MISSING;MISSING
+523;Star Mayonnaise;Sauces & Condiments;;0.0;0.0;50;5;523.jpg;;MISSING;MISSING
+524;Star Moutarde;Sauces & Condiments;;0.0;0.0;50;5;524.jpg;;MISSING;MISSING
+525;Star Pizza;Sauces & Condiments;;0.0;0.0;50;5;525.jpg;;MISSING;MISSING
+526;Star Premium Mayonnaise;Sauces & Condiments;6111259344068;0.0;0.0;50;5;526.jpg;;MISSING;MISSING
+527;Star Sauces - assortiment;Sauces & Condiments;;0.0;0.0;50;5;527.jpg;;MISSING;MISSING
+528;Star Spicy;Sauces & Condiments;;0.0;0.0;50;5;528.jpg;;MISSING;MISSING
+529;Star moutarde;Sauces & Condiments;6111184004716;0.0;0.0;50;5;529.jpg;;MISSING;MISSING
+530;Star moutarde 200 g;Sauces & Condiments;6111184000701;0.0;0.0;50;5;530.jpg;;MISSING;MISSING
+531;sauce tomate cuisinée;Sauces & Condiments;8445290615350;0.0;0.0;50;5;531.jpg;;MISSING;MISSING
+532;Levure;Snacks & Fruits secs;6111245370064;0.0;0.0;50;5;532.jpg;;MISSING;MISSING
+533;Trios;Snacks & Fruits secs;6111252860077;0.0;0.0;50;5;533.jpg;;MISSING;MISSING
+534;Cacao;Sucre & Épicerie sucrée;6111180007650;0.0;0.0;50;5;534.jpg;;MISSING;MISSING
+535;Cosumar Sucre En Lingot Pour Le Thé 1 kg;Sucre & Épicerie sucrée;6111029000118;0.0;0.0;50;5;535.jpg;;MISSING;MISSING
+536;Cosumar Sucre Granule - Granulated Sugar;Sucre & Épicerie sucrée;6111029000415;0.0;0.0;50;5;536.jpg;;MISSING;MISSING
+537;La Peruche Sucre;Sucre & Épicerie sucrée;;0.0;0.0;50;5;537.jpg;;MISSING;MISSING
+538;Nescafé classic;Sucre & Épicerie sucrée;6111018501480;0.0;0.0;50;5;538.jpg;;MISSING;OK
+539;Samar Gusto Coffee 45g;Sucre & Épicerie sucrée;6111243002493;0.0;0.0;50;5;539.jpg;;MISSING;MISSING
+540;Sucre;Sucre & Épicerie sucrée;;0.0;0.0;50;5;540.jpg;;MISSING;MISSING
+541;enmer;Sucre & Épicerie sucrée;6111029000293;0.0;0.0;50;5;541.jpg;;MISSING;MISSING
+542;miel;Sucre & Épicerie sucrée;6111243380027;0.0;0.0;50;5;542.jpg;;MISSING;MISSING
+543;Édulcorant zéro calorie;Sucre & Épicerie sucrée;;0.0;0.0;50;5;543.jpg;;MISSING;MISSING
+544;سكر الفانيلين;Sucre & Épicerie sucrée;6111180000392;0.0;0.0;50;5;544.jpg;;MISSING;MISSING
+545;Asta;Thé & Café;6111101001361;0.0;0.0;50;5;545.jpg;;MISSING;MISSING
+546;Green Tea;Thé & Café;6923818812082;0.0;0.0;50;5;546.jpg;;MISSING;MISSING
+547;Lipton Ice Tea Saveur Pêche;Thé & Café;6111252422411;0.0;0.0;50;5;547.jpg;;MISSING;MISSING
+548;Nescafe classic;Thé & Café;6111018903185;0.0;0.0;50;5;548.jpg;;MISSING;MISSING
+549;Nesquik;Thé & Café;;0.0;0.0;50;5;549.jpg;;MISSING;MISSING
+550;Nesquik / Boisson cacao;Thé & Café;;0.0;0.0;50;5;550.jpg;;MISSING;MISSING
+551;VIP Gold café instantané;Thé & Café;6111250470209;0.0;0.0;50;5;551.jpg;;MISSING;MISSING
+552;VIP crema gold café instantané;Thé & Café;6111250473453;0.0;0.0;50;5;552.jpg;;MISSING;MISSING
+553;شاي النسمة;Thé & Café;6111243640831;0.0;0.0;50;5;553.jpg;;MISSING;MISSING
+554;قهوة الطبيب;Thé & Café;6111175000741;0.0;0.0;50;5;554.jpg;;MISSING;MISSING
+555;Atun;Épicerie;8410111211202;0.0;0.0;50;5;555.jpg;;MISSING;MISSING
+556;Capri choco;Épicerie;6111249960964;0.0;0.0;50;5;556.jpg;;MISSING;MISSING
+557;Cheeslé Blanc nature;Épicerie;6111259093102;0.0;0.0;50;5;557.jpg;;MISSING;MISSING
+558;Crempro;Épicerie;6111259090415;0.0;0.0;50;5;558.jpg;;MISSING;MISSING
+559;Danone max;Épicerie;6111032009429;0.0;0.0;50;5;559.jpg;;MISSING;MISSING
+560;Daya Ananas Coco;Épicerie;6111126004538;0.0;0.0;50;5;560.jpg;;MISSING;MISSING
+561;Extrem;Épicerie;6111259344501;0.0;0.0;50;5;561.jpg;;MISSING;MISSING
+562;Halls Plain Hard Candy - Extra Strong Flavor;Épicerie;7622201695323;0.0;0.0;50;5;562.jpg;;MISSING;MISSING
+563;Indomie;Épicerie;5285000397465;0.0;0.0;50;5;563.jpg;;MISSING;MISSING
+564;KING COOKIES;Épicerie;6111259343108;0.0;0.0;50;5;564.jpg;;MISSING;MISSING
+565;Krit krititas galletas saladas;Épicerie;8434165466333;0.0;0.0;50;5;565.jpg;;MISSING;MISSING
+566;La prairie classique;Épicerie;6111203001474;0.0;0.0;50;5;566.jpg;;MISSING;MISSING
+567;Levure rafiaa;Épicerie;6111246250013;0.0;0.0;50;5;567.jpg;;MISSING;MISSING
+568;Luncheon;Épicerie;6111259091665;0.0;0.0;50;5;568.jpg;;MISSING;MISSING
+569;MARG FAMILIA 400G;Épicerie;6111037000643;0.0;0.0;50;5;569.jpg;;MISSING;MISSING
+570;MARG VITAL OVAL PF 200G;Épicerie;6111203005014;0.0;0.0;50;5;570.jpg;;MISSING;MISSING
+571;Magnesium;Épicerie;4058172309250;0.0;0.0;50;5;571.jpg;;MISSING;MISSING
+572;Margarine patissière;Épicerie;6111037000506;0.0;0.0;50;5;572.jpg;;MISSING;MISSING
+573;Matina;Épicerie;6111243570169;0.0;0.0;50;5;573.jpg;;MISSING;MISSING
+574;Mayfine;Épicerie;6111180003102;0.0;0.0;50;5;574.jpg;;MISSING;MISSING
+575;Muscly la force pour grandir;Épicerie;6111242101272;0.0;0.0;50;5;575.jpg;;MISSING;MISSING
+576;Nouilles Instantanées Goût Boeuf;Épicerie;5285000396437;0.0;0.0;50;5;576.jpg;;MISSING;MISSING
+577;Petits fours financiers;Épicerie;6923818881323;0.0;0.0;50;5;577.jpg;;MISSING;MISSING
+578;Pringles Sare;Épicerie;5053990101573;0.0;0.0;50;5;578.jpg;;MISSING;MISSING
+579;Produit congelé;Épicerie;;0.0;0.0;50;5;579.jpg;;MISSING;MISSING
+580;Produit pâtisserie en poudre;Épicerie;;0.0;0.0;50;5;580.jpg;;MISSING;MISSING
+581;SALIM LBEN 440G;Épicerie;6111032009924;0.0;0.0;50;5;581.jpg;;MISSING;MISSING
+582;Schweppes citron 1l;Épicerie;5449000334343;12.0;0.0;50;5;582.jpg;;OK;MISSING
+583;Sport;Épicerie;6111126005719;0.0;0.0;50;5;583.jpg;;MISSING;MISSING
+584;Supreme Original;Épicerie;6111259346710;0.0;0.0;50;5;584.jpg;;MISSING;MISSING
+585;Tartine & Cuisine;Épicerie;6111099005488;0.0;0.0;50;5;585.jpg;;MISSING;MISSING
+586;Vegetal;Épicerie;5410093179616;0.0;0.0;50;5;586.jpg;;MISSING;MISSING
+587;flan caram jao dan;Épicerie;6111242102019;0.0;0.0;50;5;587.jpg;;MISSING;MISSING
+588;levure pâtisserie;Épicerie;6111180000231;0.0;0.0;50;5;588.jpg;;MISSING;MISSING
+589;margarine;Épicerie;6111203007513;0.0;0.0;50;5;589.jpg;;MISSING;MISSING
+590;margarine la prairie 225g;Épicerie;6111203001467;0.0;0.0;50;5;590.jpg;;MISSING;MISSING
+591;margarine vital 400 g;Épicerie;6111203005021;0.0;0.0;50;5;591.jpg;;MISSING;MISSING
+592;pringles hot & spicy;Épicerie;5053990101542;0.0;0.0;50;5;592.jpg;;MISSING;MISSING
+593;top cookies original;Épicerie;6111259341494;0.0;0.0;50;5;593.jpg;;MISSING;MISSING
+594;سكر النمر;Épicerie;6111029000491;0.0;0.0;50;5;594.jpg;;MISSING;MISSING
+595;شييزلي;Épicerie;6111259093096;0.0;0.0;50;5;595.jpg;;MISSING;MISSING
+596;قلوتي;Épicerie;6111032007661;0.0;0.0;50;5;596.jpg;;MISSING;MISSING
+597;Aicha Double Concentré De Tomates 140 G;Épicerie salée;6111021022002;0.0;0.0;50;5;597.jpg;;MISSING;MISSING
+598;Aicha Tomates;Épicerie salée;;0.0;0.0;50;5;598.jpg;;MISSING;MISSING
+599;Aicha Tomato Paste;Épicerie salée;6111021090056;0.0;0.0;50;5;599.jpg;;MISSING;MISSING
+600;Concentré de tomates Aicha;Épicerie salée;6111021090049;0.0;0.0;50;5;600.jpg;;MISSING;MISSING
+601;Danino;Épicerie salée;6111032008446;0.0;0.0;50;5;601.jpg;;MISSING;MISSING
+602;Delicia 200 g;Épicerie salée;6111162001416;0.0;0.0;50;5;602.jpg;;MISSING;MISSING
+603;Delicia double concentre de tomates;Épicerie salée;6111162001201;0.0;0.0;50;5;603.jpg;;MISSING;MISSING
+604;Double concentré de tomates;Épicerie salée;6111021026000;0.0;0.0;50;5;604.jpg;;MISSING;MISSING
+605;Double concentré de tomates;Épicerie salée;6111021090100;0.0;0.0;50;5;605.jpg;;MISSING;MISSING
+606;Double concentré de tomates;Épicerie salée;6111162001553;0.0;0.0;50;5;606.jpg;;MISSING;MISSING
+607;Dtink happy ana;Épicerie salée;6923815199025;0.0;0.0;50;5;607.jpg;;MISSING;MISSING
+608;Lio produit;Épicerie salée;6111099000605;0.0;0.0;50;5;608.jpg;;MISSING;MISSING
+609;Mutti Passata / Tomates;Épicerie salée;;0.0;0.0;50;5;609.jpg;;MISSING;MISSING
+610;Pulmes bulles d’orange;Épicerie salée;6111035001987;0.0;0.0;50;5;610.jpg;;MISSING;MISSING
+611;Sel de table iodé;Épicerie salée;6111184001562;0.0;0.0;50;5;611.jpg;;MISSING;MISSING
+612;Sella Tomates;Épicerie salée;;0.0;0.0;50;5;612.jpg;;MISSING;MISSING
+613;Solis;Épicerie salée;8445291209039;0.0;0.0;50;5;613.jpg;;MISSING;OK
+614;jempo;Épicerie salée;7322540548563;0.0;0.0;50;5;614.jpg;;MISSING;MISSING
+615;pickers crunchy;Épicerie salée;6111259347625;0.0;0.0;50;5;615.jpg;;MISSING;MISSING
+616;Marrakech Épices;Épices & Condiments;;0.0;0.0;50;5;616.jpg;;MISSING;MISSING
+617;Persil;Épices & Condiments;;0.0;0.0;50;5;617.jpg;;MISSING;MISSING
+618;Widad Basilic;Épices & Condiments;;0.0;0.0;50;5;618.jpg;;MISSING;MISSING
+619;Épice;Épices & Condiments;;0.0;0.0;50;5;619.jpg;;MISSING;MISSING
+620;Épice / Harissa;Épices & Condiments;;0.0;0.0;50;5;620.jpg;;MISSING;MISSING

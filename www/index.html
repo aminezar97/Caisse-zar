@@ -772,6 +772,114 @@
     display: none !important;
 }
 
+
+/* FINAL POS RESPONSIVE FIX */
+.search-scan-row,
+.sale-search-row,
+.search-row {
+    display:flex !important;
+    align-items:stretch !important;
+    gap:12px !important;
+    width:100% !important;
+}
+
+.search-scan-row > input,
+.sale-search-row > input,
+.search-row > input {
+    flex:1 1 auto !important;
+    min-width:0 !important;
+}
+
+.search-scan-row .scan-btn,
+.sale-search-row .scan-btn,
+.search-row .scan-btn {
+    flex:0 0 auto !important;
+    min-width:125px !important;
+    width:auto !important;
+}
+
+.clock-cashier-row {
+    display:flex !important;
+    align-items:stretch !important;
+    justify-content:center !important;
+    gap:12px !important;
+    flex-wrap:wrap !important;
+    width:100% !important;
+}
+
+.clock-badge-container,
+.cashier-badge-container {
+    box-sizing:border-box !important;
+    width:clamp(180px, 42vw, 300px) !important;
+    min-width:0 !important;
+    min-height:70px !important;
+    margin:0 !important;
+}
+
+@media(max-width:600px){
+    .search-scan-row,
+    .sale-search-row,
+    .search-row {
+        gap:8px !important;
+    }
+
+    .search-scan-row .scan-btn,
+    .sale-search-row .scan-btn,
+    .search-row .scan-btn {
+        min-width:105px !important;
+        padding:10px 8px !important;
+        font-size:19px !important;
+    }
+
+    .clock-cashier-row {
+        flex-direction:column !important;
+        align-items:center !important;
+        gap:10px !important;
+        padding:10px !important;
+    }
+
+    .clock-badge-container,
+    .cashier-badge-container {
+        width:min(100%, 390px) !important;
+        min-height:68px !important;
+    }
+}
+
+@media(min-width:601px){
+    .clock-cashier-row {
+        flex-direction:row !important;
+    }
+}
+
+/* Centered larger logo */
+.logo-area {
+    position:absolute !important;
+    left:50% !important;
+    transform:translateX(-50%) !important;
+    white-space:nowrap !important;
+}
+
+.logo-area img {
+    width:50px !important;
+    height:50px !important;
+}
+
+.logo-text {
+    font-size:clamp(21px,3vw,28px) !important;
+    font-weight:800 !important;
+}
+
+/* Light theme is the default */
+html:not([data-theme="dark"]) {
+    color-scheme:light;
+}
+
+/* Never show old scanner action buttons */
+#startScanBtn,
+#closeScanBtn {
+    display:none !important;
+}
+
 </style>
 </head>
 <body>
@@ -1749,6 +1857,30 @@
         let inactivityTimer = null;
         let isLoggedIn = false;
 
+        
+
+function fixClockCashierLayout() {
+    const clock=document.querySelector(".clock-badge-container");
+    const cashier=document.querySelector(".cashier-badge-container");
+
+    if (!clock || !cashier) return;
+
+    const parent=clock.parentElement;
+    if (parent && cashier.parentElement===parent) {
+        parent.classList.add("clock-cashier-row");
+    }
+}
+
+        function fixSearchScannerLayout() {
+    const scan=document.querySelector(".scan-btn");
+    if (!scan) return;
+
+    let parent=scan.parentElement;
+    if (parent) {
+        parent.classList.add("search-scan-row");
+    }
+}
+
         // ---- FONCTION DE TRADUCTION ----
         function t(key) {
             return (translations[currentLanguage] && translations[currentLanguage][key]) ? translations[currentLanguage][key] : key;
@@ -1782,7 +1914,7 @@ function injectLanguageMenu() {
         </div>
     `;
 
-    settingsItem.parentElement.insertBefore(box, settingsItem);
+    settingsItem.parentElement.appendChild(box);
 }
 
 function updateLanguageMenu() {
@@ -1799,49 +1931,35 @@ function updateLanguageMenu() {
         
 async function loadLanguageProductNames() {
     try {
-        const response = await fetch(
-            "./data/products_" + currentLanguage + ".csv?v=" + Date.now(),
-            { cache: "no-store" }
-        );
+        const url="./data/products_"+currentLanguage+".csv?v="+Date.now();
+        const response=await fetch(url,{cache:"no-store"});
+        if(!response.ok) throw new Error("CSV "+response.status);
 
-        if (!response.ok) {
-            throw new Error("Language CSV HTTP " + response.status);
-        }
+        const text=await response.text();
+        const rows=parseCSVToProducts(text);
+        const names=new Map();
 
-        const text = await response.text();
-
-        if (typeof parseCSVToProducts !== "function") {
-            console.warn("parseCSVToProducts unavailable");
-            return;
-        }
-
-        const rows = parseCSVToProducts(text);
-        const names = new Map();
-
-        rows.forEach(function(row) {
-            if (row && row.id != null && row.name) {
-                names.set(String(row.id), String(row.name));
+        rows.forEach(function(x){
+            if(x && x.id!=null && x.name){
+                names.set(String(x.id),String(x.name).trim());
             }
         });
 
-        if (db && Array.isArray(db.products)) {
-            db.products.forEach(function(product) {
-                const name = names.get(String(product.id));
-                if (name) product.name = name;
+        if(db && Array.isArray(db.products)){
+            db.products.forEach(function(x){
+                const n=names.get(String(x.id));
+                if(n) x.name=n;
             });
         }
 
-        renderAll();
+        fixSearchScannerLayout();
+        fixClockCashierLayout();
         updateLanguageMenu();
+        renderAll();
 
-        console.log(
-            "Language catalog loaded:",
-            currentLanguage,
-            names.size,
-            "products"
-        );
-    } catch (error) {
-        console.warn("Language catalog error:", error);
+        console.log("LANGUAGE:",currentLanguage,"PRODUCT NAMES:",names.size);
+    }catch(e){
+        console.warn("Language catalog:",e);
     }
 }
 
@@ -2160,6 +2278,16 @@ async function loadLanguageProductNames() {
             else { html.setAttribute('data-theme', 'light'); document.getElementById('themeToggle').checked = true; }
         }
 
+        
+function ensureDefaultLightTheme() {
+    const saved=localStorage.getItem("zarouali_theme");
+    if (!saved) {
+        document.documentElement.removeAttribute("data-theme");
+        const toggle=document.getElementById("themeToggle");
+        if(toggle) toggle.checked=false;
+    }
+}
+
         function toggleTheme(checked) {
             const html = document.documentElement;
             if (checked) { html.setAttribute('data-theme', 'light'); localStorage.setItem(THEME_KEY, 'light'); }
@@ -2467,6 +2595,9 @@ async function loadLanguageProductNames() {
         async function init() {
             const savedLang = localStorage.getItem(LANG_KEY) || 'fr';
             setLanguage(savedLang);
+            ensureDefaultLightTheme();
+            setTimeout(fixSearchScannerLayout,100);
+            setTimeout(fixClockCashierLayout,100);
             setTimeout(injectLanguageMenu, 100);
             setTimeout(updateLanguageMenu, 150);
             loadTheme();

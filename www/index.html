@@ -1961,7 +1961,7 @@
 
         async function loadLocalProductCatalog() {
             try {
-                const response = await fetch("./data/products_${currentLanguage}.csv?v=" + Date.now(), { cache: "no-store" });
+                const response = await fetch("./data/products_" + currentLanguage + ".csv?v=" + Date.now(), { cache: "no-store" });
                 if (!response.ok) throw new Error("CSV HTTP " + response.status);
                 const csvText = await response.text();
                 const products = parseCSVToProducts(csvText).map(normalizeCatalogProduct).filter(p => p.id && p.name);
@@ -2004,7 +2004,7 @@
 
             try {
                 const response = await fetch(
-                    "./data/products_${currentLanguage}.csv?v=" + Date.now(),
+                    "./data/products_" + currentLanguage + ".csv?v=" + Date.now(),
                     {
                         cache: "no-store"
                     }

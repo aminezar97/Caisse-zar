@@ -212,6 +212,14 @@
         .clock-time { font-weight: 800; font-size: 17px; color: var(--text-primary); letter-spacing: 0.5px; font-variant-numeric: tabular-nums; }
 
         /* ---- SALE LAYOUT ---- */
+/* Equal header badges */
+.clock-badge-container,
+.cashier-badge-container {
+    width: 220px;
+    min-height: 70px;
+    justify-content: flex-start;
+}
+
         .sale-layout { display: grid; grid-template-columns: 1fr 440px; gap: 16px; align-items: start; }
 
         /* ---- SEARCH & SCAN ---- */
@@ -582,8 +590,8 @@
             .form-group.full { grid-column: auto; }
             .payment-grid { grid-template-columns: 1fr 1fr 1fr; }
             .quick-cash { grid-template-columns: repeat(2, 1fr); }
-            .scan-btn span { display: none; }
-            .scan-btn { font-size: 26px; min-width: 52px; padding: 10px 12px; }
+            .scan-btn span { display: inline; font-size: 13px; font-weight: 800; letter-spacing: .4px; }
+            .scan-btn { font-size: 22px; min-width: 118px; padding: 10px 14px; }
             .logo-area .logo-text { font-size: 17px; }
             .logo-area img { width: 36px; height: 36px; padding: 4px; }
             .clock-badge-container { padding: 4px 10px; }
@@ -666,9 +674,7 @@
                     <img src="./icon.png" alt="Logo">
                     <span class="logo-text" id="appName">Zarouali POS</span>
                 </div>
-                <div class="header-actions">
-                    <button class="icon-btn" onclick="openFullscreen()">⛶</button>
-                </div>
+                <div class="header-actions"></div>
             </div>
         </header>
 
@@ -726,9 +732,7 @@
 
                         <div class="search-area">
                             <input id="search" class="search" placeholder="🔎 Rechercher ou scanner..." autofocus>
-                            <button class="scan-btn" onclick="openScanner()" title="Scanner un code-barres">
-                                📷 <span id="scanBtnText">Scan</span>
-                            </button>
+                            <button class="scan-btn" onclick="openScanner()" title="Scanner un code-barres">▥ <span id="scanBtnText">SCANNER</span></button>
                         </div>
 
                         <div id="categories" class="categories"></div>
@@ -1957,7 +1961,7 @@
 
         async function loadLocalProductCatalog() {
             try {
-                const response = await fetch("./data/products.csv?v=" + Date.now(), { cache: "no-store" });
+                const response = await fetch("./data/products_${currentLanguage}.csv?v=" + Date.now(), { cache: "no-store" });
                 if (!response.ok) throw new Error("CSV HTTP " + response.status);
                 const csvText = await response.text();
                 const products = parseCSVToProducts(csvText).map(normalizeCatalogProduct).filter(p => p.id && p.name);
@@ -2000,7 +2004,7 @@
 
             try {
                 const response = await fetch(
-                    "./data/products.csv?v=" + Date.now(),
+                    "./data/products_${currentLanguage}.csv?v=" + Date.now(),
                     {
                         cache: "no-store"
                     }
@@ -3112,6 +3116,16 @@
                 return;
             }
 
+            // Request camera permission before scanner initialization
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Camera API unavailable");
+            }
+
+            const permissionStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: "environment" } }
+            });
+            permissionStream.getTracks().forEach(track => track.stop());
+
             // Check camera API
             if (!navigator.mediaDevices ||
                 !navigator.mediaDevices.getUserMedia) {
@@ -3597,18 +3611,85 @@
             const stock = parseInt(document.getElementById("pStock").value) || 0;
             const minStock = parseInt(document.getElementById("pMinStock").value) || 5;
             const expirationDate = document.getElementById("pExpiration").value || "";
-            if (!name) { toast(t('productNameRequired')); return; }
-            if (price <= 0) { toast(t('invalidPrice')); return; }
-            if (id) {
-                const product = db.products.find(p => p.id === id);
-                if (product) { product.name = name; product.category = category; product.barcode = barcode; product.price = price; product.purchasePrice = purchasePrice; product.stock = stock; product.minStock = minStock; product.expirationDate = expirationDate; if (currentImage) product.image = currentImage; }
-            } else {
-                const newId = "P" + String(db.products.length + 1).padStart(3, "0");
-                db.products.push({ id: newId, name, category, barcode: barcode || newId, price, purchasePrice, stock, minStock, expirationDate, image: currentImage || "" });
+
+            if (!name) {
+                toast(t('productNameRequired'));
+                return;
             }
+
+            if (price <= 0) {
+                toast(t('invalidPrice'));
+                return;
+            }
+
+            // Prevent duplicate barcode
+            if (barcode) {
+                const duplicate = db.products.find(p =>
+                    p.id !== id &&
+                    String(p.barcode || "").trim() === barcode
+                );
+
+                if (duplicate) {
+                    toast("Barcode déjà utilisé");
+                    return;
+                }
+            }
+
+            if (id) {
+                // EDIT EXISTING PRODUCT
+                const product = db.products.find(p => p.id === id);
+
+                if (product) {
+                    product.name = name;
+                    product.category = category;
+                    product.barcode = barcode;
+                    product.price = price;
+                    product.purchasePrice = purchasePrice;
+                    product.stock = stock;
+                    product.minStock = minStock;
+                    product.expirationDate = expirationDate;
+
+                    if (currentImage) {
+                        product.image = currentImage;
+                    }
+                }
+
+            } else {
+                // ADD NEW PRODUCT
+                // Generate a unique Pxxx ID without relying on array length.
+                let maxId = 0;
+
+                db.products.forEach(p => {
+                    const m = String(p.id || "").match(/^P(\d+)$/i);
+                    if (m) {
+                        maxId = Math.max(maxId, parseInt(m[1], 10));
+                    }
+                });
+
+                const newId = "P" + String(maxId + 1).padStart(4, "0");
+
+                const newProduct = {
+                    id: newId,
+                    name: name,
+                    category: category || "Epicerie",
+                    barcode: barcode || newId,
+                    price: price,
+                    purchasePrice: purchasePrice,
+                    stock: stock,
+                    minStock: minStock,
+                    expirationDate: expirationDate,
+                    image: currentImage || ""
+                };
+
+                db.products.push(newProduct);
+            }
+
+            // Save to localStorage + Firebase Firestore
             saveDB();
+
             closeModal("productModal");
             renderAll();
+
             toast(t('productSaved'));
         }
         function deleteProduct(id) { if (!confirm(t('confirmDeleteProduct'))) return; db.products = db.products.filter(p => p.id !== id); saveDB(); renderAll(); toast(t('productDeleted')); }

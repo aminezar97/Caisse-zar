@@ -629,7 +629,150 @@
             .cart-items { max-height: 300px; }
             .products { max-height: none; }
         }
-    </style>
+    
+/* =====================================================
+   ZAROUALI POS - RESPONSIVE HEADER
+   ===================================================== */
+
+.header-row {
+    position: relative;
+    min-height: 72px;
+}
+
+.logo-area {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    white-space: nowrap;
+    z-index: 2;
+}
+
+.logo-area img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.logo-text {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+}
+
+.header-actions {
+    margin-left: auto;
+}
+
+.clock-badge-container,
+.cashier-badge-container {
+    box-sizing: border-box;
+    width: clamp(150px, 42vw, 300px);
+    min-height: 70px;
+    max-width: 100%;
+}
+
+.clock-badge-container,
+.cashier-badge-container {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 600px) {
+    .header-row {
+        min-height: 68px;
+    }
+
+    .logo-area {
+        max-width: calc(100% - 105px);
+        gap: 7px;
+    }
+
+    .logo-area img {
+        width: 42px;
+        height: 42px;
+    }
+
+    .logo-text {
+        font-size: clamp(18px, 5vw, 22px) !important;
+    }
+
+    .clock-badge-container,
+    .cashier-badge-container {
+        width: min(100%, 390px);
+        min-height: 68px;
+        padding: 8px 12px !important;
+    }
+
+    .clock-time {
+        font-size: clamp(15px, 4.5vw, 20px) !important;
+    }
+}
+
+@media (min-width: 601px) {
+    .header-row {
+        min-height: 80px;
+    }
+
+    .logo-area img {
+        width: 52px;
+        height: 52px;
+    }
+
+    .logo-text {
+        font-size: 27px !important;
+    }
+}
+
+/* Arabic menu language */
+.zar-language-menu {
+    margin: 6px 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg, rgba(255,255,255,.45));
+}
+
+.zar-language-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    margin-bottom: 9px;
+}
+
+.zar-language-buttons {
+    display: flex;
+    gap: 7px;
+}
+
+.zar-language-buttons button {
+    flex: 1;
+    min-height: 42px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-secondary, #fff);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.zar-language-buttons button.active {
+    background: var(--primary, #7dbb3f);
+    color: #fff;
+}
+
+/* Scanner */
+#scannerModal .btn-primary,
+#scannerModal .btn-secondary,
+#startScanBtn,
+#closeScanBtn {
+    display: none !important;
+}
+
+</style>
 </head>
 <body>
 
@@ -977,8 +1120,6 @@
                 <div id="scannerContainer"><div class="scanner-overlay"></div></div>
                 <div class="scanner-status" id="scannerStatus">🔦 Prêt à scanner...</div>
                 <div class="scanner-actions">
-                    <button class="btn-primary" onclick="startScanner()" id="startScanBtn">▶️ Démarrer</button>
-                    <button class="btn-secondary" onclick="closeScanner()" id="closeScanBtn">❌ Fermer</button>
                     <button class="btn-secondary scanner-retry-btn" onclick="retryScanner()" id="retryScanBtn" style="display:none;">🔄 Réessayer</button>
                 </div>
             </div>
@@ -1613,13 +1754,106 @@
             return (translations[currentLanguage] && translations[currentLanguage][key]) ? translations[currentLanguage][key] : key;
         }
 
+        
+function injectLanguageMenu() {
+    if (document.getElementById("zarLanguageMenu")) return;
+
+    const settingsText = document.getElementById("menuSettings");
+    if (!settingsText) return;
+
+    const settingsItem =
+        settingsText.closest(".menu-item") ||
+        settingsText.parentElement?.parentElement ||
+        settingsText.parentElement;
+
+    if (!settingsItem || !settingsItem.parentElement) return;
+
+    const box = document.createElement("div");
+    box.id = "zarLanguageMenu";
+    box.className = "zar-language-menu";
+    box.innerHTML = `
+        <div class="zar-language-title">
+            <span style="font-size:22px">🌐</span>
+            <span id="zarLangTitle">Langue / اللغة</span>
+        </div>
+        <div class="zar-language-buttons">
+            <button type="button" id="zarLangFr" onclick="setLanguage('fr')">Français</button>
+            <button type="button" id="zarLangAr" onclick="setLanguage('ar')">العربية</button>
+        </div>
+    `;
+
+    settingsItem.parentElement.insertBefore(box, settingsItem);
+}
+
+function updateLanguageMenu() {
+    const fr = document.getElementById("zarLangFr");
+    const ar = document.getElementById("zarLangAr");
+
+    if (fr) fr.classList.toggle("active", currentLanguage === "fr");
+    if (ar) ar.classList.toggle("active", currentLanguage === "ar");
+
+    const title = document.getElementById("zarLangTitle");
+    if (title) title.textContent = currentLanguage === "ar" ? "اللغة" : "Langue";
+}
+
+        
+async function loadLanguageProductNames() {
+    try {
+        const response = await fetch(
+            "./data/products_" + currentLanguage + ".csv?v=" + Date.now(),
+            { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error("Language CSV HTTP " + response.status);
+        }
+
+        const text = await response.text();
+
+        if (typeof parseCSVToProducts !== "function") {
+            console.warn("parseCSVToProducts unavailable");
+            return;
+        }
+
+        const rows = parseCSVToProducts(text);
+        const names = new Map();
+
+        rows.forEach(function(row) {
+            if (row && row.id != null && row.name) {
+                names.set(String(row.id), String(row.name));
+            }
+        });
+
+        if (db && Array.isArray(db.products)) {
+            db.products.forEach(function(product) {
+                const name = names.get(String(product.id));
+                if (name) product.name = name;
+            });
+        }
+
+        renderAll();
+        updateLanguageMenu();
+
+        console.log(
+            "Language catalog loaded:",
+            currentLanguage,
+            names.size,
+            "products"
+        );
+    } catch (error) {
+        console.warn("Language catalog error:", error);
+    }
+}
+
         // ---- APPLIQUER LA LANGUE ----
         function setLanguage(lang) {
             if (!translations[lang]) return;
             currentLanguage = lang;
             localStorage.setItem(LANG_KEY, lang);
-            document.getElementById('langFr').checked = (lang === 'fr');
-            document.getElementById('langAr').checked = (lang === 'ar');
+            const oldLangFr = document.getElementById('langFr');
+            const oldLangAr = document.getElementById('langAr');
+            if (oldLangFr) oldLangFr.checked = (lang === 'fr');
+            if (oldLangAr) oldLangAr.checked = (lang === 'ar');
             document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
             document.documentElement.lang = lang;
 
@@ -1819,7 +2053,15 @@
             document.title = t('appName');
             updateCartCount();
             updateScannerMessages();
-            renderAll();
+            injectLanguageMenu();
+            updateLanguageMenu();
+
+            if (db && Array.isArray(db.products) && db.products.length) {
+                loadLanguageProductNames();
+            } else {
+                renderAll();
+            }
+
             toast(t('appName') + ' - ' + t('langChanged'));
         }
 
@@ -2225,6 +2467,8 @@
         async function init() {
             const savedLang = localStorage.getItem(LANG_KEY) || 'fr';
             setLanguage(savedLang);
+            setTimeout(injectLanguageMenu, 100);
+            setTimeout(updateLanguageMenu, 150);
             loadTheme();
 
             const store = localStorage.getItem(STORE_KEY);
@@ -2284,7 +2528,11 @@
                 window.fsListen(function(remoteData) {
                     db = remoteData;
                     localStorage.setItem(DB_KEY, JSON.stringify(db));
-                    renderAll();
+                    if (currentLanguage === "ar") {
+                        loadLanguageProductNames();
+                    } else {
+                        renderAll();
+                    }
                 });
             }
 

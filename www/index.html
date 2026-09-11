@@ -1264,6 +1264,85 @@ async function init(){
   if(ld){try{const d=JSON.parse(ld);if(d.username)document.getElementById("loginUser").value=d.username;}catch(e){}}
 }
 
+
+function doLogin(){
+  const userEl=document.getElementById("loginUser");
+  const passEl=document.getElementById("loginPass");
+  const errEl=document.getElementById("loginError");
+  const btn=document.getElementById("loginBtn");
+
+  const username=(userEl?.value||"").trim();
+  const password=passEl?.value||"";
+
+  if(errEl) errEl.textContent="";
+
+  if(!username || !password){
+    if(errEl) errEl.textContent="Veuillez saisir le nom d'utilisateur et le mot de passe";
+    return;
+  }
+
+  let account=null;
+
+  try{
+    const saved=localStorage.getItem(LOGIN_KEY);
+    if(saved){
+      account=JSON.parse(saved);
+    }
+  }catch(e){
+    console.error("LOGIN DATA ERROR",e);
+  }
+
+  if(!account || typeof account!=="object"){
+    account={
+      username:"admin",
+      password:localStorage.getItem(PASSWORD_KEY)||"1234"
+    };
+  }
+
+  const validUser=String(account.username||"admin");
+  const validPass=String(account.password||localStorage.getItem(PASSWORD_KEY)||"1234");
+
+  if(username!==validUser || password!==validPass){
+    if(errEl) errEl.textContent="Identifiants incorrects";
+    if(passEl){
+      passEl.focus();
+      passEl.select();
+    }
+    return;
+  }
+
+  try{
+    localStorage.setItem("zarouali_current_cashier",username);
+    localStorage.setItem("zarouali_session","1");
+    localStorage.setItem("zarouali_session_time",String(Date.now()));
+  }catch(e){
+    console.warn("Session storage error",e);
+  }
+
+  const login=document.getElementById("loginScreen");
+  const app=document.getElementById("app");
+
+  if(login){
+    login.style.display="none";
+    login.classList.remove("show");
+  }
+
+  if(app){
+    app.style.display="";
+    app.classList.remove("hidden");
+    app.classList.add("show");
+  }
+
+  if(passEl) passEl.value="";
+
+  try{
+    if(typeof renderAll==="function") renderAll();
+    if(typeof resetInactivityTimer==="function") resetInactivityTimer();
+  }catch(e){
+    console.error("POST LOGIN ERROR",e);
+  }
+}
+
 document.addEventListener("DOMContentLoaded",init);
 </script>
 

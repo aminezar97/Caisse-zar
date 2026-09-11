@@ -1281,7 +1281,10 @@ async function init(){
   db.clients.forEach(c=>{if(c.debt===undefined)c.debt=0;if(c.totalPurchases===undefined)c.totalPurchases=0;if(c.tier===undefined)c.tier="standard";if(c.points===undefined)c.points=0;});
 
   try{
-    const r=await fetch("./data/products_"+currentLanguage+".csv?v="+Date.now(),{cache:"no-store"});
+    let r=await fetch("./data/products_"+currentLanguage+".csv?v="+Date.now(),{cache:"no-store"});
+    if(!r.ok){
+      r=await fetch("./data/products.csv?v="+Date.now(),{cache:"no-store"});
+    }
     if(r.ok){
       const txt=await r.text();
       const catalog=parseCSVToProducts(txt).map(normalizeCatalogProduct).filter(p=>p&&String(p.id).trim()&&String(p.name).trim());

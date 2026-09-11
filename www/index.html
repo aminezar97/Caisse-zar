@@ -847,7 +847,12 @@ fr:{appName:"Zarouali POS",loginSub:"Terminal de caisse",welcome:"Bienvenue",men
 let currentLanguage=localStorage.getItem(LANG_KEY)||'fr';
 let db={products:[],cashiers:[],clients:[],sales:[],suppliers:[],purchases:[],returns:[],settings:{}};
 let cart=[],paymentMethod="Espèces",activeCategory="Tous",protectedTarget=null,protectedButton=null;
-let currentImage="",scannerInstance=null,scannerRunning=false,scannerLocked=false,inactivityTimer=null,isLoggedIn=false;
+let currentImage="";
+let scannerInstance=null;
+let scannerRunning=false;
+let scannerLocked=false;
+let inactivityTimer=null;
+let isLoggedIn=false;
 let currentPage='sale';
 
 function t(k){return (translations[currentLanguage]&&translations[currentLanguage][k])||k;}

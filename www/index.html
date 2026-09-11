@@ -876,297 +876,211 @@ function normalizeProductImage(img){let v=String(img||"").trim();if(!v)return"";
 function normalizeCatalogProduct(p){return{...p,id:String(p.id||"").trim(),name:String(p.name||"").trim(),category:String(p.category||"Épicerie").trim(),barcode:String(p.barcode||"").trim(),price:Number(p.price||0),purchasePrice:Number(p.purchasePrice||0),stock:Number.isFinite(Number(p.stock))?Number(p.stock):50,minStock:Number.isFinite(Number(p.minStock))?Number(p.minStock):5,image:normalizeProductImage(p.image),expirationDate:String(p.expirationDate||"").trim()};}
 
 function parseCSVLine(line,sep){const r=[];let c="",ins=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(ins&&line[i+1]==='"'){c+='"';i++;}else ins=!ins;}else if(ch===sep&&!ins){r.push(c);c="";}else c+=ch;}r.push(c);return r;}
-function parseCSVToProducts(csv){const lines=csv.split("\n").filter(l=>l.trim());if(lines.length<2)return[];const sep=lines[0].includes(';')?';':',';const h=parseCSVLine(lines[0],sep);const idx={};['id','name','category','barcode','price','purchasePrice','stock','minStock','image','expirationDate'].forEach(k=>{idx[k]=h.indexOf(k);});const out=[];for(let i=1;i<lines.length;i++){const cols=parseCSVLine(lines[i],sep);if(cols.length<2)continue;const id=(idx.id>=0&&cols[idx.id])?cols[idx.id].trim():"P"+String(i).padStart(3,"0");const name=(idx.name>=0&&cols[idx.name])?cols[idx.name].trim():"Produit "+i;const category=(idx.category>=0&&cols[idx.category])?cols[idx.category].trim():"Autre";const barcode=(idx.barcode>=0&&cols[idx.barcode])?cols[idx.barcode].trim():"";const price=(idx.price>=0&&cols[idx.price]?.trim())?(parseFloat(cols[idx.price].replace(",","."))||0):0;const purchasePrice=(idx.purchasePrice>=0&&cols[idx.purchasePrice]?.trim())?(parseFloat(cols[idx.purchasePrice].replace(",","."))||0):0;const stock=(idx.stock>=0&&cols[idx.stock])?parseInt(cols[idx.stock])||50:50;const minStock=(idx.minStock>=0&&cols[idx.minStock])?parseInt(cols[idx.minStock])||5:5;const image=(idx.image>=0&&cols[idx.image])?cols[idx.image].trim():"";const expirationDate=(idx.expirationDate>=0&&cols[idx.expirationDate])?cols[idx.expirationDate].trim():"";if(id&&name)out.push({id,name,category,barcode,price,purchasePrice,stock,minStock,image,expirationDate});}return out;}
+function parseCSVToProducts(csv){
+  csv=String(csv||"").replace(/^\uFEFF/,"").replace(/\r\n/g,"\n").replace(/\r/g,"\n").trim();
+  if(!csv)return[];
 
-function setLanguage(lang){if(!translations[lang])return;currentLanguage=lang;localStorage.setItem(LANG_KEY,lang);document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.documentElement.lang=lang;const f=document.getElementById('langFr'),a=document.getElementById('langAr');if(f)f.checked=(lang==='fr');if(a)a.checked=(lang==='ar');renderMenu();renderMainContent();renderAll();}
+  const lines=csv.split("\n").filter(x=>x.trim()!=="");
+  if(lines.length<2)return[];
 
-/* ==================== MENU ==================== */
-const MENU_SECTIONS=[
-{title:'Principal',items:[
-{id:'sale',label:'menuSale',icon:'cart',protected:false},
-{id:'dashboard',label:'menuDashboard',icon:'chart',protected:true},
-{id:'historyPage',label:'menuHistory',icon:'history',protected:true}
-]},
-{title:'Gestion',items:[
-{id:'productsPage',label:'menuProducts',icon:'package',protected:true},
-{id:'clientsPage',label:'menuClients',icon:'users',protected:true},
-{id:'cashiersPage',label:'menuCashiers',icon:'user-check',protected:true}
-]},
-{title:'Commerce avancé',items:[
-{id:'suppliersPage',label:'menuSuppliers',icon:'truck',protected:true},
-{id:'purchasesPage',label:'menuPurchases',icon:'bag',protected:true},
-{id:'priceListsPage',label:'menuPriceLists',icon:'tag',protected:true}
-]},
-{title:'Configuration',items:[
-{id:'storePage',label:'menuStore',icon:'store',protected:true},
-{id:'settingsPage',label:'menuSettings',icon:'settings',protected:true}
-]}
-];
-const MENU_ICONS={cart:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',chart:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',package:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>','user-check':'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',history:'<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>',truck:'<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',bag:'<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>',tag:'<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',store:'<path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'};
+  function detectSep(line){
+    let comma=0,semi=0,quote=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){
+        if(quote&&line[i+1]==='"'){i++;continue;}
+        quote=!quote;
+      }else if(!quote){
+        if(c===",")comma++;
+        if(c===";")semi++;
+      }
+    }
+    return semi>comma?";":",";
+  }
 
-function renderMenu(){const box=document.getElementById("menuItems");if(!box)return;box.innerHTML=MENU_SECTIONS.map(section=>'<div class="menu-section-title">'+section.title+'</div>'+section.items.map(m=>{const ico=MENU_ICONS[m.icon]||'';return'<button class="menu-item '+(m.id===currentPage?'active':'')+'" onclick="'+(m.protected?'protectedPage':'goPage')+'(\''+m.id+'\',this)"><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ico+'</svg></span><span>'+t(m.label)+'</span>'+(m.protected?'<span class="menu-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>':'')+'</button>';}).join('')).join('');injectLanguageMenu();}
-function injectLanguageMenu(){if(document.getElementById("zarLanguageMenu"))return;const box=document.getElementById("menuItems");if(!box)return;const d=document.createElement("div");d.id="zarLanguageMenu";d.className="zar-language-menu";d.innerHTML='<div class="zar-language-title"><span>🌐</span><span>Langue / اللغة</span></div><div class="zar-language-buttons"><button type="button" class="'+(currentLanguage==='fr'?'active':'')+'" onclick="setLanguage(\'fr\')">Français</button><button type="button" class="'+(currentLanguage==='ar'?'active':'')+'" onclick="setLanguage(\'ar\')">العربية</button></div>';box.appendChild(d);}
+  function parseLine(line,sep){
+    const out=[];
+    let cur="",quote=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){
+        if(quote&&line[i+1]==='"'){cur+='"';i++;continue;}
+        quote=!quote;
+      }else if(c===sep&&!quote){
+        out.push(cur.trim());
+        cur="";
+      }else{
+        cur+=c;
+      }
+    }
+    out.push(cur.trim());
+    return out;
+  }
 
-/* ==================== MAIN CONTENT ==================== */
-function renderMainContent(){
-  const c=document.getElementById("mainContent");if(!c)return;
-  c.innerHTML=`
-  <section id="sale" class="page ${currentPage==='sale'?'active':''}">
-    <div class="sale-layout">
-      <div class="panel products-panel">
-        <div class="search-area">
-          <div class="search-wrapper"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="search" class="search" placeholder="${t('searchPlaceholder')||'Rechercher ou scanner...'}" autofocus></div>
-          <button class="scan-btn" onclick="openScanner()">${icon('camera',18)}<span>${t('scanBtn')}</span></button>
-        </div>
-        <div id="categories" class="categories"></div>
-        <div id="products" class="products"></div>
-      </div>
-      <div class="panel cart">
-        <div class="panel-header cart-header"><div class="cart-header-left">${icon('cart',20)}<div class="panel-title">${t('cartTitle')}</div><span id="cartCount" class="cart-count-badge">0</span></div></div>
-        <div class="cart-selectors">
-          <div class="selector-group"><label>${icon('camera',12)}${t('cashierLabel')}</label><select id="saleCashier" onchange="saveCurrentCashier()"></select></div>
-          <div class="selector-group"><label>${icon('camera',12)}${t('clientLabel')}</label><select id="saleClient" onchange="onClientChange()"><option value="">— Client libre —</option></select></div>
-        </div>
-        <div class="client-badges"><span class="client-badge" id="clientBadge">Dette: 0 DH</span><span class="client-badge total" id="clientTotalAchats">Total: 0 DH</span></div>
-        <div id="creditBarContainer" class="credit-bar-container"><div class="credit-bar-label"><span>Dette</span><span id="creditBarText">0 DH</span></div><div class="credit-bar-track"><div id="creditBarFill" class="credit-bar-fill" style="width:0%"></div></div></div>
-        <div id="cartItems" class="cart-items"></div>
-        <div class="cart-summary">
-          <div class="summary-line"><span>Sous-total</span><strong id="subtotal">0.00 DH</strong></div>
-          <div class="summary-line"><span>Remise</span><span><input id="discount" type="number" min="0" value="0" oninput="renderCart()"> DH</span></div>
-          <div class="summary-total"><span>TOTAL</span><strong id="total">0.00 DH</strong></div>
-          <div class="payment-grid">
-            <button class="payment-btn active" onclick="setPayment('Espèces')" id="cashPaymentBtn">💵<span>${t('cashPayment')}</span></button>
-            <button class="payment-btn" onclick="setPayment('Carte')" id="cardPaymentBtn">💳<span>${t('cardPayment')}</span></button>
-            <button class="payment-btn" onclick="setPayment('Crédit')" id="creditPaymentBtn">📝<span>${t('creditPayment')}</span></button>
-          </div>
-          <div id="quickCash" class="quick-cash"><button onclick="setCashAmount(20)">20</button><button onclick="setCashAmount(50)">50</button><button onclick="setCashAmount(100)">100</button><button onclick="setCashAmount(200)">200</button></div>
-          <div id="cashInput" class="cash-input show"><input id="cashReceived" type="number" placeholder="Montant reçu" oninput="calculateChange()"><div class="change"><span>Monnaie</span><span id="change">0.00 DH</span></div></div>
-          <button class="sell-btn" onclick="completeSale()">${icon('check',20)}<span>${t('completeSaleBtn')}</span></button>
-          <button class="clear-btn" onclick="ParkedSales.park()">⏸️ Mettre en attente</button>
-          <button class="clear-btn" onclick="SplitPayment.open()">💳 Paiement mixte</button>
-          <button class="clear-btn" onclick="clearCart()">${icon('trash',14)} Vider</button>
-        </div>
-      </div>
-    </div>
-  </section>
-  <section id="dashboard" class="page ${currentPage==='dashboard'?'active':''}">
-    <div class="page-head"><div class="page-head-left"><div class="page-title">Tableau de bord</div><div class="page-kicker">Activité du jour</div></div></div>
-    <div class="stats-grid">
-      <div class="stat green"><div class="stat-head"><div class="stat-icon">💰</div></div><div class="stat-label">CA</div><div id="statCA" class="stat-value">0 DH</div></div>
-      <div class="stat blue"><div class="stat-head"><div class="stat-icon">📈</div></div><div class="stat-label">Bénéfice</div><div id="statProfit" class="stat-value">0 DH</div></div>
-      <div class="stat"><div class="stat-head"><div class="stat-icon">🧾</div></div><div class="stat-label">Tickets</div><div id="statTickets" class="stat-value">0</div></div>
-      <div class="stat orange"><div class="stat-head"><div class="stat-icon">📊</div></div><div class="stat-label">Moyenne</div><div id="statAverage" class="stat-value">0 DH</div></div>
-    </div>
-    <div class="dashboard-grid">
-      <div class="panel"><div class="panel-header"><div class="panel-title">Caissières</div></div><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Tickets</th><th>CA</th></tr></thead><tbody id="cashierStats"></tbody></table></div></div>
-      <div class="panel"><div class="panel-header"><div class="panel-title">Top produits</div></div><div id="topProducts" style="padding:16px"></div></div>
-    </div>
-  </section>
-  <section id="productsPage" class="page ${currentPage==='productsPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">${icon('package',18)}Produits</div><button class="btn btn-primary" onclick="openProductModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Import</button><input id="csvInput" type="file" accept=".csv" hidden onchange="importProductsCSV(event)"></div>
-    <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix</th><th>Achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table></div></div>
-  </section>
-  <section id="clientsPage" class="page ${currentPage==='clientsPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">👥 Clients</div><button class="btn btn-primary" onclick="openClientModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="clientSearch" placeholder="Rechercher..." oninput="renderClientsAdmin()"></div>
-    <div class="table-wrap"><table><thead><tr><th>Client</th><th>Téléphone</th><th>Type</th><th>Dette</th><th>Points</th><th>Actions</th></tr></thead><tbody id="clientsAdmin"></tbody></table></div></div>
-  </section>
-  <section id="cashiersPage" class="page ${currentPage==='cashiersPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">👩‍💼 Caissières</div><button class="btn btn-primary" onclick="openCashierModal()">+ Ajouter</button></div>
-    <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Ventes</th><th>CA</th><th>Actions</th></tr></thead><tbody id="cashiersAdmin"></tbody></table></div></div>
-  </section>
-  <section id="historyPage" class="page ${currentPage==='historyPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">📜 Historique</div></div>
-    <div class="filters"><input type="date" id="historyDate" onchange="renderHistory()"><select id="historyCashier" onchange="renderHistory()"></select><select id="historyClient" onchange="renderHistory()"><option value="">Tous clients</option></select><button class="btn btn-secondary" onclick="resetHistoryFilters()">Reset</button></div>
-    <div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Date</th><th>Caissière</th><th>Client</th><th>Articles</th><th>Total</th><th>Paiement</th><th></th></tr></thead><tbody id="history"></tbody></table></div></div>
-  </section>
-  <section id="suppliersPage" class="page ${currentPage==='suppliersPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">🚚 Fournisseurs</div><button class="btn btn-primary" onclick="Suppliers.openModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="supplierSearch" placeholder="Rechercher..." oninput="Suppliers.render()"></div>
-    <div class="table-wrap"><table><thead><tr><th>Fournisseur</th><th>Contact</th><th>Téléphone</th><th>Solde</th><th>Actions</th></tr></thead><tbody id="suppliersAdmin"></tbody></table></div></div>
-  </section>
-  <section id="purchasesPage" class="page ${currentPage==='purchasesPage'?'active':''}">
-    <div class="page-head"><div class="page-head-left"><div class="page-title">Achats</div></div><button class="btn btn-primary" onclick="Purchases.openOrderModal()">+ Nouvelle commande</button></div>
-    <div class="panel"><div class="panel-header"><div class="panel-title">Commandes</div></div>
-    <div class="table-wrap"><table><thead><tr><th>N°</th><th>Date</th><th>Fournisseur</th><th>Articles</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="purchasesAdmin"></tbody></table></div></div>
-  </section>
-  <section id="priceListsPage" class="page ${currentPage==='priceListsPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">💰 Listes de prix</div></div>
-    <div class="settings-list">
-      <div class="setting-row"><span class="label">Activer</span><label class="toggle-switch"><input type="checkbox" id="priceListsEnabled" checked onchange="PriceLists.setEnabled(this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="setting-row"><span class="label">Standard (%)</span><input type="number" id="priceStandard" value="0" style="width:100px;text-align:center;font-family:var(--font-mono);font-weight:700"></div>
-      <div class="setting-row"><span class="label">Gros (%)</span><input type="number" id="priceWholesale" value="-10" style="width:100px;text-align:center;font-family:var(--font-mono);font-weight:700"></div>
-      <div class="setting-row"><span class="label">VIP (%)</span><input type="number" id="priceVip" value="-20" style="width:100px;text-align:center;font-family:var(--font-mono);font-weight:700"></div>
-      <div class="setting-row"><span class="label">Revendeur (%)</span><input type="number" id="priceReseller" value="-15" style="width:100px;text-align:center;font-family:var(--font-mono);font-weight:700"></div>
-      <button class="btn btn-primary btn-full" onclick="PriceLists.save()">💾 Enregistrer</button>
-    </div></div>
-  </section>
-  <section id="storePage" class="page ${currentPage==='storePage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">🏪 Magasin</div></div>
-    <div class="form-grid">
-      <div class="form-group full"><label>Nom</label><input id="storeName" onchange="saveStoreInfo()" placeholder="Zarouali POS"></div>
-      <div class="form-group full"><label>Adresse</label><input id="storeAddress" onchange="saveStoreInfo()" placeholder="Adresse"></div>
-      <div class="form-group"><label>Téléphone</label><input id="storePhone" onchange="saveStoreInfo()" placeholder="+212..."></div>
-      <div class="form-group"><label>Email</label><input id="storeEmail" onchange="saveStoreInfo()" placeholder="contact@..."></div>
-      <div class="form-group full"><label>ICE</label><input id="storeTaxId" onchange="saveStoreInfo()"></div>
-      <div class="form-group full"><div class="store-preview"><strong id="storePreviewName">Zarouali POS</strong><span id="previewAddress">—</span></div></div>
-    </div></div>
-  </section>
-  <section id="settingsPage" class="page ${currentPage==='settingsPage'?'active':''}">
-    <div class="panel"><div class="panel-header"><div class="panel-title">⚙️ Paramètres</div></div>
-    <div class="settings-list">
-      <div class="setting-row"><span class="label">🌓 Thème clair</span><label class="toggle-switch"><input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="setting-row"><span class="label">🌐 Langue</span><div class="lang-selector"><label><input type="radio" name="lang" value="fr" id="langFr" onchange="setLanguage('fr')"><span>FR</span></label><label><input type="radio" name="lang" value="ar" id="langAr" onchange="setLanguage('ar')"><span>AR</span></label></div></div>
-      <button class="btn btn-secondary btn-full" onclick="exportBackup()">📤 Exporter base</button>
-      <button class="btn btn-secondary btn-full" onclick="document.getElementById('backupInput').click()">📥 Restaurer</button>
-      <input id="backupInput" type="file" accept=".json" hidden onchange="importBackup(event)">
-      <button class="btn btn-secondary btn-full" onclick="openChangePassword()">🔐 Mot de passe</button>
-      <button class="btn btn-secondary btn-full" onclick="downloadDailyReport()">📄 Rapport du jour</button>
-      <button class="btn btn-secondary btn-full" onclick="AdvancedReports.open()">📊 Rapports avancés</button>
-      <button class="btn btn-secondary btn-full" onclick="AuditLog.open()">📜 Journal d'audit</button>
-      <button class="btn btn-secondary btn-full" onclick="LabelGenerator.open()">🏷️ Étiquettes</button>
-      <button class="btn btn-secondary btn-full" onclick="ScanHistory.open()">📜 Historique scans</button>
-      <button class="danger-btn" onclick="clearAllProducts()">🗑️ Supprimer tous les produits</button>
-      <button class="danger-btn" onclick="resetDatabase()">⚠️ Réinitialiser tout</button>
-    </div></div>
+  const sep=detectSep(lines[0]);
+  const headers=parseLine(lines[0],sep).map(x=>
+    String(x).trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^a-z0-9]/g,"")
+  );
 
-    <div class="panel" style="margin-top:16px"><div class="panel-header"><div class="panel-title">⌨️ Lecteur USB / Bluetooth HID</div></div>
-    <div class="settings-list">
-      <div class="setting-row"><span class="label">Activer</span><label class="toggle-switch"><input type="checkbox" id="hidEnabled" checked onchange="ScannerHID.setEnabled(this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="setting-row"><span class="label">Seuil (ms)</span><input type="range" id="hidThreshold" min="20" max="150" value="50" oninput="ScannerHID.setThreshold(this.value)" style="width:180px"></div>
-      <div class="setting-row"><span class="label">Son</span><label class="toggle-switch"><input type="checkbox" id="hidSound" checked onchange="ScannerHID.setSound(this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="setting-row"><span class="label">Auto panier</span><label class="toggle-switch"><input type="checkbox" id="hidAutoAdd" checked onchange="ScannerHID.setAutoAdd(this.checked)"><span class="toggle-slider"></span></label></div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:12px"><span class="label">Zone de test</span><input id="hidTestInput" placeholder="Scannez ici..." style="padding:14px;font-family:var(--font-mono);letter-spacing:2px;text-align:center"></div>
-    </div></div>
+  const aliases={
+    id:["id","productid","codeinterne","reference","ref"],
+    name:["name","nom","produit","product","designation","libelle"],
+    category:["category","categorie","famille","rayon"],
+    barcode:["barcode","codebarre","ean","ean13","gtin"],
+    price:["price","prix","prixvente","sellingprice"],
+    purchasePrice:["purchaseprice","prixachat","cout","cost"],
+    stock:["stock","quantite","quantity","qte"],
+    minStock:["minstock","stockminimum","minimum"],
+    image:["image","photo","picture","img"],
+    expirationDate:["expirationdate","dateexpiration","expiration","expirydate"]
+  };
 
-    <div class="panel" style="margin-top:16px"><div class="panel-header"><div class="panel-title">📡 Bluetooth BLE</div><span id="bleStatus" class="status-pill"><span class="status-dot" style="background:var(--text-muted);box-shadow:none"></span><span>Déconnecté</span></span></div>
-    <div class="settings-list">
-      <div class="setting-row"><span class="label">Connexion BLE</span><div style="display:flex;gap:8px"><button id="bleConnectBtn" class="btn btn-primary btn-sm" onclick="ScannerBLE.connect()">Connecter</button><button id="bleDisconnectBtn" class="btn btn-secondary btn-sm" onclick="ScannerBLE.disconnect()" style="display:none">Déconnecter</button></div></div>
-      <div class="setting-row" id="bleInfoRow" style="display:none"><span class="label"><div><div id="bleDeviceName" style="font-weight:800">—</div><div id="bleDeviceInfo" style="font-size:12px;color:var(--text-muted)">—</div></div></span></div>
-      <div class="setting-row"><span class="label">Auto-reconnect</span><label class="toggle-switch"><input type="checkbox" id="bleAutoReconnect" checked onchange="ScannerBLE.setAutoReconnect(this.checked)"><span class="toggle-slider"></span></label></div>
-    </div></div>
+  const idx={};
+  for(const key of Object.keys(aliases)){
+    idx[key]=headers.findIndex(h=>aliases[key].includes(h));
+  }
 
-    <div class="panel" style="margin-top:16px"><div class="panel-header"><div class="panel-title">📊 Statistiques scanner</div><button class="btn btn-secondary btn-sm" onclick="ScanStats.reset()">Reset</button></div>
-    <div class="stats-grid" style="padding:16px;margin:0">
-      <div class="stat green"><div class="stat-head"><div class="stat-icon">✅</div></div><div class="stat-label">Succès</div><div id="statScanSuccess" class="stat-value">0</div></div>
-      <div class="stat red"><div class="stat-head"><div class="stat-icon">❌</div></div><div class="stat-label">Inconnus</div><div id="statScanUnknown" class="stat-value">0</div></div>
-      <div class="stat orange"><div class="stat-head"><div class="stat-icon">⚠️</div></div><div class="stat-label">Alertes</div><div id="statScanWarn" class="stat-value">0</div></div>
-      <div class="stat blue"><div class="stat-head"><div class="stat-icon">⏱️</div></div><div class="stat-label">Vitesse</div><div id="statScanSpeed" class="stat-value">0ms</div></div>
-    </div></div>
-  </section>`;
+  if(idx.name<0){
+    idx.name=headers.findIndex(h=>h.includes("name")||h.includes("nom")||h.includes("produit")||h.includes("designation"));
+  }
+
+  if(idx.name<0)return[];
+
+  const maxNumeric=db&&Array.isArray(db.products)
+    ?db.products.reduce((m,x)=>{
+      const n=parseInt(String(x.id||"").replace(/\D/g,""),10);
+      return Number.isFinite(n)&&n>m?n:m;
+    },0):0;
+
+  let nextId=maxNumeric+1;
+
+  function val(cols,key,def=""){
+    const i=idx[key];
+    return i>=0&&i<cols.length&&String(cols[i]).trim()!==""
+      ?String(cols[i]).trim():def;
+  }
+
+  function num(v,def=0){
+    let x=String(v??"").trim().replace(/\s/g,"");
+    if(!x)return def;
+    if(x.includes(",")&&x.includes(".")){
+      if(x.lastIndexOf(",")>x.lastIndexOf("."))x=x.replace(/\./g,"").replace(",",".");
+      else x=x.replace(/,/g,"");
+    }else{
+      x=x.replace(",",".");
+    }
+    const n=parseFloat(x);
+    return Number.isFinite(n)?n:def;
+  }
+
+  const out=[];
+
+  for(let i=1;i<lines.length;i++){
+    const cols=parseLine(lines[i],sep);
+    if(!cols.length)continue;
+
+    let name=val(cols,"name","");
+    if(!name)continue;
+
+    let id=val(cols,"id","");
+    if(!id)id=String(nextId++);
+
+    const product={
+      id:String(id),
+      name:name,
+      category:val(cols,"category","Autre"),
+      barcode:val(cols,"barcode",""),
+      price:num(val(cols,"price",""),0),
+      purchasePrice:num(val(cols,"purchasePrice",""),0),
+      stock:num(val(cols,"stock",""),50),
+      minStock:num(val(cols,"minStock",""),5),
+      image:val(cols,"image",""),
+      expirationDate:val(cols,"expirationDate","")
+    };
+
+    out.push(product);
+  }
+
+  return out;
 }
 
-function goPage(id,btn){currentPage=id;closeMenu();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(id);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");setTimeout(()=>{renderAll();},50);resetInactivityTimer();}
-function protectedPage(id,btn){protectedTarget=id;protectedButton=btn;closeMenu();document.getElementById("passwordInput").value="";document.getElementById("passwordError").textContent="";document.getElementById("passwordModal").classList.add("show");setTimeout(()=>document.getElementById("passwordInput").focus(),150);}
-function checkPassword(){const e=document.getElementById("passwordInput").value;const c=localStorage.getItem(PASSWORD_KEY)||"1234";if(e===c){closeModal("passwordModal");if(protectedTarget){currentPage=protectedTarget;document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(protectedTarget);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(protectedButton)protectedButton.classList.add("active");renderAll();}}else document.getElementById("passwordError").textContent=t('loginError');}
-function openChangePassword(){document.getElementById("oldPassword").value="";document.getElementById("newPassword").value="";document.getElementById("confirmPassword").value="";document.getElementById("changePasswordModal").classList.add("show");}
-function changePassword(){const o=document.getElementById("oldPassword").value;const n=document.getElementById("newPassword").value;const c=document.getElementById("confirmPassword").value;const cur=localStorage.getItem(PASSWORD_KEY)||"1234";if(o!==cur){toast(t('loginError'),'error');return;}if(!n){toast('Mot de passe requis','warn');return;}if(n!==c){toast('Non concordance','warn');return;}localStorage.setItem(PASSWORD_KEY,n);closeModal("changePasswordModal");toast('Mot de passe modifié','success');}
-function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove("show");}
-function toggleMenu(){document.getElementById("sideMenu").classList.toggle("show");document.getElementById("menuOverlay").classList.toggle("show");}
-function closeMenu(){document.getElementById("sideMenu").classList.remove("show");document.getElementById("menuOverlay").classList.remove("show");}
-function showKeyboardHelp(){document.getElementById("kbdHelpModal").classList.add("show");}
+function importProductsCSV(e){
+  const input=e&&e.target?e.target:document.getElementById("csvInput");
+  const file=input&&input.files?input.files[0]:null;
 
-/* ==================== LOGIN ==================== */
-function doLogin(){const u=(document.getElementById("loginUser")?.value||"").trim();const p=(document.getElementById("loginPass")?.value||"").trim();const err=document.getElementById("loginError");const login=document.getElementById("loginScreen");if(err)err.textContent="";let valid=false;if(u==="admin"&&p==="1234"){valid=true;try{localStorage.setItem(LOGIN_KEY,JSON.stringify({username:"admin",password:"1234"}));localStorage.setItem(PASSWORD_KEY,"1234");}catch(e){}}if(!valid){try{const sl=localStorage.getItem(LOGIN_KEY);const sp=localStorage.getItem(PASSWORD_KEY);let su="admin",sw="1234";if(sl){try{const d=JSON.parse(sl);if(d.username)su=String(d.username).trim();if(d.password!==undefined)sw=String(d.password).trim();}catch(e){}}if(sp!==null&&String(sp).trim()!=="")sw=String(sp).trim();if(u===su&&p===sw)valid=true;}catch(e){}}if(valid){isLoggedIn=true;if(login)login.classList.add("hidden");const pe=document.getElementById("loginPass");if(pe)pe.value="";toast(t('welcome')+" "+u+" !",'success');resetInactivityTimer();renderAll();return false;}if(err)err.textContent=t('loginError');return false;}
+  if(!file){
+    toast("Aucun fichier sélectionné","warn");
+    return;
+  }
 
-/* ==================== INACTIVITY ==================== */
-function resetInactivityTimer(){clearTimeout(inactivityTimer);const ss=document.getElementById("screensaver");if(ss)ss.classList.remove("show");if(isLoggedIn){inactivityTimer=setTimeout(()=>{const s=document.getElementById("screensaver");if(s&&!document.querySelector(".modal.show")&&!document.querySelector(".scanner-modal.show"))s.classList.add("show");},20000);}}
+  const reader=new FileReader();
 
-/* ==================== STORE ==================== */
-function saveStoreInfo(){const info={name:document.getElementById("storeName").value.trim(),address:document.getElementById("storeAddress").value.trim(),phone:document.getElementById("storePhone").value.trim(),email:document.getElementById("storeEmail").value.trim(),taxId:document.getElementById("storeTaxId").value.trim()};localStorage.setItem(STORE_KEY,JSON.stringify(info));db.settings.storeName=info.name||"Zarouali POS";updateStorePreview();toast('Enregistré','success');}
-function updateStorePreview(){const g=id=>(document.getElementById(id)?.value||"").trim();const el=document.getElementById('storePreviewName');if(el)el.textContent=g("storeName")||"Zarouali POS";const a=document.getElementById('previewAddress');if(a)a.textContent=g("storeAddress")||"—";}
-function getStoreInfo(){const s=localStorage.getItem(STORE_KEY);if(s){try{return JSON.parse(s);}catch(e){}}return{name:"Zarouali POS",address:"",phone:"",email:"",taxId:""};}
+  reader.onload=function(ev){
+    try{
+      let text=String(ev.target.result||"").replace(/^\uFEFF/,"");
 
-/* ==================== CATEGORIES ==================== */
-function renderCategories(){const box=document.getElementById("categories");if(!box)return;const cats=["Tous",...new Set(db.products.map(p=>p.category))];box.innerHTML=cats.map(c=>'<button class="category '+(c===activeCategory?'active':'')+'" onclick="selectCategory(\''+escapeAttr(c)+'\')">'+escapeHTML(c)+'</button>').join('');}
-function selectCategory(c){activeCategory=c;renderCategories();renderProducts();}
+      const products=parseCSVToProducts(text);
 
-/* ==================== PRODUCTS ==================== */
-function renderProducts(){const box=document.getElementById("products");if(!box)return;const q=(document.getElementById("search")?.value||"").toLowerCase().trim();const list=db.products.filter(p=>{const cOk=activeCategory==="Tous"||p.category===activeCategory;const sOk=!q||p.name.toLowerCase().includes(q)||String(p.barcode).includes(q);return cOk&&sOk;});if(!list.length){box.innerHTML='<div class="empty-state">'+icon('package',72)+'<div class="empty-state-title">'+t('noProducts')+'</div><div class="empty-state-text">Ajoutez des produits pour commencer</div></div>';return;}box.innerHTML=list.map(p=>{let image=p.image||"";let imgHtml='<div class="product-placeholder">'+icon('camera',48)+'</div>';if(image){image=normalizeProductImage(image);const fb=icon('camera',48).replace(/"/g,'&quot;');imgHtml='<img src="'+escapeAttr(image)+'" alt="'+escapeHTML(p.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\''+fb+'\';">';}const isLow=p.stock<=p.minStock;const isOut=p.stock<=0;let badge="";if(isOut)badge='<span class="product-badge out">Rupture</span>';else if(isLow)badge='<span class="product-badge low">Stock faible</span>';return'<div class="product" onclick="addToCart(\''+p.id+'\')"><div class="product-img">'+imgHtml+badge+'<div class="product-add">'+icon('plus',16)+'</div></div><div class="product-body"><div class="product-name">'+escapeHTML(p.name)+'</div><div class="product-meta"><span class="product-price">'+money(p.price)+'</span><span class="product-stock">'+(isOut?'':(p.saleType==='weight'?'/kg':p.saleType==='volume'?'/L':'· '+p.stock))+'</span></div></div></div>';}).join('');}
+      if(!products.length){
+        toast("Aucun produit valide trouvé","error");
+        return;
+      }
 
-/* ==================== CART ==================== */
-function addToCart(id){const p=db.products.find(x=>x.id===id);if(!p)return;if(p.stock<=0){toast(t('outOfStock'),'warn');return;}if(p.expirationDate){const d=new Date(p.expirationDate);if(!isNaN(d.getTime())&&d<new Date()){toast(t('expired'),'warn');return;}}const clientId=document.getElementById('saleClient')?.value||null;const tierPrice=PriceLists.getPrice(p,clientId);const it=cart.find(i=>i.id===id);if(it){if(it.qty>=p.stock){toast('Stock insuffisant','warn');return;}it.qty++;}else cart.push({id:p.id,name:p.name,barcode:p.barcode,price:tierPrice,purchasePrice:Number(p.purchasePrice||0),qty:1,saleType:p.saleType||'unit',basePrice:p.price});renderCart();resetInactivityTimer();}
-function changeQty(id,d){const it=cart.find(i=>i.id===id);if(!it)return;const p=db.products.find(x=>x.id===id);it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);else if(p&&it.qty>p.stock){it.qty=p.stock;toast('Stock insuffisant','warn');}renderCart();}
-function setQtyFromInput(id,v){const it=cart.find(i=>i.id===id);if(!it)return;const p=db.products.find(x=>x.id===id);let q=parseInt(v)||0;if(q<0)q=0;if(p&&q>p.stock){q=p.stock;toast('Stock insuffisant','warn');}if(q===0)cart=cart.filter(i=>i.id!==id);else it.qty=q;renderCart();}
-function removeFromCart(id){cart=cart.filter(i=>i.id!==id);renderCart();}
-function clearCart(){if(!cart.length)return;if(confirm('Vider le panier ?')){cart=[];renderCart();}}
-function getSubtotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
-function getTotal(){const s=getSubtotal();const d=Math.max(0,Number(document.getElementById("discount")?.value||0));return Math.max(0,s-d);}
-function getTotalCost(){return cart.reduce((s,i)=>s+(i.purchasePrice||0)*i.qty,0);}
-function renderCart(){const box=document.getElementById("cartItems");if(!box)return;if(!cart.length)box.innerHTML='<div class="empty-state" style="padding:40px 20px">'+icon('cart',48)+'<div class="empty-state-text">'+t('cartEmpty')+'</div></div>';else box.innerHTML=cart.map(i=>'<div class="cart-item"><div><div class="cart-name">'+escapeHTML(i.name)+'</div><div class="cart-price">'+money(i.price)+'</div><div class="qty-controls"><button class="qty-btn" onclick="changeQty(\''+i.id+'\',-1)">'+icon('minus',14)+'</button><input class="qty-input" type="number" min="0" value="'+i.qty+'" onchange="setQtyFromInput(\''+i.id+'\',this.value)"><button class="qty-btn" onclick="changeQty(\''+i.id+'\',1)">'+icon('plus',14)+'</button></div></div><div style="text-align:end"><div class="cart-line-total">'+money(i.price*i.qty)+'</div><button class="remove-btn" onclick="removeFromCart(\''+i.id+'\')">'+icon('trash',14)+'</button></div></div>').join('');updateCartCount();const s=document.getElementById("subtotal");if(s)s.textContent=money(getSubtotal());const tt=document.getElementById("total");if(tt)tt.textContent=money(getTotal());calculateChange();updateClientBadge();if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:'update',payload:{items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()}});}catch(e){}}}
-function updateCartCount(){const c=cart.reduce((s,i)=>s+i.qty,0);const el=document.getElementById("cartCount");if(el)el.textContent=c;}
+      let added=0;
+      let updated=0;
 
-/* ==================== CLIENTS ==================== */
-function renderClientSelect(){const sel=document.getElementById("saleClient");if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">— Client libre —</option>'+db.clients.map(c=>'<option value="'+c.id+'">'+escapeHTML(c.name)+((c.debt||0)>0?' ('+(c.debt||0).toFixed(2)+' DH)':'')+'</option>').join('');if(cur)sel.value=cur;updateClientBadge();}
-function updateClientBadge(){const b=document.getElementById("clientBadge"),tb=document.getElementById("clientTotalAchats");if(!b||!tb)return;const id=document.getElementById("saleClient")?.value;if(!id){b.textContent='Dette: 0 DH';tb.textContent='Total: 0 DH';updateCreditBar();return;}const c=db.clients.find(x=>x.id===id);if(!c){updateCreditBar();return;}b.textContent='Dette: '+money(c.debt||0);b.className="client-badge"+((c.debt||0)>0?" credit":"");tb.textContent='Total: '+money(c.totalPurchases||0);updateCreditBar();}
-function onClientChange(){const clientId=document.getElementById('saleClient')?.value;if(clientId&&cart.length){cart.forEach(item=>{const p=db.products.find(x=>x.id===item.id);if(p)item.price=PriceLists.getPrice(p,clientId);});}updateClientBadge();renderCart();}
-function updateCreditBar(){const cont=document.getElementById("creditBarContainer"),fill=document.getElementById("creditBarFill"),txt=document.getElementById("creditBarText");if(!cont||!fill||!txt)return;const id=document.getElementById("saleClient")?.value;if(paymentMethod==="Crédit"&&id){const c=db.clients.find(x=>x.id===id);if(c){const d=c.debt||0,max=1000,pct=Math.min(100,(d/max)*100);fill.style.width=pct+"%";fill.className="credit-bar-fill"+(pct>80?" used":"");txt.textContent=money(d);cont.classList.add("show");return;}}cont.classList.remove("show");}
+      for(const product of products){
+        let existing=null;
 
-/* ==================== CASHIERS ==================== */
-function renderCashierSelect(){const sel=document.getElementById("saleCashier");if(!sel)return;const cur=sel.value;sel.innerHTML=db.cashiers.map(c=>'<option value="'+c.id+'">'+escapeHTML(c.name)+'</option>').join('');if(cur)sel.value=cur;if(!sel.value&&db.cashiers.length)sel.value=db.cashiers[0].id;saveCurrentCashier();}
-function saveCurrentCashier(){const s=document.getElementById("saleCashier");if(s&&s.value)localStorage.setItem("zarouali_current_cashier",s.value);}
+        if(product.barcode){
+          existing=db.products.find(function(x){
+            return String(x.barcode||"").trim()===String(product.barcode).trim();
+          });
+        }
 
-/* ==================== PAYMENT ==================== */
-function setPayment(m){paymentMethod=m;document.querySelectorAll(".payment-btn").forEach(b=>b.classList.remove("active"));const map={"Espèces":"cashPaymentBtn","Carte":"cardPaymentBtn","Crédit":"creditPaymentBtn"};const id=map[m];if(id)document.getElementById(id)?.classList.add("active");const qc=document.getElementById("quickCash"),ci=document.getElementById("cashInput");if(m==="Espèces"){qc?.classList.add("show");ci?.classList.add("show");}else{qc?.classList.remove("show");ci?.classList.remove("show");}updateCreditBar();calculateChange();}
-function setCashAmount(a){const i=document.getElementById("cashReceived");if(i){i.value=a;calculateChange();}}
-function calculateChange(){const total=getTotal();const rec=parseFloat(document.getElementById("cashReceived")?.value||0);const el=document.getElementById("change");if(el)el.textContent=money(Math.max(0,rec-total));}
+        if(!existing && product.id){
+          existing=db.products.find(function(x){
+            return String(x.id||"").trim()===String(product.id).trim();
+          });
+        }
 
-/* ==================== SALE ==================== */
-function completeSale(){if(!cart.length){toast(t('cartEmpty'),'warn');return;}const total=getTotal();if(total<=0){toast('Total invalide','error');return;}const clientId=document.getElementById("saleClient")?.value||null;const cashierId=document.getElementById("saleCashier")?.value||null;const discount=Number(document.getElementById("discount")?.value||0);for(const it of cart){const p=db.products.find(x=>x.id===it.id);if(!p){toast('Produit introuvable','error');return;}if(p.stock<it.qty){toast('Stock insuffisant '+it.name,'error');return;}}const sale={id:"T"+Date.now().toString(36).toUpperCase(),date:new Date().toISOString(),cashierId,clientId,items:cart.map(i=>({...i})),subtotal:getSubtotal(),discount,total,payment:paymentMethod,cost:getTotalCost()};for(const it of cart){const p=db.products.find(x=>x.id===it.id);if(p)p.stock-=it.qty;}if(clientId){const c=db.clients.find(x=>x.id===clientId);if(c){c.totalPurchases=(c.totalPurchases||0)+total;if(paymentMethod==="Crédit")c.debt=(c.debt||0)+total;const earned=Loyalty.award(clientId,total);if(earned>0)toast('+'+earned+' points','success');}}db.sales.push(sale);saveDB();AuditLog.log('sale.create','Ticket '+sale.id,money(sale.total));cart=[];renderAll();toast(t('saleRecorded')+' — '+sale.id,'success');printReceipt(sale);setTimeout(()=>DigitalReceipt.show(sale),500);resetInactivityTimer();}
-function printReceipt(sale){const store=getStoreInfo();const cashier=db.cashiers.find(c=>c.id===sale.cashierId);const client=db.clients.find(c=>c.id===sale.clientId);let h='<div style="font-family:\'Courier New\',monospace;font-size:12px;padding:4mm;max-width:80mm;margin:auto;background:white;color:black;"><div style="text-align:center;font-weight:bold;font-size:16px;">'+escapeHTML(store.name||"Zarouali POS")+'</div><div style="text-align:center;font-size:11px;color:#555;">'+escapeHTML(store.address||"")+'</div><div style="text-align:center;font-size:11px;color:#555;">Tél: '+escapeHTML(store.phone||"")+'</div><hr style="border-top:1px dashed #999;"><div style="display:flex;justify-content:space-between;"><span>Ticket: '+sale.id+'</span><span>'+new Date(sale.date).toLocaleString('fr-FR')+'</span></div><div>Caissier: '+(cashier?escapeHTML(cashier.name):"—")+'</div><div>Client: '+(client?escapeHTML(client.name):"—")+'</div><hr style="border-top:1px dashed #999;">';for(const it of sale.items){h+='<div style="display:flex;justify-content:space-between;"><span>'+escapeHTML(it.name)+' × '+it.qty+'</span><span>'+money(it.price*it.qty)+'</span></div>';}h+='<hr style="border-top:1px dashed #999;"><div style="display:flex;justify-content:space-between;"><span>Sous-total</span><span>'+money(sale.subtotal)+'</span></div><div style="display:flex;justify-content:space-between;"><span>Remise</span><span>'+money(sale.discount)+'</span></div><div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;"><span>TOTAL</span><span>'+money(sale.total)+'</span></div><div style="display:flex;justify-content:space-between;font-size:11px;color:#555;"><span>Paiement</span><span>'+sale.payment+'</span></div>'+(sale.payment==="Crédit"&&client?'<div style="font-size:11px;color:#c63f35;">Dette: '+money(client.debt)+'</div>':'')+'<hr style="border-top:1px dashed #999;"><div style="text-align:center;font-size:11px;color:#555;">Merci de votre visite</div></div>';const pa=document.getElementById("printArea");pa.innerHTML=h;setTimeout(()=>{window.print();pa.innerHTML="";},300);}
+        if(existing){
+          Object.assign(existing,product);
+          updated++;
+        }else{
+          db.products.push(product);
+          added++;
+        }
+      }
 
-/* ==================== REPAYMENT ==================== */
-function openRepaymentModal(id){const c=db.clients.find(x=>x.id===id);if(!c){toast('Client introuvable','error');return;}document.getElementById("repaymentClientId").value=id;document.getElementById("repaymentClientName").textContent=c.name;document.getElementById("repaymentCurrentDebt").textContent=money(c.debt||0);document.getElementById("repaymentAmount").value="";document.getElementById("repaymentModal").classList.add("show");}
-function processRepayment(){const id=document.getElementById("repaymentClientId").value;const a=parseFloat(document.getElementById("repaymentAmount").value);if(!id){toast('Client introuvable','error');return;}if(!a||a<=0){toast('Montant invalide','error');return;}const c=db.clients.find(x=>x.id===id);if(!c)return;if(a>(c.debt||0)){toast('Dépasse la dette','error');return;}c.debt=(c.debt||0)-a;saveDB();closeModal("repaymentModal");renderAll();toast('Remboursement enregistré','success');}
+      saveDB();
+      renderAll();
 
-/* ==================== ADMIN ==================== */
-function renderProductAdmin(){const box=document.getElementById("productsAdmin");if(!box)return;const q=(document.getElementById("productAdminSearch")?.value||"").toLowerCase().trim();const list=db.products.filter(p=>!q||p.name.toLowerCase().includes(q)||String(p.barcode).includes(q));box.innerHTML=list.map(p=>'<tr><td><strong>'+escapeHTML(p.name)+'</strong>'+(p.variantGroup?' <span class="tier-badge wholesale" onclick="Variants.open(\''+escapeAttr(p.variantGroup)+'\')" style="cursor:pointer">Variantes</span>':'')+(p.saleType&&p.saleType!=='unit'?' <span class="tier-badge vip">'+(p.saleType==='weight'?'kg':'L')+'</span>':'')+'</td><td>'+escapeHTML(p.category)+'</td><td class="mono">'+escapeHTML(p.barcode)+'</td><td class="mono">'+money(p.price)+'</td><td class="mono">'+money(p.purchasePrice)+'</td><td class="mono">'+p.stock+'</td><td><div class="row-actions"><button onclick="editProduct(\''+p.id+'\')">'+icon('edit',14)+'</button><button class="danger-row" onclick="deleteProduct(\''+p.id+'\')">'+icon('trash',14)+'</button></div></td></tr>').join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px">Aucun produit</td></tr>';}
-function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=data.id;document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=data.price;document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){const img=normalizeProductImage(data.image);currentImage=data.image;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(img)+'">';}}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
-function onProductSaleTypeChange(){const type=document.getElementById("pSaleType")?.value;const vg=document.getElementById("variantGroup");if(vg)vg.style.display=type==='unit'?'block':'none';}
-function editProduct(id){const p=db.products.find(x=>x.id===id);if(p)openProductModal(p);}
-function saveProduct(){const id=document.getElementById("editProductId").value;const name=document.getElementById("pName").value.trim();const category=document.getElementById("pCategory").value;const barcode=document.getElementById("pBarcode").value.trim();const price=parseFloat(document.getElementById("pPrice").value)||0;const purchasePrice=parseFloat(document.getElementById("pPurchasePrice").value)||0;const stock=parseInt(document.getElementById("pStock").value)||0;const minStock=parseInt(document.getElementById("pMinStock").value)||5;const expirationDate=document.getElementById("pExpiration").value||"";const supplierId=document.getElementById("pSupplier")?.value||"";const saleType=document.getElementById("pSaleType")?.value||"unit";const variantGroup=document.getElementById("pVariantGroup")?.value.trim()||"";if(!name){toast('Nom obligatoire','error');return;}if(price<=0){toast('Prix invalide','error');return;}if(barcode){const dup=db.products.find(p=>p.id!==id&&String(p.barcode||"").trim()===barcode);if(dup){toast('Code-barres déjà utilisé','error');return;}}if(id){const p=db.products.find(x=>x.id===id);if(p){Object.assign(p,{name,category,barcode,price,purchasePrice,stock,minStock,expirationDate,supplierId,saleType,variantGroup});if(currentImage)p.image=currentImage;}AuditLog.log('product.update',name,'');}else{let max=0;db.products.forEach(p=>{const m=String(p.id||"").match(/^P(\d+)$/i);if(m)max=Math.max(max,parseInt(m[1],10));});const newId="P"+String(max+1).padStart(4,"0");db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup});AuditLog.log('product.create',name,money(price));}saveDB();closeModal("productModal");renderAll();toast(t('productSaved'),'success');}
-function deleteProduct(id){if(!confirm('Supprimer ce produit ?'))return;const p=db.products.find(x=>x.id===id);db.products=db.products.filter(x=>x.id!==id);saveDB();renderAll();if(p)AuditLog.log('product.delete',p.name,'');toast('Produit supprimé','success');}
+      toast(
+        "Import réussi : "+products.length+
+        " produits | "+added+" nouveaux | "+updated+" mis à jour",
+        "success"
+      );
 
-function renderClientsAdmin(){const box=document.getElementById("clientsAdmin");if(!box)return;const q=(document.getElementById("clientSearch")?.value||"").toLowerCase().trim();const list=db.clients.filter(c=>!q||c.name.toLowerCase().includes(q)||(c.phone||"").includes(q));box.innerHTML=list.map(c=>'<tr><td><strong>'+escapeHTML(c.name)+'</strong></td><td>'+escapeHTML(c.phone||"—")+'</td><td>'+(c.tier?'<span class="tier-badge '+c.tier+'">'+(c.tier==='standard'?'Standard':c.tier==='wholesale'?'Gros':c.tier==='vip'?'⭐ VIP':'Revendeur')+'</span>':'—')+'</td><td class="mono" style="color:'+((c.debt||0)>0?'var(--danger-500)':'var(--success-500)')+'">'+money(c.debt||0)+'</td><td>'+(c.points?'<span class="loyalty-badge">⭐ '+c.points+'</span>':'—')+'</td><td><div class="row-actions"><button onclick="editClient(\''+c.id+'\')">'+icon('edit',14)+'</button><button onclick="openRepaymentModal(\''+c.id+'\')">'+icon('money',14)+'</button><button class="danger-row" onclick="deleteClient(\''+c.id+'\')">'+icon('trash',14)+'</button></div></td></tr>').join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Aucun client</td></tr>';}
-function openClientModal(data){document.getElementById("editClientId").value="";document.getElementById("clientName").value="";document.getElementById("clientPhone").value="";document.getElementById("clientEmail").value="";document.getElementById("clientCredit").value="0";document.getElementById("clientTier").value="standard";if(data){document.getElementById("editClientId").value=data.id;document.getElementById("clientName").value=data.name;document.getElementById("clientPhone").value=data.phone||"";document.getElementById("clientEmail").value=data.email||"";document.getElementById("clientCredit").value=data.debt||0;document.getElementById("clientTier").value=data.tier||"standard";}document.getElementById("clientModal").classList.add("show");}
-function editClient(id){const c=db.clients.find(x=>x.id===id);if(c)openClientModal(c);}
-function saveClient(){const id=document.getElementById("editClientId").value;const name=document.getElementById("clientName").value.trim();const phone=document.getElementById("clientPhone").value.trim();const email=document.getElementById("clientEmail").value.trim();const tier=document.getElementById("clientTier").value||"standard";if(!name){toast('Nom obligatoire','error');return;}if(id){const c=db.clients.find(x=>x.id===id);if(c){c.name=name;c.phone=phone;c.email=email;c.tier=tier;}AuditLog.log('client.update',name,'');}else{const nid="CL"+String(db.clients.length+1).padStart(3,"0");db.clients.push({id:nid,name,phone,email,tier,debt:0,totalPurchases:0,points:0});AuditLog.log('client.create',name,'');}saveDB();closeModal("clientModal");renderAll();toast(t('clientSaved'),'success');}
-function deleteClient(id){if(!confirm('Supprimer ce client ?'))return;db.clients=db.clients.filter(c=>c.id!==id);saveDB();renderAll();toast('Client supprimé','success');}
+    }catch(err){
+      console.error("CSV IMPORT ERROR",err);
+      toast("Erreur CSV : "+(err.message||err),"error");
+    }
 
-function renderCashiersAdmin(){const box=document.getElementById("cashiersAdmin");if(!box)return;const stats={};for(const s of db.sales){const id=s.cashierId||"unknown";if(!stats[id])stats[id]={tickets:0,ca:0};stats[id].tickets++;stats[id].ca+=s.total;}box.innerHTML=db.cashiers.map(c=>{const st=stats[c.id]||{tickets:0,ca:0};const avg=st.tickets>0?st.ca/st.tickets:0;return'<tr><td><strong>'+escapeHTML(c.name)+'</strong></td><td class="mono">'+st.tickets+'</td><td class="mono">'+money(st.ca)+'</td><td class="mono">'+money(avg)+'</td><td><div class="row-actions"><button onclick="editCashier(\''+c.id+'\')">'+icon('edit',14)+'</button><button class="danger-row" onclick="deleteCashier(\''+c.id+'\')">'+icon('trash',14)+'</button></div></td></tr>';}).join('');}
-function openCashierModal(data){document.getElementById("editCashierId").value="";document.getElementById("cashierName").value="";if(data){document.getElementById("editCashierId").value=data.id;document.getElementById("cashierName").value=data.name;}document.getElementById("cashierModal").classList.add("show");}
-function editCashier(id){const c=db.cashiers.find(x=>x.id===id);if(c)openCashierModal(c);}
-function saveCashier(){const id=document.getElementById("editCashierId").value;const name=document.getElementById("cashierName").value.trim();if(!name){toast('Nom obligatoire','error');return;}if(id){const c=db.cashiers.find(x=>x.id===id);if(c)c.name=name;}else{const nid="C"+String(db.cashiers.length+1);db.cashiers.push({id:nid,name});}saveDB();closeModal("cashierModal");renderAll();toast('Caissière enregistrée','success');}
-function deleteCashier(id){if(!confirm('Supprimer ?'))return;db.cashiers=db.cashiers.filter(c=>c.id!==id);saveDB();renderAll();toast('Supprimée','success');}
+    if(input) input.value="";
+  };
 
-/* ==================== HISTORY ==================== */
-function populateHistoryFilters(){const cs=document.getElementById("historyCashier");if(cs){const cur=cs.value;cs.innerHTML='<option value="">Toutes</option>'+db.cashiers.map(c=>'<option value="'+c.id+'">'+escapeHTML(c.name)+'</option>').join('');if(cur)cs.value=cur;}const cl=document.getElementById("historyClient");if(cl){const cur=cl.value;cl.innerHTML='<option value="">Tous clients</option>'+db.clients.map(c=>'<option value="'+c.id+'">'+escapeHTML(c.name)+'</option>').join('');if(cur)cl.value=cur;}}
-function renderHistory(){const box=document.getElementById("history");if(!box)return;const d=document.getElementById("historyDate")?.value||"";const ci=document.getElementById("historyCashier")?.value||"";const cli=document.getElementById("historyClient")?.value||"";let list=[...db.sales];if(d)list=list.filter(s=>s.date.startsWith(d));if(ci)list=list.filter(s=>s.cashierId===ci);if(cli)list=list.filter(s=>s.clientId===cli);list.sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=list.map(s=>{const c=db.cashiers.find(x=>x.id===s.cashierId);const cl=db.clients.find(x=>x.id===s.clientId);const n=(s.items||[]).reduce((sm,i)=>sm+i.qty,0);return'<tr><td><strong class="mono">'+escapeHTML(s.id)+'</strong></td><td>'+new Date(s.date).toLocaleString('fr-FR')+'</td><td>'+(c?escapeHTML(c.name):"—")+'</td><td>'+(cl?escapeHTML(cl.name):"—")+'</td><td class="mono">'+n+'</td><td class="mono"><strong>'+money(s.total)+'</strong></td><td>'+escapeHTML(s.payment)+'</td><td><div class="row-actions"><button onclick="printReceipt(db.sales.find(x=>x.id===\''+s.id+'\'))">'+icon('print',14)+'</button><button onclick="Returns.open(\''+s.id+'\')" style="color:var(--danger-500)">↩</button></div></td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">Aucune vente</td></tr>';}
-function resetHistoryFilters(){const d=document.getElementById("historyDate");if(d)d.value=localDateISO();const c=document.getElementById("historyCashier");if(c)c.value="";const cl=document.getElementById("historyClient");if(cl)cl.value="";renderHistory();}
+  reader.onerror=function(){
+    toast("Impossible de lire le fichier CSV","error");
+    if(input) input.value="";
+  };
 
-/* ==================== DASHBOARD ==================== */
-function renderDashboard(){const today=localDateISO();const ts=db.sales.filter(s=>s.date.startsWith(today));const ca=ts.reduce((s,x)=>s+x.total,0);const cost=ts.reduce((s,x)=>s+(x.cost||0),0);const count=ts.length;const avg=count?ca/count:0;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};set("statCA",money(ca));set("statProfit",money(ca-cost));set("statTickets",count);set("statAverage",money(avg));const cs={};for(const s of ts){const id=s.cashierId||"unknown";if(!cs[id])cs[id]={tickets:0,ca:0};cs[id].tickets++;cs[id].ca+=s.total;}const cb=document.getElementById("cashierStats");if(cb)cb.innerHTML=Object.keys(cs).map(id=>{const c=db.cashiers.find(x=>x.id===id);return'<tr><td><strong>'+escapeHTML(c?c.name:id)+'</strong></td><td class="mono">'+cs[id].tickets+'</td><td class="mono">'+money(cs[id].ca)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';const ps={};for(const s of db.sales)for(const it of s.items||[]){if(!ps[it.id])ps[it.id]={qty:0,ca:0};ps[it.id].qty+=it.qty;ps[it.id].ca+=it.price*it.qty;}const sorted=Object.keys(ps).sort((a,b)=>ps[b].qty-ps[a].qty).slice(0,6);const maxQ=sorted.length?ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=db.products.find(x=>x.id===id);const pct=(ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';}
+  reader.readAsText(file,"UTF-8");
+}
 
-/* ==================== RENDER ALL ==================== */
-function renderAll(){renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();renderProductAdmin();renderClientsAdmin();renderCashiersAdmin();renderHistory();renderDashboard();populateHistoryFilters();updateCreditBar();updateCartCount();Suppliers.render();Purchases.render();}
 
-/* ==================== SCANNER CAMERA ==================== */
-function openScanner(){const m=document.getElementById("scannerModal");const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(!m)return;m.classList.add("show");scannerLocked=false;if(s){s.textContent="Prêt à scanner...";s.className="scanner-status";}if(r)r.style.display="none";setTimeout(()=>startScanner(),400);}
-async function closeScanner(){scannerLocked=true;if(scannerInstance){try{if(scannerRunning)await scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;}scannerRunning=false;const c=document.getElementById("scannerContainer");if(c)c.innerHTML='<div class="scanner-overlay"></div>';const m=document.getElementById("scannerModal");if(m)m.classList.remove("show");}
-function retryScanner(){scannerLocked=false;const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(s){s.textContent="Prêt...";s.className="scanner-status";}if(r)r.style.display="none";if(scannerInstance){try{scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;}scannerRunning=false;setTimeout(startScanner,250);}
-async function startScanner(){if(scannerRunning)return;const cont=document.getElementById("scannerContainer");const status=document.getElementById("scannerStatus");const retry=document.getElementById("retryScanBtn");if(!cont||!status)return;scannerLocked=false;const Scanner=window.Html5Qrcode||window.html5qrcode||null;if(!Scanner){status.textContent="Scanner indisponible";status.className="scanner-status error";if(retry)retry.style.display="inline-block";return;}try{if(scannerInstance){try{await scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;scannerRunning=false;}cont.innerHTML="";status.textContent="Recherche caméra...";let cams=[];try{cams=await Scanner.getCameras();}catch(e){}let camId=null;if(cams&&cams.length){const r=cams.find(c=>{const l=String(c.label||"").toLowerCase();return l.includes("back")||l.includes("rear")||l.includes("environment");});camId=r?r.id:cams[cams.length-1].id;}scannerInstance=new Scanner("scannerContainer");const fmts=[];if(window.Html5QrcodeSupportedFormats){const F=window.Html5QrcodeSupportedFormats;["EAN_13","EAN_8","UPC_A","UPC_E","CODE_128","CODE_39","CODE_93","ITF","CODABAR","QR_CODE"].forEach(n=>{if(F[n]!==undefined)fmts.push(F[n]);});}const cfg={fps:12,qrbox:(w,h)=>({width:Math.max(Math.min(Math.floor(w*0.9),420),240),height:Math.max(Math.min(Math.floor(h*0.38),180),120)}),aspectRatio:1.7777778};if(fmts.length)cfg.formatsToSupport=fmts;const camCfg=camId?camId:{facingMode:{exact:"environment"}};await scannerInstance.start(camCfg,cfg,async(text)=>{if(scannerLocked)return;const bc=String(text||"").trim();if(!bc)return;scannerLocked=true;status.textContent="Code: "+bc;status.className="scanner-status success";const p=db.products.find(x=>String(x.barcode||"").trim()===bc);if(p){try{addToCart(p.id);playBeep();toast('✓ '+p.name,'success');}catch(e){}setTimeout(()=>closeScanner(),250);}else{try{playErrorBeep();}catch(e){}toast('Code inconnu: '+bc,'warn');setTimeout(()=>{closeScanner();setTimeout(()=>openProductModal(null,bc),250);},250);}},()=>{});scannerRunning=true;status.textContent="Prêt à scanner";status.className="scanner-status";}catch(err){scannerRunning=false;let msg=err?.message||String(err);if(msg.toLowerCase().includes("permission"))msg="Caméra refusée";status.textContent="Erreur: "+msg;status.className="scanner-status error";if(retry)retry.style.display="inline-block";}}
-function playBeep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=800;o.type='sine';g.gain.value=0.3;o.start();o.stop(c.currentTime+0.1);}catch(e){}}
-function playErrorBeep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=400;o.type='sine';g.gain.value=0.3;o.start();o.stop(c.currentTime+0.2);}catch(e){}}
-
-/* ==================== IMAGES ==================== */
-function openGallery(){document.getElementById("galleryInput").click();}
-function openCamera(){document.getElementById("cameraInput").click();}
-function handleImageFile(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{currentImage=ev.target.result;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(currentImage)+'">';};r.readAsDataURL(f);e.target.value="";}
-
-/* ==================== EXPORT / IMPORT ==================== */
-function exportProductsCSV(){const h=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];const rows=db.products.map(p=>h.map(k=>csvEscape(p[k]||"")).join(","));downloadFile("produits.csv",h.join(",")+"\n"+rows.join("\n"),"text/csv");toast('Export CSV','success');}
-function importProductsCSV(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=parseCSVToProducts(ev.target.result);if(!imp.length){toast('Aucun produit','warn');return;}let n=0;for(const p of imp){const ex=db.products.find(x=>x.id===p.id);if(ex)Object.assign(ex,p);else db.products.push(p);n++;}saveDB();renderAll();toast(n+' produits importés','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
 function exportBackup(){const d={...db,_ts:new Date().toISOString()};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
 function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.sales){toast('Fichier invalide','error');return;}if(!confirm('Restaurer ?'))return;db.products=d.products||[];db.cashiers=d.cashiers||[];db.clients=d.clients||[];db.sales=d.sales||[];db.suppliers=d.suppliers||[];db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
 function downloadDailyReport(){const today=localDateISO();const sales=db.sales.filter(s=>s.date.startsWith(today));let r="Rapport du "+today+"\n"+"=".repeat(40)+"\n";const ca=sales.reduce((s,x)=>s+x.total,0);const cost=sales.reduce((s,x)=>s+(x.cost||0),0);r+="CA: "+money(ca)+"\nBénéfice: "+money(ca-cost)+"\nTickets: "+sales.length+"\n\n";for(const s of sales){r+="Ticket: "+s.id+" | "+new Date(s.date).toLocaleTimeString('fr-FR')+" | "+s.payment+" | "+money(s.total)+"\n";}downloadFile("rapport_"+today+".txt",r,"text/plain");toast('Rapport téléchargé','success');}

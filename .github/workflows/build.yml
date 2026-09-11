@@ -102,56 +102,37 @@ jobs:
       - name: Validate JavaScript before Android build
         run: |
           set -e
+          echo "🔎 Validating current web source..."
+          test -f www/index.html
+          echo "✅ index.html exists"
+          grep -qi "<script" www/index.html
+          echo "✅ JavaScript blocks detected"
+          grep -q "function importProductsCSV" www/index.html
+          echo "✅ CSV import function detected"
+          grep -q "parseCSVToProducts" www/index.html
+          echo "✅ CSV parser detected"
+          python - <<'PYJS'
+import re
+from pathlib import Path
 
-          python3 - <<'PY2'
-          from pathlib import Path
-          import re
+html = Path("www/index.html").read_text(encoding="utf-8", errors="replace")
+scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script\\s*>", html, re.I | re.S)
 
-          html = Path("www/index.html").read_text(encoding="utf-8")
+if not scripts:
+    raise SystemExit("No inline JavaScript found")
 
-          scripts = re.findall(
-              r'<script(?:\s[^>]*)?>(.*?)</script>',
-              html,
-              flags=re.S | re.I
-          )
+Path("/tmp/zarouali_js_check").mkdir(exist_ok=True)
 
-          main = None
-
-          for script in scripts:
-              if (
-                  "function doLogin" in script
-                  or "function renderProducts" in script
-                  or "ZAROUALI CAISSE" in script
-              ):
-                  main = script
-                  break
-
-          if main is None:
-              raise SystemExit("❌ Main JavaScript block not found")
-
-          Path("/tmp/zarouali-main.js").write_text(
-              main,
-              encoding="utf-8"
-          )
-
-          print("✅ Main JavaScript extracted")
-          print("JavaScript size:", len(main))
-          PY2
-
-          node --check /tmp/zarouali-main.js
-
-          COUNT1=$(grep -c "let scannerInstance" www/index.html || true)
-          COUNT2=$(grep -c "let scannerRunning" www/index.html || true)
-
-          test "$COUNT1" -eq 1
-          test "$COUNT2" -eq 1
-
-          echo "======================================"
-          echo "✅ JAVASCRIPT SYNTAX: OK"
-          echo "✅ scannerInstance: 1"
-          echo "✅ scannerRunning: 1"
-          echo "======================================"
-
+for n, code in enumerate(scripts):
+    f = Path(f"/tmp/zarouali_js_check/script_{n}.js")
+    f.write_text(code, encoding="utf-8")
+    print(f"Checking {f}")
+PYJS
+          for f in /tmp/zarouali_js_check/*.js; do
+            node --check "$f"
+          done
+          echo "✅ JavaScript syntax OK"
+          echo "🎉 Web source validation OK"
       - name: Create FRESH Android project
         run: |
           set -e

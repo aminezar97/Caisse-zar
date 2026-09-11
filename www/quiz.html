@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zarouali Caisse — Product Quiz</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#17202a}
+header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;padding:12px 16px;z-index:5}
+h1{font-size:20px;margin:0 0 6px}.sub{color:#68717c;font-size:13px}
+.progress{height:8px;background:#e8ebef;border-radius:8px;margin-top:10px;overflow:hidden}.bar{height:100%;width:0;background:#159957}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.stat{background:#f0f2f5;border-radius:10px;padding:7px 10px;font-size:13px}
+main{max-width:900px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 3px 14px #00000010}
+.num{font-size:13px;color:#707984}.product-name{font-size:22px;font-weight:700;margin:6px 0 12px}
+.photo{height:330px;background:#fafafa;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #eee}
+.photo img{max-width:100%;max-height:100%;object-fit:contain}.placeholder{font-size:60px;opacity:.25}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+button{border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer}
+.yes{background:#dff7e8;color:#08743b}.no{background:#ffe1e1;color:#a31313}.later{background:#fff0c9;color:#795900}.bad{background:#eee;color:#444}
+.nav{display:flex;gap:10px;margin-top:12px}.nav button{flex:1;background:#17202a;color:#fff}
+.done{text-align:center;padding:30px}.done h2{font-size:26px}
+textarea{width:100%;min-height:180px;margin-top:15px;border:1px solid #ddd;border-radius:12px;padding:10px;font-family:monospace}
+@media(max-width:600px){.photo{height:260px}.product-name{font-size:19px}.buttons{grid-template-columns:1fr}.buttons button{padding:13px}}
+</style>
+</head>
+<body>
+<header>
+<h1>🛒 Zarouali Caisse — اختيار المنتجات</h1>
+<div class="sub">اختر لكل منتج: مرغوب، غير مرغوب، لاحقًا، أو الصورة غير صحيحة.</div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div class="stats">
+<span class="stat">📦 <b id="total">0</b> منتج</span>
+<span class="stat">✅ <b id="yes">0</b></span>
+<span class="stat">❌ <b id="no">0</b></span>
+<span class="stat">⏭️ <b id="later">0</b></span>
+<span class="stat">🖼️ <b id="bad">0</b></span>
+</div>
+</header>
+<main><div id="app" class="card">جاري تحميل المنتجات...</div></main>
+
+<script>
+const answers=JSON.parse(localStorage.getItem('zarQuizAnswers')||'{}');
+let products=[], index=0;
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function csvRows(text){
+  text=String(text).replace(/^\\uFEFF/,'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
+  let rows=[],row=[],field='',q=false;
+  for(let i=0;i<text.length;i++){let c=text[i];
+    if(c==='"'){if(q&&text[i+1]==='"'){field+='"';i++}else q=!q}
+    else if(c===';'&&!q){row.push(field);field=''}
+    else if(c==='\\n'&&!q){row.push(field);field='';if(row.some(x=>x.trim()))rows.push(row);row=[]}
+    else field+=c;
+  }
+  if(field||row.length){row.push(field);rows.push(row)}
+  return rows;
+}
+function imagePath(v){
+  v=String(v||'').trim(); if(!v)return '';
+  if(/^https?:/i.test(v))return v;
+  v=v.replace(/^["']|["']$/g,'').replace(/\\/g,'/').replace(/^\.\//,'').replace(/^images\//i,'').replace(/^www\/images\//i,'');
+  const file=v.split('/').pop();
+  return 'https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/www/images/'+encodeURIComponent(file);
+}
+async function load(){
+  const catalogUrls=[
+    'https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/www/data/products.csv',
+    './data/products.csv'
+  ];
+  let r=null;
+  for(const u of catalogUrls){
+    try{
+      const x=await fetch(u+'?v='+Date.now(),{cache:'no-store'});
+      if(x.ok){r=x;break;}
+    }catch(e){}
+  }
+  if(!r)throw Error('Catalogue introuvable sur GitHub ou localement');
+  let rows=csvRows(await r.text()), h=rows.shift().map(x=>x.trim());
+  let ix=Object.fromEntries(h.map((x,i)=>[x,i]));
+  products=rows.map(r=>({id:r[ix.id]||'',name:r[ix.name]||'',category:r[ix.category]||'',image:r[ix.image]||''}))
+    .filter(p=>p.id&&p.name);
+  document.getElementById('total').textContent=products.length;
+  index=Math.max(0,products.findIndex(p=>!answers[p.id]));
+  if(index<0) index=products.length-1;
+  render();
+}
+function counts(){
+ let c={yes:0,no:0,later:0,bad:0};
+ Object.values(answers).forEach(x=>{if(c[x]!=null)c[x]++});return c;
+}
+function save(){localStorage.setItem('zarQuizAnswers',JSON.stringify(answers))}
+function choose(type){
+ const p=products[index]; if(!p)return;
+ answers[p.id]=type;save();
+ if(index<products.length-1)index++; else finish();
+ render();
+}
+function render(){
+ const c=counts();
+ ['yes','no','later','bad'].forEach(k=>document.getElementById(k).textContent=c[k]);
+ document.getElementById('bar').style.width=(products.length?(Object.keys(answers).length/products.length*100):0)+'%';
+ const p=products[index];
+ if(!p){document.getElementById('app').innerHTML='<div class="done">لا توجد منتجات.</div>';return}
+ const img=imagePath(p.image);
+ document.getElementById('app').innerHTML=`
+ <div class="num">المنتج ${index+1} من ${products.length} · ${esc(p.id)}</div>
+ <div class="product-name">${esc(p.name)}</div>
+ <div class="photo">${img?`<img src="${esc(img)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="placeholder" style="display:none">📦</span>`:'<span class="placeholder">📦</span>'}</div>
+ <div class="buttons">
+ <button class="yes" onclick="choose('yes')">✅ أريده</button>
+ <button class="no" onclick="choose('no')">❌ لا أريده</button>
+ <button class="later" onclick="choose('later')">⏭️ لاحقًا</button>
+ <button class="bad" onclick="choose('bad')">🖼️ الصورة غير صحيحة</button>
+ </div>
+ <div class="nav"><button onclick="prev()">‹ السابق</button><button onclick="next()">التالي ›</button></div>`;
+}
+function prev(){if(index>0){index--;render()}}
+function next(){if(index<products.length-1){index++;render()}}
+function finish(){
+ const c=counts(), selected=products.filter(p=>answers[p.id]==='yes');
+ document.getElementById('app').innerHTML=`<div class="done">
+ <h2>🎉 انتهى الاختيار</h2>
+ <p>✅ مرغوب: <b>${c.yes}</b> · ❌ غير مرغوب: <b>${c.no}</b> · ⏭️ لاحقًا: <b>${c.later}</b> · 🖼️ صور تحتاج تصحيح: <b>${c.bad}</b></p>
+ <button class="yes" onclick="exportResults()">📋 استخراج النتائج</button>
+ <textarea id="out" placeholder="ستظهر النتائج هنا"></textarea>
+ <div class="nav"><button onclick="index=0;render()">مراجعة المنتجات</button><button onclick="resetQuiz()">مسح الاختيارات</button></div>
+ </div>`;
+}
+function exportResults(){
+ let out=['TYPE;ID;NAME'];
+ for(const p of products)out.push(`${answers[p.id]||''};${p.id};"${String(p.name).replaceAll('"','""')}"`);
+ document.getElementById('out').value=out.join('\\n');
+}
+function resetQuiz(){if(confirm('مسح جميع الاختيارات؟')){localStorage.removeItem('zarQuizAnswers');location.reload()}}
+load().catch(e=>document.getElementById('app').innerHTML='<div class="done">⚠️ '+esc(e.message)+'<br><br>ضع quiz.html داخل مشروع Caisse-zar بجانب مجلد www، ثم افتحه عبر GitHub Pages أو خادم محلي.</div>');
+</script>
+</body></html>

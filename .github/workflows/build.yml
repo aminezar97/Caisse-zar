@@ -1,159 +1,57 @@
-name: Zarouali Caisse - Web APK AAB Windows
+name: Build Zarouali Caisse
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: zarouali-build-${{ github.ref }}
-  cancel-in-progress: true
-
-
-# ==================================================
-# WEB / GITHUB PAGES
-# ==================================================
-
 jobs:
-
-  web:
-    name: Web + GitHub Pages
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-
-      - name: Verify website
-        run: |
-          test -f www/index.html
-          test -f www/manifest.webmanifest
-          test -f www/sw.js
-          test -f www/html5-qrcode.min.js
-          echo "Website OK"
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: www
-
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-
-  # ==================================================
-  # ANDROID
-  # ==================================================
-
   android:
-    name: Android APK + AAB
+    name: Android APK / AAB
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Setup Java
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - name: Install dependencies
-        run: npm install
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Verify current web source
+      - name: Install Android SDK 36
         run: |
-          set -e
-          test -f www/index.html
-          test -f www/data/products.csv
-          test -f www/html5-qrcode.min.js
-          grep -q "zarouali_caisse_password" www/index.html
-          echo "======================================"
-          echo "WEB SOURCE VERIFIED"
-          echo "Latest index.html will be used"
-          echo "======================================"
+          sdkmanager "platforms;android-36" \
+                     "build-tools;35.0.0" \
+                     "platform-tools"
+          yes | sdkmanager --licenses || true
 
-      - name: Validate JavaScript before Android build
+      - name: Create Android project
         run: |
-          set -e
-          echo "Checking web source..."
-          test -f www/index.html
-          grep -qi '<script' www/index.html
-          grep -q 'function importProductsCSV' www/index.html
-          grep -q 'parseCSVToProducts' www/index.html
-          echo "Checking JavaScript syntax..."
-          node --check www/index.html 2>/dev/null || true
-          echo "JavaScript validation OK"
-      - name: Create FRESH Android project
-        run: |
-          set -e
           rm -rf android
           npx cap add android
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          grep -q "android.permission.CAMERA" "$MANIFEST" || sed -i "/<manifest /a\\    <uses-permission android:name=\"android.permission.CAMERA\" />" "$MANIFEST"
-          echo "======================================"
-          echo "FRESH ANDROID PROJECT CREATED"
-          echo "======================================"
 
-      - name: Generate Android icons & splash from real logo
-        run: npx capacitor-assets generate --android
-
-      - name: Sync Capacitor with latest web files
+      - name: Sync Capacitor
         run: |
-          set -e
           npx cap sync android
 
-      - name: Verify APK web assets
-        run: |
-          set -e
-          APK_INDEX="android/app/src/main/assets/public/index.html"
-
-          test -f "$APK_INDEX"
-          grep -q "zarouali_caisse_password" "$APK_INDEX"
-
-          echo "======================================"
-          echo "ANDROID WEB ASSETS VERIFIED"
-          echo "LATEST INDEX.HTML FOUND INSIDE APK ASSETS"
-          echo "======================================"
-
-      - name: Fix junitVersion property (known Capacitor/AGP template issue)
-        run: |
-          VARS_FILE="android/variables.gradle"
-          if [ -f "$VARS_FILE" ] && ! grep -q "junitVersion" "$VARS_FILE"; then
-            sed -i "0,/ext[[:space:]]*{/s//ext {\n    junitVersion = '4.13.2'/" "$VARS_FILE"
-            echo "junitVersion added to variables.gradle"
-          fi
-
-      - name: Make Gradle executable
-        run: chmod +x android/gradlew
-
-      - name: Build installable Debug APK
+      - name: Build Debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
@@ -161,68 +59,46 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Build AAB
+      - name: Build Release AAB
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      - name: Prepare Android artifacts
-        run: |
-          mkdir -p release/android
-
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-             release/android/Zarouali-Caisse.apk
-
-          RELEASE_APK=$(find android/app/build/outputs/apk/release -maxdepth 1 -name "*.apk" | head -n1)
-          if [ -n "$RELEASE_APK" ]; then
-            cp "$RELEASE_APK" release/android/Zarouali-Caisse-release-unsigned.apk
-          else
-            echo "⚠️ No release APK found, skipping"
-          fi
-
-          cp android/app/build/outputs/bundle/release/app-release.aab \
-             release/android/Zarouali-Caisse.aab
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload Android files
+        uses: actions/upload-artifact@v4
         with:
           name: Zarouali-Caisse-Android
-          path: release/android
-          retention-days: 30
+          path: |
+            android/app/build/outputs/apk/debug/*.apk
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
 
-
-  # ==================================================
-  # WINDOWS
-  # ==================================================
 
   windows:
-    name: Windows Setup EXE
+    name: Windows Electron
     runs-on: windows-latest
 
     steps:
-
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build Windows application
-        run: npx electron-builder --win nsis portable --publish never
+      - name: Build Windows app
+        run: npm run electron:build
 
-      - name: List generated files
-        shell: bash
-        run: |
-          find dist -maxdepth 2 -type f -print
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v4
         with:
           name: Zarouali-Caisse-Windows
-          path: dist/*
-          retention-days: 30
+          path: |
+            dist/**
+            release/**
+          if-no-files-found: warn

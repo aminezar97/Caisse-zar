@@ -10,75 +10,62 @@ permissions:
   contents: read
 
 concurrency:
-  group: zarouali-caisse-build-${{ github.ref }}
+  group: zarouali-caisse-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-
-  # =========================================================
-  # ANDROID
-  # =========================================================
 
   android:
     name: Android APK + AAB
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Setup Java
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK
-        shell: bash
         run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-36"
+          sdkmanager "build-tools;36.0.0"
           yes | sdkmanager --licenses || true
 
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-36" \
-            "build-tools;36.0.0"
-
-      - name: Install npm dependencies
+      - name: Install dependencies
         run: |
           npm install --legacy-peer-deps --no-audit --no-fund
 
-      - name: Verify project
-        shell: bash
+      - name: Verify web project
         run: |
           test -f package.json
           test -f capacitor.config.json
           test -f www/index.html
-          echo "Project files OK"
 
-      - name: Create fresh Android project
-        shell: bash
+      - name: Create Android project
         run: |
           rm -rf android
           npx cap add android
 
       - name: Add camera permission
-        shell: bash
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
 
           if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
             sed -i '/<manifest /a\
-              <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+            <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
           fi
 
       - name: Sync Capacitor
@@ -86,115 +73,13 @@ jobs:
           npx cap sync android
 
       - name: Make Gradle executable
-        run: chmod +x android/gradlew
-
-      - name: Show Android configuration
-        shell: bash
         run: |
-          echo "Android SDK:"
-          ls "$ANDROID_HOME/platforms" || true
-
-          echo "Build tools:"
-          ls "$ANDROID_HOME/build-tools" || true
-
-          echo "Capacitor:"
-          npx cap --version
+          chmod +x android/gradlew
 
       - name: Build Debug APK
         working-directory: android
         run: |
-          ./gradlew assembleDebug \
-            --no-daemon \
-            --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Release APK
         working-directory: android
-        run: |
-          ./gradlew assembleRelease \
-            --no-daemon \
-            --stacktrace
-
-      - name: Build Release AAB
-        working-directory: android
-        run: |
-          ./gradlew bundleRelease \
-            --no-daemon \
-            --stacktrace
-
-      - name: Prepare Android artifacts
-        shell: bash
-        run: |
-          mkdir -p release/android
-
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-            release/android/Zarouali-Caisse-debug.apk
-
-          if [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            cp android/app/build/outputs/apk/release/app-release-unsigned.apk \
-              release/android/Zarouali-Caisse-release-unsigned.apk
-          fi
-
-          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
-            cp android/app/build/outputs/bundle/release/app-release.aab \
-              release/android/Zarouali-Caisse.aab
-          fi
-
-          echo "Android files:"
-          find release/android -type f -maxdepth 1 -print
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: Zarouali-Caisse-Android
-          path: release/android/*
-          if-no-files-found: error
-          retention-days: 30
-
-
-  # =========================================================
-  # WINDOWS
-  # =========================================================
-
-  windows:
-    name: Windows EXE
-    runs-on: windows-latest
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - name: Install npm dependencies
-        run: |
-          npm install --legacy-peer-deps --no-audit --no-fund
-
-      - name: Verify Electron project
-        shell: bash
-        run: |
-          test -f package.json
-          test -f electron/main.cjs
-          test -d www
-          echo "Electron project OK"
-
-      - name: Build Windows application
-        run: |
-          npx electron-builder --win nsis portable --publish never
-
-      - name: List Windows files
-        shell: bash
-        run: |
-          echo "Generated files:"
-          find dist -maxdepth 2 -type f -print
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: Zarouali-Caisse-Windows
-          path: dist/*
-          if-no-files-found: error
-          retention-days: 30

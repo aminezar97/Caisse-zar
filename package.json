@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
-    "@capacitor/core": "^8.5.0"
+    "@capacitor/core": "^8.5.0",
+    "jszip": "^3.10.2",
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
@@ -38,18 +40,32 @@
     "win": {
       "icon": "resources/icon.png",
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "linux": {
       "icon": "resources/icon.png",
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Office"
     },
     "mac": {
       "icon": "resources/icon.png",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "nsis": {
       "oneClick": false,

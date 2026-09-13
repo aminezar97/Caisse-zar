@@ -8,3 +8,12 @@ android/
 *.msi
 .DS_Store
 Thumbs.db
+
+# Local backups and temporary files
+*.backup*
+*.bak*
+*.bak2
+www/images_backup*/
+www/data/*backup*
+.js_check/
+.tmp/

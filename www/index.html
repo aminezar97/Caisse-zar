@@ -11,8 +11,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="./html5-qrcode.min.js"></script>
-<script src="./vendor/jszip.min.js"></script>
-<script src="./vendor/sql-wasm.js"></script>
 <style>
 /* =========================================================
    ZAROUALI POS — DESIGN SYSTEM v5
@@ -621,6 +619,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 </style>
+<script src="./vendor/sql-wasm.js"></script>
 </head>
 <body>
 
@@ -863,15 +862,14 @@ function icon(name,size){size=size||18;const I={plus:'<line x1="12" y1="5" x2="1
 
 function toast(msg,type){type=type||'info';const s=document.getElementById("toastStack");if(!s)return;const el=document.createElement("div");el.className="toast "+type;const i=type==='success'?'check':type==='error'?'alert':type==='warn'?'alert':'info';el.innerHTML='<div class="toast-icon">'+icon(i,16)+'</div><div>'+escapeHTML(msg)+'</div>';s.appendChild(el);setTimeout(()=>{el.classList.add("leaving");setTimeout(()=>el.remove(),200);},2800);}
 
-function businessSnapshot(){const copy=JSON.parse(JSON.stringify(db));copy.products=[];return copy;}
-function saveDB(){try{localStorage.setItem(DB_KEY,JSON.stringify(businessSnapshot()));}catch(e){console.warn("saveDB",e);}if(window.fsSaveDB)window.fsSaveDB(businessSnapshot());if(window.CatalogStoreReady)window.CatalogStoreReady.then(()=>CatalogStore.saveProducts(db.products)).catch(()=>{});}
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(db));if(window.fsSaveDB)window.fsSaveDB(db);}
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1"},{id:"C2",name:"Caissière 2"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
 function loadTheme(){const s=localStorage.getItem(THEME_KEY);const h=document.documentElement;const tg=document.getElementById("themeToggle");if(s==='dark'){h.setAttribute('data-theme','dark');if(tg)tg.checked=false;}else{h.removeAttribute('data-theme');if(tg)tg.checked=true;}}
 function toggleTheme(c){const h=document.documentElement;if(c){h.removeAttribute('data-theme');localStorage.setItem(THEME_KEY,'light');}else{h.setAttribute('data-theme','dark');localStorage.setItem(THEME_KEY,'dark');}}
 
-function normalizeProductImage(img){let v=String(img||"").trim();if(!v)return"";if(/^(https?:|data:|blob:|catalog:)/i.test(v))return v;v=v.replace(/^["']+|["']+$/g,"").trim();v=v.replace(/\\/g,"/").replace(/^\.\/+/,"").replace(/^images\/+/,"");return v?IMAGE_BASE_URL+v:"";}
-function normalizeCatalogProduct(p){return{...p,id:String(p.id||"").trim(),name:String(p.name||"").trim(),category:String(p.category||"Épicerie").trim(),barcode:String(p.barcode||"").trim(),price:Number(p.price||0),purchasePrice:Number(p.purchasePrice||0),stock:Number.isFinite(Number(p.stock))?Number(p.stock):50,minStock:Number.isFinite(Number(p.minStock))?Number(p.minStock):5,image:(/^catalog:\/\//i.test(String(p.image||""))?String(p.image):String(p.image||"").trim()),expirationDate:String(p.expirationDate||"").trim()};}
+function normalizeProductImage(img){let v=String(img||"").trim();if(!v)return"";if(/^(https?:|data:|blob:)/i.test(v))return v;v=v.replace(/^["']+|["']+$/g,"").trim();v=v.replace(/\\/g,"/").replace(/^\.\/+/,"").replace(/^images\/+/,"");return v?IMAGE_BASE_URL+v:"";}
+function normalizeCatalogProduct(p){return{...p,id:String(p.id||"").trim(),name:String(p.name||"").trim(),category:String(p.category||"Épicerie").trim(),barcode:String(p.barcode||"").trim(),price:Number(p.price||0),purchasePrice:Number(p.purchasePrice||0),stock:Number.isFinite(Number(p.stock))?Number(p.stock):50,minStock:Number.isFinite(Number(p.minStock))?Number(p.minStock):5,image:normalizeProductImage(p.image),expirationDate:String(p.expirationDate||"").trim()};}
 
 function parseCSVLine(line,sep){const r=[];let c="",ins=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(ins&&line[i+1]==='"'){c+='"';i++;}else ins=!ins;}else if(ch===sep&&!ins){r.push(c);c="";}else c+=ch;}r.push(c);return r;}
 function parseCSVToProducts(csv){const lines=csv.split("\n").filter(l=>l.trim());if(lines.length<2)return[];const sep=lines[0].includes(';')?';':',';const h=parseCSVLine(lines[0],sep);const idx={};['id','name','category','barcode','price','purchasePrice','stock','minStock','image','expirationDate'].forEach(k=>{idx[k]=h.indexOf(k);});const out=[];for(let i=1;i<lines.length;i++){const cols=parseCSVLine(lines[i],sep);if(cols.length<2)continue;const id=(idx.id>=0&&cols[idx.id])?cols[idx.id].trim():"P"+String(i).padStart(3,"0");const name=(idx.name>=0&&cols[idx.name])?cols[idx.name].trim():"Produit "+i;const category=(idx.category>=0&&cols[idx.category])?cols[idx.category].trim():"Autre";const barcode=(idx.barcode>=0&&cols[idx.barcode])?cols[idx.barcode].trim():"";const price=(idx.price>=0&&cols[idx.price]?.trim())?(parseFloat(cols[idx.price].replace(",","."))||0):0;const purchasePrice=(idx.purchasePrice>=0&&cols[idx.purchasePrice]?.trim())?(parseFloat(cols[idx.purchasePrice].replace(",","."))||0):0;const stock=(idx.stock>=0&&cols[idx.stock])?parseInt(cols[idx.stock])||50:50;const minStock=(idx.minStock>=0&&cols[idx.minStock])?parseInt(cols[idx.minStock])||5:5;const image=(idx.image>=0&&cols[idx.image])?cols[idx.image].trim():"";const expirationDate=(idx.expirationDate>=0&&cols[idx.expirationDate])?cols[idx.expirationDate].trim():"";if(id&&name)out.push({id,name,category,barcode,price,purchasePrice,stock,minStock,image,expirationDate});}return out;}
@@ -962,7 +960,7 @@ function renderMainContent(){
   </section>
   <section id="productsPage" class="page ${currentPage==='productsPage'?'active':''}">
     <div class="panel"><div class="panel-header"><div class="panel-title">${icon('package',18)}Produits</div><button class="btn btn-primary" onclick="openProductModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export</button><span class="eyebrow">Catalogue local ZIP/SQLite — aucun CSV requis</span></div>
+    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Import</button><input id="csvInput" type="file" accept=".csv" hidden onchange="importProductsCSV(event)"></div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix</th><th>Achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table></div></div>
   </section>
   <section id="clientsPage" class="page ${currentPage==='clientsPage'?'active':''}">
@@ -1019,9 +1017,6 @@ function renderMainContent(){
       <button class="btn btn-secondary btn-full" onclick="exportBackup()">📤 Exporter base</button>
       <button class="btn btn-secondary btn-full" onclick="document.getElementById('backupInput').click()">📥 Restaurer</button>
       <input id="backupInput" type="file" accept=".json" hidden onchange="importBackup(event)">
-      <button class="btn btn-primary btn-full" onclick="document.getElementById('catalogInput').click()">📦 Importer le catalogue Zarouali (.zip)</button>
-      <input id="catalogInput" type="file" accept=".zip,application/zip" hidden onchange="importCatalogPackage(event)">
-      <div id="catalogStatus" class="setting-row" style="display:block"><span class="label">Catalogue: aucun catalogue importé</span></div>
       <button class="btn btn-secondary btn-full" onclick="openChangePassword()">🔐 Mot de passe</button>
       <button class="btn btn-secondary btn-full" onclick="downloadDailyReport()">📄 Rapport du jour</button>
       <button class="btn btn-secondary btn-full" onclick="AdvancedReports.open()">📊 Rapports avancés</button>
@@ -1084,7 +1079,7 @@ function renderCategories(){const box=document.getElementById("categories");if(!
 function selectCategory(c){activeCategory=c;renderCategories();renderProducts();}
 
 /* ==================== PRODUCTS ==================== */
-function renderProducts(){const box=document.getElementById("products");if(!box)return;const q=(document.getElementById("search")?.value||"").toLowerCase().trim();const list=(db.products||[]).filter(p=>{const cOk=activeCategory==="Tous"||p.category===activeCategory;const sOk=!q||String(p.name||"").toLowerCase().includes(q)||String(p.barcode||"").includes(q);return cOk&&sOk;});if(!list.length){box.innerHTML='<div class="empty-state">'+icon('package',72)+'<div class="empty-state-title">'+(db.products.length?'Aucun produit trouvé':'Aucun catalogue importé')+'</div><div class="empty-state-text">'+(db.products.length?'Modifiez la recherche.':'Admin → Paramètres → Importer le catalogue Zarouali (.zip)')+'</div></div>';return;}box.innerHTML=list.map(p=>{const image=String(p.image||"");const isCatalog=/^catalog:/i.test(image);let imgHtml='<div class="product-placeholder">'+icon('camera',48)+'</div>';if(image&&!isCatalog){const src=normalizeProductImage(image);const fb=icon('camera',48).replace(/"/g,'&quot;');imgHtml='<img src="'+escapeAttr(src)+'" alt="'+escapeHTML(p.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\''+fb+'\';">';}else if(isCatalog){imgHtml='<img data-catalog-image="'+escapeAttr(image)+'" alt="'+escapeHTML(p.name)+'" loading="lazy" style="display:none">';}const isLow=p.stock<=p.minStock;const isOut=p.stock<=0;let badge="";if(isOut)badge='<span class="product-badge out">Rupture</span>';else if(isLow)badge='<span class="product-badge low">Stock faible</span>';return'<div class="product" onclick="addToCart(\''+escapeAttr(p.id)+'\')"><div class="product-img">'+imgHtml+badge+'<div class="product-add">'+icon('plus',16)+'</div></div><div class="product-body"><div class="product-name">'+escapeHTML(p.name)+'</div><div class="product-meta"><span class="product-price">'+money(p.price)+'</span><span class="product-stock">'+(isOut?'':(p.saleType==='weight'?'/kg':p.saleType==='volume'?'/L':'· '+p.stock))+'</span></div></div></div>';}).join('');CatalogStore.hydrateImages(box);}
+function renderProducts(){const box=document.getElementById("products");if(!box)return;const q=(document.getElementById("search")?.value||"").toLowerCase().trim();const list=db.products.filter(p=>{const cOk=activeCategory==="Tous"||p.category===activeCategory;const sOk=!q||p.name.toLowerCase().includes(q)||String(p.barcode).includes(q);return cOk&&sOk;});if(!list.length){box.innerHTML='<div class="empty-state">'+icon('package',72)+'<div class="empty-state-title">'+t('noProducts')+'</div><div class="empty-state-text">Ajoutez des produits pour commencer</div></div>';return;}box.innerHTML=list.map(p=>{let image=p.image||"";let imgHtml='<div class="product-placeholder">'+icon('camera',48)+'</div>';if(image){image=normalizeProductImage(image);const fb=icon('camera',48).replace(/"/g,'&quot;');imgHtml='<img src="'+escapeAttr(image)+'" alt="'+escapeHTML(p.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\''+fb+'\';">';}const isLow=p.stock<=p.minStock;const isOut=p.stock<=0;let badge="";if(isOut)badge='<span class="product-badge out">Rupture</span>';else if(isLow)badge='<span class="product-badge low">Stock faible</span>';return'<div class="product" onclick="addToCart(\''+p.id+'\')"><div class="product-img">'+imgHtml+badge+'<div class="product-add">'+icon('plus',16)+'</div></div><div class="product-body"><div class="product-name">'+escapeHTML(p.name)+'</div><div class="product-meta"><span class="product-price">'+money(p.price)+'</span><span class="product-stock">'+(isOut?'':(p.saleType==='weight'?'/kg':p.saleType==='volume'?'/L':'· '+p.stock))+'</span></div></div></div>';}).join('');}
 
 /* ==================== CART ==================== */
 function addToCart(id){const p=db.products.find(x=>x.id===id);if(!p)return;if(p.stock<=0){toast(t('outOfStock'),'warn');return;}if(p.expirationDate){const d=new Date(p.expirationDate);if(!isNaN(d.getTime())&&d<new Date()){toast(t('expired'),'warn');return;}}const clientId=document.getElementById('saleClient')?.value||null;const tierPrice=PriceLists.getPrice(p,clientId);const it=cart.find(i=>i.id===id);if(it){if(it.qty>=p.stock){toast('Stock insuffisant','warn');return;}it.qty++;}else cart.push({id:p.id,name:p.name,barcode:p.barcode,price:tierPrice,purchasePrice:Number(p.purchasePrice||0),qty:1,saleType:p.saleType||'unit',basePrice:p.price});renderCart();resetInactivityTimer();}
@@ -1123,7 +1118,7 @@ function processRepayment(){const id=document.getElementById("repaymentClientId"
 
 /* ==================== ADMIN ==================== */
 function renderProductAdmin(){const box=document.getElementById("productsAdmin");if(!box)return;const q=(document.getElementById("productAdminSearch")?.value||"").toLowerCase().trim();const list=db.products.filter(p=>!q||p.name.toLowerCase().includes(q)||String(p.barcode).includes(q));box.innerHTML=list.map(p=>'<tr><td><strong>'+escapeHTML(p.name)+'</strong>'+(p.variantGroup?' <span class="tier-badge wholesale" onclick="Variants.open(\''+escapeAttr(p.variantGroup)+'\')" style="cursor:pointer">Variantes</span>':'')+(p.saleType&&p.saleType!=='unit'?' <span class="tier-badge vip">'+(p.saleType==='weight'?'kg':'L')+'</span>':'')+'</td><td>'+escapeHTML(p.category)+'</td><td class="mono">'+escapeHTML(p.barcode)+'</td><td class="mono">'+money(p.price)+'</td><td class="mono">'+money(p.purchasePrice)+'</td><td class="mono">'+p.stock+'</td><td><div class="row-actions"><button onclick="editProduct(\''+p.id+'\')">'+icon('edit',14)+'</button><button class="danger-row" onclick="deleteProduct(\''+p.id+'\')">'+icon('trash',14)+'</button></div></td></tr>').join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px">Aucun produit</td></tr>';}
-function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=data.id;document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=data.price;document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){currentImage=data.image;const img=normalizeProductImage(data.image);if(/^catalog:/i.test(img)){document.getElementById("imagePreview").innerHTML='<span>Chargement…</span>';CatalogStore.getImage(img.replace(/^catalog:\/\//,'')).then(u=>{if(u)document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(u)+'">';});}else document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(img)+'">';}}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
+function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=data.id;document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=data.price;document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){const img=normalizeProductImage(data.image);currentImage=data.image;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(img)+'">';}}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
 function onProductSaleTypeChange(){const type=document.getElementById("pSaleType")?.value;const vg=document.getElementById("variantGroup");if(vg)vg.style.display=type==='unit'?'block':'none';}
 function editProduct(id){const p=db.products.find(x=>x.id===id);if(p)openProductModal(p);}
 function saveProduct(){const id=document.getElementById("editProductId").value;const name=document.getElementById("pName").value.trim();const category=document.getElementById("pCategory").value;const barcode=document.getElementById("pBarcode").value.trim();const price=parseFloat(document.getElementById("pPrice").value)||0;const purchasePrice=parseFloat(document.getElementById("pPurchasePrice").value)||0;const stock=parseInt(document.getElementById("pStock").value)||0;const minStock=parseInt(document.getElementById("pMinStock").value)||5;const expirationDate=document.getElementById("pExpiration").value||"";const supplierId=document.getElementById("pSupplier")?.value||"";const saleType=document.getElementById("pSaleType")?.value||"unit";const variantGroup=document.getElementById("pVariantGroup")?.value.trim()||"";if(!name){toast('Nom obligatoire','error');return;}if(price<=0){toast('Prix invalide','error');return;}if(barcode){const dup=db.products.find(p=>p.id!==id&&String(p.barcode||"").trim()===barcode);if(dup){toast('Code-barres déjà utilisé','error');return;}}if(id){const p=db.products.find(x=>x.id===id);if(p){Object.assign(p,{name,category,barcode,price,purchasePrice,stock,minStock,expirationDate,supplierId,saleType,variantGroup});if(currentImage)p.image=currentImage;}AuditLog.log('product.update',name,'');}else{let max=0;db.products.forEach(p=>{const m=String(p.id||"").match(/^P(\d+)$/i);if(m)max=Math.max(max,parseInt(m[1],10));});const newId="P"+String(max+1).padStart(4,"0");db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup});AuditLog.log('product.create',name,money(price));}saveDB();closeModal("productModal");renderAll();toast(t('productSaved'),'success');}
@@ -1167,61 +1162,12 @@ function handleImageFile(e){const f=e.target.files?.[0];if(!f)return;const r=new
 
 /* ==================== EXPORT / IMPORT ==================== */
 function exportProductsCSV(){const h=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];const rows=db.products.map(p=>h.map(k=>csvEscape(p[k]||"")).join(","));downloadFile("produits.csv",h.join(",")+"\n"+rows.join("\n"),"text/csv");toast('Export CSV','success');}
-function importProductsCSV(e){if(e?.target)e.target.value="";toast('CSV désactivé : utilisez le catalogue ZIP','info');}
-
-/* ==================== OFFLINE CATALOG STORE ==================== */
-const CatalogStore={DB_NAME:'zarouali_catalog_v3',DB_VERSION:1,db:null,imageCache:new Map(),
-async open(){if(this.db)return this.db;this.db=await new Promise((resolve,reject)=>{const r=indexedDB.open(this.DB_NAME,this.DB_VERSION);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta');if(!d.objectStoreNames.contains('products'))d.createObjectStore('products',{keyPath:'id'});if(!d.objectStoreNames.contains('images'))d.createObjectStore('images');};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});return this.db;},
-async getAllProducts(){const d=await this.open();return new Promise((res,rej)=>{const r=d.transaction('products','readonly').objectStore('products').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});},
-async saveProducts(products){const d=await this.open();return new Promise((res,rej)=>{const tx=d.transaction('products','readwrite');const st=tx.objectStore('products');st.clear();for(const p of products||[])st.put(p);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
-async putImages(entries){const d=await this.open();return new Promise((res,rej)=>{const tx=d.transaction('images','readwrite');const st=tx.objectStore('images');for(const [name,blob] of entries)st.put(blob,name);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
-async getImage(name){if(this.imageCache.has(name))return this.imageCache.get(name);const d=await this.open();const blob=await new Promise((res,rej)=>{const r=d.transaction('images','readonly').objectStore('images').get(name);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});if(!blob)return'';const u=URL.createObjectURL(blob);this.imageCache.set(name,u);return u;},
-async hydrateImages(root){if(!root)return;const imgs=[...root.querySelectorAll('img[data-catalog-image]')];await Promise.all(imgs.map(async img=>{const key=img.getAttribute('data-catalog-image')||'';const u=await this.getImage(key.replace(/^catalog:\/\//,''));if(u){img.src=u;img.style.display='block';img.removeAttribute('data-catalog-image');}}));},
-async clear(){const d=await this.open();this.imageCache.forEach(u=>URL.revokeObjectURL(u));this.imageCache.clear();await new Promise((res,rej)=>{const tx=d.transaction(['products','images','meta'],'readwrite');tx.objectStore('products').clear();tx.objectStore('images').clear();tx.objectStore('meta').clear();tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});},
-async importPackage(file){
-  if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');
-  if(typeof initSqlJs==='undefined')throw new Error('sql.js non chargé');
-  const zip=await JSZip.loadAsync(file);
-  const dbEntry=zip.file(/(^|\/)catalog\.db$/i)[0];
-  if(!dbEntry)throw new Error('catalog.db manquant dans le ZIP');
-  const bytes=await dbEntry.async('uint8array');
-  const SQL=await initSqlJs({locateFile:f=>'./vendor/'+f});
-  const sqlite=new SQL.Database(bytes);
-  const tables=sqlite.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-  if(!tables.length||!tables[0].values.length)throw new Error('Aucune table dans catalog.db');
-  const names=tables[0].values.map(r=>String(r[0]));
-  const table=names.find(n=>/^products?$/i.test(n))||names.find(n=>/product|catalog/i.test(n))||names[0];
-  const result=sqlite.exec('SELECT * FROM "'+table.replace(/"/g,'""')+'"');
-  if(!result.length||!result[0].values.length)throw new Error('Catalogue vide');
-  const cols=result[0].columns.map(String);
-  const rows=result[0].values;
-  const products=rows.map((row,i)=>{const o={};cols.forEach((c,j)=>o[c]=row[j]);return normalizeCatalogProduct({id:o.id??o.ID??(i+1),name:o.name??o.product_name??o.title??'',category:o.category??'Épicerie',barcode:o.barcode??'',price:o.price??0,purchasePrice:o.purchasePrice??o.purchase_price??0,stock:o.stock??50,minStock:o.minStock??o.min_stock??5,image:o.image??'',expirationDate:o.expirationDate??o.expiration_date??''});}).filter(p=>p.name);
-  if(!products.length)throw new Error('Aucun produit valide');
-  const imageEntries=[];
-  const zipNames=Object.keys(zip.files);
-  for(const p of products){
-    const raw=String(p.image||'').replace(/^catalog:\/\//,'').replace(/^\.\//,'');
-    if(!raw)continue;
-    const candidates=[raw,'images/'+raw,raw.replace(/^images\//,'')].filter((v,i,a)=>a.indexOf(v)===i);
-    const match=candidates.map(n=>zip.file(n)).find(Boolean);
-    if(match){const b=await match.async('uint8array');const key=raw.replace(/^images\//,'');imageEntries.push([key,new Blob([b],{type:'image/jpeg'})]);p.image='catalog://'+key;}else p.image='';
-  }
-  await this.clear();
-  await this.saveProducts(products);
-  await this.putImages(imageEntries);
-  sqlite.close();
-  return products.length;
-}};
-window.CatalogStoreReady=CatalogStore.open();
-
-async function importCatalogPackage(e){const f=e?.target?.files?.[0];if(!f)return;try{if(!/\.zip$/i.test(f.name))throw new Error('Choisissez Zarouali_Catalog_FINAL.zip');toast('Import du catalogue en cours…','info');const n=await CatalogStore.importPackage(f);db.products=await CatalogStore.getAllProducts();localStorage.setItem('zarouali_catalog_info',JSON.stringify({name:f.name,count:n,importedAt:new Date().toISOString()}));renderAll();updateCatalogStatus();toast('✓ Catalogue importé: '+n+' produits','success');}catch(err){console.error(err);toast('Échec catalogue: '+(err?.message||err),'error');}finally{if(e.target)e.target.value='';}}
-function updateCatalogStatus(){const el=document.getElementById('catalogStatus');if(!el)return;try{const info=JSON.parse(localStorage.getItem('zarouali_catalog_info')||'null');el.innerHTML=info?'<span class="label">📦 Catalogue: <strong>'+escapeHTML(info.name)+'</strong> · '+info.count+' produits</span>':'<span class="label">Catalogue: aucun catalogue importé</span>';}catch(e){}}
-
-function exportBackup(){const d={...businessSnapshot(),_ts:new Date().toISOString(),catalogCount:(db.products||[]).length};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
-function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.sales&&!d.cashiers&&!d.clients){toast('Fichier de sauvegarde invalide','error');return;}if(!confirm('Restaurer les données de caisse sans remplacer le catalogue ?'))return;db.cashiers=d.cashiers||[];db.clients=d.clients||[];db.sales=d.sales||[];db.suppliers=d.suppliers||[];db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie — catalogue conservé','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
+function importProductsCSV(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=parseCSVToProducts(ev.target.result);if(!imp.length){toast('Aucun produit','warn');return;}let n=0;for(const p of imp){const ex=db.products.find(x=>x.id===p.id);if(ex)Object.assign(ex,p);else db.products.push(p);n++;}saveDB();renderAll();toast(n+' produits importés','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
+function exportBackup(){const d={...db,_ts:new Date().toISOString()};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
+function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.sales){toast('Fichier invalide','error');return;}if(!confirm('Restaurer ?'))return;db.products=d.products||[];db.cashiers=d.cashiers||[];db.clients=d.clients||[];db.sales=d.sales||[];db.suppliers=d.suppliers||[];db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
 function downloadDailyReport(){const today=localDateISO();const sales=db.sales.filter(s=>s.date.startsWith(today));let r="Rapport du "+today+"\n"+"=".repeat(40)+"\n";const ca=sales.reduce((s,x)=>s+x.total,0);const cost=sales.reduce((s,x)=>s+(x.cost||0),0);r+="CA: "+money(ca)+"\nBénéfice: "+money(ca-cost)+"\nTickets: "+sales.length+"\n\n";for(const s of sales){r+="Ticket: "+s.id+" | "+new Date(s.date).toLocaleTimeString('fr-FR')+" | "+s.payment+" | "+money(s.total)+"\n";}downloadFile("rapport_"+today+".txt",r,"text/plain");toast('Rapport téléchargé','success');}
 function resetDatabase(){if(!confirm('Réinitialiser TOUT ?'))return;if(!confirm('Confirmer ?'))return;localStorage.removeItem(DB_KEY);createDefaultDB();renderAll();toast('Base réinitialisée','success');}
-function clearAllProducts(){if(!confirm('Supprimer tous les produits du catalogue local ?'))return;CatalogStore.clear().then(()=>{db.products=[];localStorage.removeItem('zarouali_catalog_info');saveDB();renderAll();updateCatalogStatus();toast('Catalogue supprimé','success');}).catch(()=>toast('Erreur suppression catalogue','error'));}
+function clearAllProducts(){if(!confirm('Supprimer tous les produits ?'))return;db.products=[];saveDB();renderAll();toast('Produits supprimés','success');}
 
 /* ==================== CLOCK ==================== */
 function startDigitalClock(){const u=()=>{const n=new Date();const h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');const el=document.getElementById('digitalClock');if(el)el.textContent=h+':'+m+':'+s;};u();setInterval(u,1000);}
@@ -1287,6 +1233,51 @@ const PriceLists={enabled:true,discounts:{standard:0,wholesale:-10,vip:-20,resel
 const Variants={groups:{},refreshGroups(){const g={};(db.products||[]).forEach(p=>{if(p.variantGroup){if(!g[p.variantGroup])g[p.variantGroup]=[];g[p.variantGroup].push(p);}});this.groups=g;},open(name){this.refreshGroups();const variants=this.groups[name]||[];document.getElementById('variantGroupName').textContent=name;const list=document.getElementById('variantsList');if(!variants.length)list.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted)">Aucune variante</div>';else list.innerHTML=variants.map(p=>{const img=p.image?normalizeProductImage(p.image):'';return'<div class="variant-card"><div class="variant-thumb">'+(img?'<img src="'+escapeAttr(img)+'">':icon('camera',24))+'</div><div class="variant-info"><div class="variant-name">'+escapeHTML(p.name)+'</div><div class="variant-meta">'+(p.barcode||'—')+'</div><div class="variant-stock" style="font-size:11px;color:var(--text-muted);margin-top:2px">Stock: '+p.stock+'</div></div><div style="text-align:end"><div class="variant-price">'+money(p.price)+'</div><button class="btn btn-secondary btn-sm" onclick="closeModal(\'variantsModal\');editProduct(\''+p.id+'\')" style="margin-top:6px">Modifier</button></div></div>';}).join('');document.getElementById('variantsModal').classList.add('show');}};
 
 /* ==================== INIT ==================== */
+
+async function loadImportedCatalog(file){
+  if(!file) return false;
+  if(typeof JSZip==="undefined") throw new Error("JSZip not loaded");
+  if(typeof initSqlJs==="undefined") throw new Error("sql.js not loaded");
+
+  const zip=await JSZip.loadAsync(file);
+  const dbFile=zip.file("catalog.db");
+  if(!dbFile) throw new Error("catalog.db introuvable dans le ZIP");
+
+  const bytes=await dbFile.async("uint8array");
+  const SQL=await initSqlJs({
+    locateFile:()=> "./vendor/sql-wasm.wasm"
+  });
+  const catalogDB=new SQL.Database(bytes);
+
+  const result=catalogDB.exec(
+    "SELECT id,name,category,barcode,price,purchasePrice,stock,minStock,image FROM products"
+  );
+
+  if(!result.length) throw new Error("Table products vide ou absente");
+
+  const cols=result[0].columns;
+  const rows=result[0].values;
+
+  db.products=rows.map(r=>{
+    const p={};
+    cols.forEach((c,i)=>p[c]=r[i]??"");
+    p.price=Number(p.price)||0;
+    p.purchasePrice=Number(p.purchasePrice)||p.price*0.65;
+    p.stock=Number(p.stock)||0;
+    p.minStock=Number(p.minStock)||5;
+    return p;
+  });
+
+  saveDB();
+  renderAll();
+  updateStorePreview();
+
+  localStorage.setItem("zarouali_catalog_imported","1");
+  localStorage.setItem("zarouali_catalog_count",String(db.products.length));
+
+  return true;
+}
+
 async function init(){
   currentLanguage=localStorage.getItem(LANG_KEY)||'fr';
   document.documentElement.dir=currentLanguage==='ar'?'rtl':'ltr';
@@ -1313,11 +1304,11 @@ async function init(){
   const store=localStorage.getItem(STORE_KEY);
   if(store){try{const s=JSON.parse(store);if(s.name){db.settings.storeName=s.name;}}catch(e){}}
   const saved=localStorage.getItem(DB_KEY);
-  if(saved){try{db={...db,...JSON.parse(saved),products:[]};}catch(e){console.warn('Local DB error',e);createDefaultDB();}}
+  let cloud=null;
+  if(window.fsLoadDB){try{cloud=await window.fsLoadDB();}catch(e){}}
+  if(cloud){db=cloud;localStorage.setItem(DB_KEY,JSON.stringify(db));}
+  else if(saved){try{db=JSON.parse(saved);}catch(e){createDefaultDB();}}
   else createDefaultDB();
-  try{await CatalogStoreReady;db.products=await CatalogStore.getAllProducts();}catch(e){console.warn('Catalogue local',e);db.products=[];}
-  // Firebase is optional: never block offline startup.
-  if(window.fsLoadDB){window.fsLoadDB(5000).then(cloud=>{if(cloud){db={...db,...cloud,products:db.products};saveDB();renderAll();}}).catch(()=>{});}
 
   if(!db.products)db.products=[];
   if(!db.clients)db.clients=[];
@@ -1330,13 +1321,19 @@ async function init(){
   db.products=db.products.map(p=>{if(p.purchasePrice===undefined)p.purchasePrice=Number(p.price)*0.65;if(p.minStock===undefined)p.minStock=5;if(p.image===undefined)p.image="";if(p.expirationDate===undefined)p.expirationDate="";if(p.saleType===undefined)p.saleType="unit";return p;});
   db.clients.forEach(c=>{if(c.debt===undefined)c.debt=0;if(c.totalPurchases===undefined)c.totalPurchases=0;if(c.tier===undefined)c.tier="standard";if(c.points===undefined)c.points=0;});
 
-
+  // ===== ZAROUALI CATALOG : SQLite/ZIP =====
+  // No products are bundled in the GitHub project.
+  // The administrator imports Zarouali_Catalog_FINAL.zip from the app.
+  try{
+    await loadImportedCatalog();
+  }catch(e){
+    console.warn("Catalog not imported yet:",e);
+  }
 
   saveDB();renderAll();
   updateStorePreview();
-  updateCatalogStatus();
 
-  if(window.fsListen){window.fsListen(remote=>{db={...db,...remote,products:db.products};try{localStorage.setItem(DB_KEY,JSON.stringify(businessSnapshot()));}catch(e){}renderAll();});}
+  if(window.fsListen){window.fsListen(remote=>{db=remote;localStorage.setItem(DB_KEY,JSON.stringify(db));renderAll();});}
 
   const d=document.getElementById("historyDate");
   if(d)d.value=localDateISO();
@@ -1399,13 +1396,10 @@ const app=initializeApp(firebaseConfig);
 const fs=getFirestore(app);
 const auth=getAuth(app);
 const ref=doc(fs,"caisse","main");
-let resolveAuth;
-const ready=new Promise(res=>{resolveAuth=res;onAuthStateChanged(auth,u=>{if(u)resolveAuth(u);});signInAnonymously(auth).catch(e=>console.warn("Auth",e));});
-const withoutCatalog=d=>{const x={...d};delete x.products;return x;};
-const waitReady=ms=>Promise.race([ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error("Firebase timeout")),ms||5000))]);
-window.fsSaveDB=d=>waitReady(5000).then(()=>setDoc(ref,withoutCatalog(d))).catch(()=>{});
-window.fsLoadDB=ms=>waitReady(ms||5000).then(()=>getDoc(ref)).then(s=>s.exists()?{...s.data(),products:[]}:null).catch(()=>null);
-window.fsListen=cb=>waitReady(5000).then(()=>onSnapshot(ref,s=>{if(s.exists())cb({...s.data(),products:db.products});},()=>{})).catch(()=>{});
+const ready=new Promise(res=>{onAuthStateChanged(auth,u=>{if(u)res(u);});signInAnonymously(auth).catch(e=>console.warn("Auth",e));});
+window.fsSaveDB=d=>ready.then(()=>setDoc(ref,d)).catch(e=>console.warn(e));
+window.fsLoadDB=()=>ready.then(()=>getDoc(ref)).then(s=>s.exists()?s.data():null);
+window.fsListen=cb=>ready.then(()=>onSnapshot(ref,s=>{if(s.exists())cb(s.data());},e=>console.warn(e)));
 </script>
 </body>
 </html>

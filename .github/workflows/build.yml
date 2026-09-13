@@ -44,7 +44,8 @@ jobs:
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Install offline catalog libraries
-        run: npm install --no-save jszip sql.js
+        run: npm install --no-save jszip sql.js @capacitor/assets
+
 
       - name: Prepare offline catalog runtime
         shell: bash
@@ -79,6 +80,9 @@ jobs:
             sed -i '/<manifest /a\
             <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
           fi
+
+      - name: Generate Android app icons
+        run: npx @capacitor/assets generate --android --assetPath resources
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -136,7 +140,8 @@ jobs:
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Install offline catalog libraries
-        run: npm install --no-save jszip sql.js
+        run: npm install --no-save jszip sql.js @capacitor/assets
+
 
       - name: Prepare offline catalog runtime
         shell: pwsh

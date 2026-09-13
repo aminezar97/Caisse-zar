@@ -1169,7 +1169,7 @@ async function importCatalogFile(e){
   e.target.value="";
   if(!f)return;
   try{
-    if(!/\\.zip$/i.test(f.name)) throw new Error("Sélectionnez un fichier ZIP");
+    if(!/\\.zip$/i.test(f.name) && !/zip/i.test(f.type)) throw new Error("Sélectionnez un fichier ZIP");
     await loadImportedCatalog(f);
     toast(db.products.length+" produits importés","success");
   }catch(err){

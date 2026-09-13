@@ -1,0 +1,158 @@
+name: Zarouali Caisse - Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zarouali-caisse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android APK + AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          yes | sdkmanager --licenses || true
+
+      - name: Install project dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Install offline catalog libraries
+        run: npm install --no-save jszip sql.js
+
+      - name: Prepare offline catalog runtime
+        shell: bash
+        run: |
+          mkdir -p www/vendor
+          cp node_modules/jszip/dist/jszip.min.js www/vendor/jszip.min.js
+          cp node_modules/sql.js/dist/sql-wasm.js www/vendor/sql-wasm.js
+          cp node_modules/sql.js/dist/sql-wasm.wasm www/vendor/sql-wasm.wasm
+          test -s www/vendor/jszip.min.js
+          test -s www/vendor/sql-wasm.js
+          test -s www/vendor/sql-wasm.wasm
+
+      - name: Verify project
+        run: |
+          test -f package.json
+          test -f capacitor.config.json
+          test -f www/index.html
+          test -f www/vendor/jszip.min.js
+          test -f www/vendor/sql-wasm.js
+          test -f www/vendor/sql-wasm.wasm
+
+      - name: Create fresh Android project
+        run: |
+          rm -rf android
+          npx cap add android
+
+      - name: Add camera permission
+        shell: bash
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+            sed -i '/<manifest /a\
+            <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Build Release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Build Release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Prepare Android artifacts
+        shell: bash
+        run: |
+          mkdir -p release/android
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/android/Zarouali-Caisse-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk release/android/Zarouali-Caisse-release-unsigned.apk
+          fi
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab release/android/Zarouali-Caisse.aab
+          fi
+          find release/android -type f -maxdepth 1 -print
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zarouali-Caisse-Android
+          path: release/android/*
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install project dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Install offline catalog libraries
+        run: npm install --no-save jszip sql.js
+
+      - name: Prepare offline catalog runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path www/vendor | Out-Null
+          Copy-Item node_modules/jszip/dist/jszip.min.js www/vendor/jszip.min.js -Force
+          Copy-Item node_modules/sql.js/dist/sql-wasm.js www/vendor/sql-wasm.js -Force
+          Copy-Item node_modules/sql.js/dist/sql-wasm.wasm www/vendor/sql-wasm.wasm -Force
+
+      - name: Build Windows application
+        run: npx electron-builder --win nsis portable --publish never
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zarouali-Caisse-Windows
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30

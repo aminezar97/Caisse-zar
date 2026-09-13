@@ -870,7 +870,64 @@ function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière
 function loadTheme(){const s=localStorage.getItem(THEME_KEY);const h=document.documentElement;const tg=document.getElementById("themeToggle");if(s==='dark'){h.setAttribute('data-theme','dark');if(tg)tg.checked=false;}else{h.removeAttribute('data-theme');if(tg)tg.checked=true;}}
 function toggleTheme(c){const h=document.documentElement;if(c){h.removeAttribute('data-theme');localStorage.setItem(THEME_KEY,'light');}else{h.setAttribute('data-theme','dark');localStorage.setItem(THEME_KEY,'dark');}}
 
-function normalizeProductImage(img){let v=String(img||"").trim();if(!v)return"";if(/^(https?:|data:|blob:)/i.test(v))return v;v=v.replace(/^["']+|["']+$/g,"").trim();v=v.replace(/\\/g,"/").replace(/^\.\/+/,"").replace(/^images\/+/,"");return v?IMAGE_BASE_URL+v:"";}
+const CatalogImages={
+  DB:"ZaroualiCatalogImages",
+  STORE:"images",
+  urls:new Map(),
+  async open(){
+    return new Promise((resolve,reject)=>{
+      const r=indexedDB.open(this.DB,1);
+      r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(this.STORE))r.result.createObjectStore(this.STORE);};
+      r.onsuccess=()=>resolve(r.result);
+      r.onerror=()=>reject(r.error);
+    });
+  },
+  async put(key,blob){
+    const db=await this.open();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction(this.STORE,"readwrite");
+      tx.objectStore(this.STORE).put(blob,key);
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>reject(tx.error);
+    });
+  },
+  async load(){
+    try{
+      const db=await this.open();
+      const rows=await new Promise((resolve,reject)=>{
+        const tx=db.transaction(this.STORE,"readonly");
+        const req=tx.objectStore(this.STORE).openCursor();
+        const out=[];
+        req.onsuccess=()=>{
+          const c=req.result;
+          if(c){out.push([c.key,c.value]);c.continue();}
+          else resolve(out);
+        };
+        req.onerror=()=>reject(req.error);
+      });
+      for(const [key,blob] of rows){
+        if(this.urls.has(key))URL.revokeObjectURL(this.urls.get(key));
+        this.urls.set(key,URL.createObjectURL(blob));
+      }
+    }catch(e){console.warn("Catalog images load",e);}
+  },
+  async clear(){
+    const db=await this.open();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(this.STORE,"readwrite");
+      tx.objectStore(this.STORE).clear();
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    for(const u of this.urls.values())URL.revokeObjectURL(u);
+    this.urls.clear();
+  },
+  key(path){
+    return String(path||"").replace(/\\/g,"/").split("/").pop().toLowerCase();
+  }
+};
+
+function normalizeProductImage(img){let v=String(img||"").trim();if(!v)return"";if(/^(https?:|data:|blob:)/i.test(v))return v;v=v.replace(/^["']+|["']+$/g,"").trim();v=v.replace(/\\/g,"/").replace(/^\.\/+/,"");const key=CatalogImages.key(v);if(CatalogImages.urls.has(key))return CatalogImages.urls.get(key);v=v.replace(/^images\/+/,"");return v?IMAGE_BASE_URL+v:"";}
 function normalizeCatalogProduct(p){return{...p,id:String(p.id||"").trim(),name:String(p.name||"").trim(),category:String(p.category||"Épicerie").trim(),barcode:String(p.barcode||"").trim(),price:Number(p.price||0),purchasePrice:Number(p.purchasePrice||0),stock:Number.isFinite(Number(p.stock))?Number(p.stock):50,minStock:Number.isFinite(Number(p.minStock))?Number(p.minStock):5,image:normalizeProductImage(p.image),expirationDate:String(p.expirationDate||"").trim()};}
 
 function parseCSVLine(line,sep){const r=[];let c="",ins=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(ins&&line[i+1]==='"'){c+='"';i++;}else ins=!ins;}else if(ch===sep&&!ins){r.push(c);c="";}else c+=ch;}r.push(c);return r;}
@@ -1282,6 +1339,22 @@ async function loadImportedCatalog(file){
     p.minStock=Number(p.minStock)||5;
     return p;
   });
+
+  // Extract and persist catalog images from the ZIP
+  let imageCount=0;
+  for(const entry of Object.values(zip.files)){
+    if(entry.dir)continue;
+    const path=String(entry.name||"").replace(/\\/g,"/");
+    if(!/^images\//i.test(path))continue;
+    try{
+      const blob=await entry.async("blob");
+      const key=CatalogImages.key(path);
+      await CatalogImages.put(key,blob);
+      if(CatalogImages.urls.has(key))URL.revokeObjectURL(CatalogImages.urls.get(key));
+      CatalogImages.urls.set(key,URL.createObjectURL(blob));
+      imageCount++;
+    }catch(err){console.warn("Image import failed",path,err);}
+  }
 
   saveDB();
   renderAll();

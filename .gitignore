@@ -17,3 +17,29 @@ www/images_backup*/
 www/data/*backup*
 .js_check/
 .tmp/
+# Local catalog/images
+www/images/
+www/images_*/
+www/data/*.csv
+
+# Backups and temporary files
+*.backup
+*.bak
+*.tmp
+*_backup/
+*.before-*
+
+# Android build
+android/build/
+android/app/build/
+android/.gradle/
+
+# Node
+node_modules/
+
+# Local generated files
+images/
+images.zip
+image_samples/
+*.jpg
+*.jpeg

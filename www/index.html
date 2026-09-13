@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="./html5-qrcode.min.js"></script>
+<script src="./vendor/jszip.min.js"></script>
+<script src="./vendor/sql-wasm.js"></script>
 <style>
 /* =========================================================
    ZAROUALI POS — DESIGN SYSTEM v5
@@ -960,7 +962,7 @@ function renderMainContent(){
   </section>
   <section id="productsPage" class="page ${currentPage==='productsPage'?'active':''}">
     <div class="panel"><div class="panel-header"><div class="panel-title">${icon('package',18)}Produits</div><button class="btn btn-primary" onclick="openProductModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Import</button><input id="csvInput" type="file" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden onchange="importProductsCSV(event)"></div>
+    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Import</button><input id="csvInput" type="file" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden onchange="importCatalogFile(event)"></div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix</th><th>Achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table></div></div>
   </section>
   <section id="clientsPage" class="page ${currentPage==='clientsPage'?'active':''}">
@@ -1162,6 +1164,19 @@ function handleImageFile(e){const f=e.target.files?.[0];if(!f)return;const r=new
 
 /* ==================== EXPORT / IMPORT ==================== */
 function exportProductsCSV(){const h=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];const rows=db.products.map(p=>h.map(k=>csvEscape(p[k]||"")).join(","));downloadFile("produits.csv",h.join(",")+"\n"+rows.join("\n"),"text/csv");toast('Export CSV','success');}
+async function importCatalogFile(e){
+  const f=e.target.files?.[0];
+  e.target.value="";
+  if(!f)return;
+  try{
+    if(!/\\.zip$/i.test(f.name)) throw new Error("Sélectionnez un fichier ZIP");
+    await loadImportedCatalog(f);
+    toast(db.products.length+" produits importés","success");
+  }catch(err){
+    console.error("Catalog import:",err);
+    toast("Erreur import: "+(err?.message||err),"error");
+  }
+}
 function importProductsCSV(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=parseCSVToProducts(ev.target.result);if(!imp.length){toast('Aucun produit','warn');return;}let n=0;for(const p of imp){const ex=db.products.find(x=>x.id===p.id);if(ex)Object.assign(ex,p);else db.products.push(p);n++;}saveDB();renderAll();toast(n+' produits importés','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
 function exportBackup(){const d={...db,_ts:new Date().toISOString()};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
 function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.sales){toast('Fichier invalide','error');return;}if(!confirm('Restaurer ?'))return;db.products=d.products||[];db.cashiers=d.cashiers||[];db.clients=d.clients||[];db.sales=d.sales||[];db.suppliers=d.suppliers||[];db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
@@ -1324,11 +1339,6 @@ async function init(){
   // ===== ZAROUALI CATALOG : SQLite/ZIP =====
   // No products are bundled in the GitHub project.
   // The administrator imports Zarouali_Catalog_FINAL.zip from the app.
-  try{
-    await loadImportedCatalog();
-  }catch(e){
-    console.warn("Catalog not imported yet:",e);
-  }
 
   saveDB();renderAll();
   updateStorePreview();

@@ -45,7 +45,7 @@ import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut}from"https:
 import{getFirestore,doc,onSnapshot}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyB9juWEafOYe0uKeh_rhSBzCy6OMfyVAhM",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
-const firebaseApp=initializeApp(firebaseConfig),auth=getAuth(firebaseApp),fs=getFirestore(app),ref=doc(fs,"caisse","main");
+const firebaseApp=initializeApp(firebaseConfig),auth=getAuth(firebaseApp),fs=getFirestore(firebaseApp),ref=doc(fs,"caisse","main");
 const money=n=>Number(n||0).toLocaleString("fr-MA",{minimumFractionDigits:2,maximumFractionDigits:2})+" MAD";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function render(d){

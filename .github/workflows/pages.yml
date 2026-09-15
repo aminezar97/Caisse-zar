@@ -1,5 +1,4 @@
-name: Deploy Zarouali Caisse Website
-
+name: Deploy Zarouali POS Web App
 on:
   push:
     branches: [main]
@@ -14,7 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: zarouali-pos-pages
   cancel-in-progress: true
 
 jobs:
@@ -23,19 +22,15 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload website
+      - name: Upload real POS web app
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./site"
-
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

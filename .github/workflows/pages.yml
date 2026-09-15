@@ -35,10 +35,20 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload www as Pages artifact
+      - name: Prepare Pages site
+        run: |
+          rm -rf _site
+          mkdir -p _site
+          cp -a www/. _site/
+          test -f _site/index.html
+          test -f _site/admin/index.html
+          echo "OK: index.html"
+          echo "OK: admin/index.html"
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: "./www"
+          path: "./_site"
 
       - name: Deploy to GitHub Pages
         id: deployment

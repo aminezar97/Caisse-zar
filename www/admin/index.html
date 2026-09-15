@@ -45,7 +45,7 @@ import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut}from"https:
 import{getFirestore,doc,onSnapshot}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyB9juWEafOYe0uKeh_rhSBzCy6OMfyVAhM",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),fs=getFirestore(app),ref=doc(fs,"caisse","main");
+const firebaseApp=initializeApp(firebaseConfig),auth=getAuth(firebaseApp),fs=getFirestore(app),ref=doc(fs,"caisse","main");
 const money=n=>Number(n||0).toLocaleString("fr-MA",{minimumFractionDigits:2,maximumFractionDigits:2})+" MAD";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function render(d){
@@ -53,6 +53,7 @@ function render(d){
  const low=p.filter(x=>Number(x.stock||0)<=Number(x.minStock??5)), names=new Map(c.map(x=>[String(x.id),x.name]));
  document.querySelector("#ca").textContent=money(s.reduce((a,x)=>a+Number(x.total||0),0));
  document.querySelector("#tickets").textContent=s.length;document.querySelector("#products").textContent=p.length;document.querySelector("#low").textContent=low.length;
+ const form=document.getElementById("form"),err=document.getElementById("err"),email=document.getElementById("email"),pass=document.getElementById("pass"),out=document.getElementById("out"),login=document.getElementById("login"),appEl=document.getElementById("app"),status=document.getElementById("status");
  const ss=[...s].sort((a,b)=>new Date(b.date||b.createdAt||0)-new Date(a.date||a.createdAt||0)).slice(0,15);
  document.querySelector("#sales").innerHTML=ss.length?ss.map(x=>`<tr><td>${esc(new Date(x.date||x.createdAt||Date.now()).toLocaleString("fr-MA"))}</td><td>${esc(names.get(String(x.cashierId))||x.cashierName||"—")}</td><td><b>${money(x.total)}</b></td></tr>`).join(""):'<tr><td colspan="3" class="empty">Aucune vente</td></tr>';
  document.querySelector("#lowt").innerHTML=low.slice(0,15).map(x=>`<tr><td>${esc(x.name||x.id)}</td><td class="low">${Number(x.stock||0)}</td><td>${Number(x.minStock??5)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">Stock OK</td></tr>';
@@ -60,6 +61,6 @@ function render(d){
 form.onsubmit=async e=>{e.preventDefault();err.textContent="";try{await signInWithEmailAndPassword(auth,email.value.trim(),pass.value)}catch(x){err.textContent="Connexion refusée : "+(x.code||"erreur")}};
 out.onclick=()=>signOut(auth);
 let stop=null;
-onAuthStateChanged(auth,u=>{if(stop){stop();stop=null}if(u){login.style.display="none";app.style.display="block";stop=onSnapshot(ref,s=>{if(s.exists())render(s.data());status.textContent="● Synchronisé en direct"},e=>{console.error(e);status.textContent="● Erreur Firestore"})}else{login.style.display="grid";app.style.display="none"}});
+onAuthStateChanged(auth,u=>{if(stop){stop();stop=null}if(u){login.style.display="none";appEl.style.display="block";stop=onSnapshot(ref,s=>{if(s.exists())render(s.data());status.textContent="● Synchronisé en direct"},e=>{console.error(e);status.textContent="● Erreur Firestore"})}else{login.style.display="grid";appEl.style.display="none"}});
 </script>
 </body></html>

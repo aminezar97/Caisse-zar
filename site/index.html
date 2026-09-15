@@ -1,1 +1,127 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Zarouali Caisse — solution POS tactile et hors ligne pour mini-marchés au Maroc.">
+  <title>Zarouali Caisse — POS Maroc</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="./">
+      <span class="logo">Z</span>
+      <span>Zarouali <b>Caisse</b></span>
+    </a>
+    <nav>
+      <a href="#features">Fonctionnalités</a>
+      <a href="#offline">Hors ligne</a>
+      <a href="#download">Téléchargement</a>
+      <button id="langBtn" class="lang">العربية</button>
+    </nav>
+  </header>
 
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">POINT DE VENTE • MAROC</span>
+        <h1>Une caisse moderne pour votre <span>mini‑marché.</span></h1>
+        <p class="lead">
+          Zarouali Caisse est une solution POS tactile pensée pour la vente,
+          le catalogue produits, le stock et l'utilisation hors ligne.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="#download">Voir les téléchargements</a>
+          <a class="btn secondary" href="https://github.com/aminezar97/Caisse-zar" target="_blank" rel="noopener">Voir sur GitHub</a>
+        </div>
+        <div class="trust">
+          <span>✓ Android</span>
+          <span>✓ Windows</span>
+          <span>✓ Offline-first</span>
+        </div>
+      </div>
+
+      <div class="mockup" aria-label="Aperçu de Zarouali Caisse">
+        <div class="screen">
+          <div class="screen-top"><b>Zarouali Caisse</b><span>CAISSE 01</span></div>
+          <div class="dashboard">
+            <div class="products">
+              <div class="search">🔎 Rechercher un produit...</div>
+              <div class="cards">
+                <div class="card"><div class="pic"></div><b>Produits</b><small>Catalogue</small></div>
+                <div class="card"><div class="pic"></div><b>Stock</b><small>Gestion</small></div>
+                <div class="card"><div class="pic"></div><b>Ventes</b><small>Historique</small></div>
+                <div class="card"><div class="pic"></div><b>Scanner</b><small>Code-barres</small></div>
+              </div>
+            </div>
+            <aside class="cart">
+              <span>Panier</span>
+              <strong>0,00 DH</strong>
+              <button>Payer</button>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="section-head">
+        <span class="eyebrow">CONÇU POUR LE COMMERCE</span>
+        <h2>Tout ce qu'il faut pour une caisse pratique</h2>
+      </div>
+      <div class="grid">
+        <article><div class="icon">🧾</div><h3>Vente & ticket</h3><p>Panier tactile, calcul du total et préparation des tickets.</p></article>
+        <article><div class="icon">📦</div><h3>Catalogue & stock</h3><p>Produits, prix, quantités et seuils de stock dans une interface simple.</p></article>
+        <article><div class="icon">▣</div><h3>Code-barres</h3><p>Prévu pour le travail rapide avec lecteur ou caméra compatible.</p></article>
+        <article><div class="icon">💾</div><h3>Données locales</h3><p>Le projet est conçu pour fonctionner avec des ressources locales et un usage hors ligne.</p></article>
+        <article><div class="icon">📱</div><h3>Android</h3><p>Application tactile destinée aux smartphones et tablettes Android.</p></article>
+        <article><div class="icon">🖥️</div><h3>Windows</h3><p>Build desktop prévu dans le projet pour les postes de caisse Windows.</p></article>
+      </div>
+    </section>
+
+    <section id="offline" class="offline section">
+      <div>
+        <span class="eyebrow">OFFLINE-FIRST</span>
+        <h2>Votre caisse reste utile même sans Internet.</h2>
+        <p>
+          Le site vitrine est séparé de l'application. Les fichiers de l'application
+          dans <code>www/</code> restent inchangés. Cette séparation permet de publier
+          le site sans modifier le fonctionnement de la caisse Android/Windows.
+        </p>
+      </div>
+      <div class="safe">
+        <b>Architecture protégée</b>
+        <span>Site vitrine → <code>site/</code></span>
+        <span>Application → <code>www/</code></span>
+        <span>Build → <code>.github/workflows/</code></span>
+      </div>
+    </section>
+
+    <section id="download" class="section download">
+      <div class="section-head">
+        <span class="eyebrow">GET STARTED</span>
+        <h2>Télécharger et suivre le projet</h2>
+      </div>
+      <div class="download-grid">
+        <a class="download-card" href="https://github.com/aminezar97/Caisse-zar/actions" target="_blank" rel="noopener">
+          <span class="big">⚙️</span><b>GitHub Actions</b><small>Build APK / AAB</small>
+        </a>
+        <a class="download-card" href="https://github.com/aminezar97/Caisse-zar/releases" target="_blank" rel="noopener">
+          <span class="big">📦</span><b>Releases</b><small>Versions publiées</small>
+        </a>
+        <a class="download-card" href="https://github.com/aminezar97/Caisse-zar" target="_blank" rel="noopener">
+          <span class="big">◉</span><b>Code source</b><small>GitHub</small>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>© <span id="year"></span> Zarouali Caisse</span>
+    <span>Made for Moroccan mini‑markets 🇲🇦</span>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>

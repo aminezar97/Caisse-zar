@@ -1,4 +1,4 @@
-name: Deploy Zarouali POS Web App
+name: Deploy Zarouali POS Web
 on:
   push:
     branches: [main]
@@ -6,16 +6,13 @@ on:
       - "site/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
-  group: zarouali-pos-pages
+  group: zarouali-pos-web
   cancel-in-progress: true
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,12 +20,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload real POS web app
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: "./site"
       - name: Deploy

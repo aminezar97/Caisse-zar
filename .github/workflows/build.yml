@@ -149,20 +149,43 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Setup Gradle with cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          cache-overwrite-existing: true
+
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      - name: Build Debug APK
+      - name: Build Android APK + AAB (with retry)
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: Build Release APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+          build_android() {
+            ./gradlew assembleDebug assembleRelease bundleRelease               --no-daemon               --stacktrace               --console=plain
+          }
 
-      - name: Build Release AAB
-        working-directory: android
-        run: ./gradlew bundleRelease --no-daemon --stacktrace
+          for attempt in 1 2 3; do
+            echo "========================================"
+            echo "Android build attempt $attempt/3"
+            echo "========================================"
+
+            if build_android; then
+              echo "Android build completed successfully."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Gradle build failed. Retrying after 20 seconds..."
+              sleep 20
+            fi
+          done
+
+          echo "Android build failed after 3 attempts."
+          exit 1
 
       - name: Verify Android outputs
         shell: bash

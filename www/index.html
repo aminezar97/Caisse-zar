@@ -101,10 +101,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .login-footer .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success-500);margin-inline-end:8px;box-shadow:0 0 0 3px rgba(22,163,74,.15);vertical-align:middle;animation:dotPulse 2s ease-in-out infinite}
 @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-#screensaver{position:fixed;inset:0;z-index:7000;background:var(--bg-inverse);display:none;align-items:center;justify-content:center}
+/* ===== SCREENSAVER — GPU-friendly animation (was freezing Windows WebView2) ===== */
+#screensaver{position:fixed;inset:0;z-index:7000;background:var(--bg-inverse);display:none;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #screensaver.show{display:flex}
-#screensaver img,#screensaver svg{width:42vmin;height:42vmin;object-fit:contain;border-radius:32px;padding:32px;background:rgba(255,255,255,.04);box-shadow:0 0 100px rgba(138,192,79,.35);animation:pulseGlow 4s ease-in-out infinite}
-@keyframes pulseGlow{0%,100%{box-shadow:0 0 60px rgba(138,192,79,.2)}50%{box-shadow:0 0 160px rgba(138,192,79,.5)}}
+#screensaver img,#screensaver svg{width:42vmin;height:42vmin;object-fit:contain;border-radius:32px;padding:32px;background:rgba(255,255,255,.04);box-shadow:0 0 80px rgba(138,192,79,.30);animation:screensaverPulse 3s ease-in-out infinite;will-change:transform,opacity;cursor:pointer;pointer-events:auto;backface-visibility:hidden;transform:translateZ(0)}
+@keyframes screensaverPulse{0%,100%{transform:scale(1) translateZ(0);opacity:.92}50%{transform:scale(1.04) translateZ(0);opacity:1}}
 
 .header{background:color-mix(in srgb,var(--bg-elevated) 92%,transparent);backdrop-filter:saturate(1.6) blur(20px);-webkit-backdrop-filter:saturate(1.6) blur(20px);border-bottom:1px solid var(--border-subtle);padding:12px 20px calc(12px + env(safe-area-inset-top));position:sticky;top:0;z-index:100;transition:box-shadow var(--t-base)}
 .header.scrolled{box-shadow:0 4px 20px rgba(0,0,0,.05)}
@@ -160,7 +161,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 @media(max-width:640px){
   .header-row{gap:8px;min-height:52px}
   .header-right{gap:6px}
-  /* إخفاء الأيقونات الثانوية */
   .header-right .icon-btn-sm.secondary-action{display:none}
   .logo-text{font-size:15px}
   .logo-badge{width:38px;height:38px;border-radius:11px}
@@ -180,9 +180,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
   .menu-btn{width:38px;height:38px}
   .icon-btn-sm{width:36px;height:36px;border-radius:10px}
   .icon-btn-sm svg{width:16px;height:16px}
-  /* إخفاء الساعة على الشاشات الصغيرة جداً */
   .header-clock{display:none}
-  /* إظهار واحدة فقط من الأزرار الأساسية */
   .logo-area{justify-content:flex-start;padding:0}
   .logo-text-group{display:none}
 }
@@ -194,8 +192,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
   .icon-btn-sm{width:34px;height:34px}
   .logo-badge{width:32px;height:32px}
 }
-
-/* Landscape phones */
 @media(max-height:500px) and (orientation:landscape){
   .header{padding:6px 16px calc(6px + env(safe-area-inset-top))}
   .header-row{min-height:44px}
@@ -294,30 +290,34 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .empty-state-title{font-size:16px;font-weight:800;color:var(--text-secondary)}
 .empty-state-text{font-size:13px;max-width:320px;line-height:1.6}
 
-.cart{position:sticky;top:96px;max-height:calc(100vh - 116px);display:flex;flex-direction:column;box-shadow:var(--shadow-lg);border-radius:18px}
-.cart-header{padding:18px 20px}
+/* ===== CART — FIXED for Windows: scrollable instead of clipped ===== */
+.cart{position:sticky;top:96px;max-height:calc(100vh - 116px);display:flex;flex-direction:column;box-shadow:var(--shadow-lg);border-radius:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin}
+.cart::-webkit-scrollbar{width:8px}
+.cart::-webkit-scrollbar-thumb{background:var(--border-default);border-radius:4px}
+.cart::-webkit-scrollbar-track{background:transparent}
+.cart-header{padding:18px 20px;flex-shrink:0}
 .cart-header-left{display:flex;align-items:center;gap:12px}
 .cart-count-badge{font-size:11px;font-weight:800;padding:4px 12px;border-radius:var(--r-full);background:var(--brand-50);color:var(--brand-700);border:1px solid color-mix(in srgb,var(--brand-500) 20%,transparent);font-family:var(--font-mono)}
 [data-theme="dark"] .cart-count-badge{color:var(--brand-400)}
-.cart-selectors{padding:14px 18px 6px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cart-selectors{padding:14px 18px 6px;display:grid;grid-template-columns:1fr 1fr;gap:12px;flex-shrink:0}
 .selector-group{display:flex;flex-direction:column;gap:6px;min-width:0}
 .selector-group label{font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px}
 .selector-group label .icon{width:12px;height:12px;color:var(--brand-500)}
 .selector-group select{width:100%;padding:11px 14px;font-size:13px;font-weight:700;min-height:42px;background:var(--bg-surface-2);border-color:transparent;border-radius:12px;transition:all var(--t-fast)}
 .selector-group select:hover{background:var(--bg-surface);border-color:var(--border-default)}
 .selector-group select:disabled{opacity:.7;cursor:not-allowed}
-.client-badges{padding:8px 18px 14px;display:flex;gap:8px;flex-wrap:wrap}
+.client-badges{padding:8px 18px 14px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
 .client-badge{font-size:11px;font-weight:800;padding:5px 12px;border-radius:var(--r-full);background:var(--bg-surface-2);color:var(--text-secondary);white-space:nowrap;border:1px solid var(--border-subtle);letter-spacing:.02em}
 .client-badge.credit{background:var(--warn-50);color:var(--accent-600);border-color:color-mix(in srgb,var(--accent-500) 25%,transparent)}
 .client-badge.total{background:var(--info-50);color:var(--info-500);border-color:color-mix(in srgb,var(--info-500) 25%,transparent)}
 .loyalty-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:var(--r-full);background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;font-size:11px;font-weight:800;box-shadow:0 3px 8px rgba(245,158,11,.3)}
-.credit-bar-container{padding:10px 18px 14px;display:none;flex-direction:column;gap:8px;background:var(--bg-surface-2);border-block:1px solid var(--border-subtle)}
+.credit-bar-container{padding:10px 18px 14px;display:none;flex-direction:column;gap:8px;background:var(--bg-surface-2);border-block:1px solid var(--border-subtle);flex-shrink:0}
 .credit-bar-container.show{display:flex}
 .credit-bar-label{font-size:10px;font-weight:800;display:flex;justify-content:space-between;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em}
 .credit-bar-track{width:100%;height:7px;background:var(--border-subtle);border-radius:var(--r-full);overflow:hidden}
 .credit-bar-fill{height:100%;border-radius:var(--r-full);background:linear-gradient(90deg,var(--brand-500),var(--brand-400));transition:width var(--t-slow)}
 .credit-bar-fill.used{background:linear-gradient(90deg,var(--warn-500),var(--danger-500))}
-.cart-items{flex:1;overflow-y:auto;min-height:180px;max-height:340px}
+.cart-items{flex:0 0 auto;min-height:100px;overflow:visible}
 .cart-item{padding:16px 18px;border-bottom:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;transition:background var(--t-fast)}
 .cart-item:hover{background:var(--bg-surface-2)}
 .cart-item:last-child{border-bottom:none}
@@ -332,7 +332,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .cart-line-total{font-weight:800;font-size:14px;text-align:end;font-family:var(--font-mono);letter-spacing:-.02em}
 .remove-btn{border:0;background:transparent;color:var(--text-muted);padding:8px;min-height:30px;border-radius:8px;margin-top:6px;transition:all var(--t-fast);display:inline-flex;align-items:center;justify-content:center}
 .remove-btn:hover{color:var(--danger-500);background:var(--danger-50)}
-.cart-summary{padding:18px;border-top:1px solid var(--border-subtle);background:var(--bg-surface-2)}
+.cart-summary{padding:18px;border-top:1px solid var(--border-subtle);background:var(--bg-surface-2);flex-shrink:0}
 .summary-line{display:flex;justify-content:space-between;margin:8px 0;font-size:13px;align-items:center;color:var(--text-secondary);font-weight:600}
 .summary-line strong{color:var(--text-primary);font-weight:800;font-family:var(--font-mono);font-size:14px}
 .summary-line input{width:96px;padding:8px 12px;text-align:end;font-size:13px;font-weight:700;min-height:38px;font-family:var(--font-mono);border-radius:10px}
@@ -362,6 +362,40 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .sell-btn:active{transform:scale(.98)}
 .clear-btn{width:100%;border:1.5px solid var(--border-default);background:transparent;color:var(--text-secondary);padding:12px;margin-top:8px;border-radius:12px;font-weight:700;font-size:12px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all var(--t-fast);text-transform:uppercase;letter-spacing:.04em}
 .clear-btn:hover{color:var(--danger-500);border-color:var(--danger-500);background:var(--danger-50)}
+
+/* ===== Compact cart on short screens (Windows 768p/900p) ===== */
+@media(max-height:900px) and (min-width:1201px){
+  .cart-summary{padding:12px 14px}
+  .summary-line{margin:5px 0;font-size:12px}
+  .summary-line strong{font-size:13px}
+  .summary-line input{width:80px;padding:6px 10px;min-height:32px;font-size:12px}
+  .summary-total{padding-top:10px;margin-top:10px;font-size:12px}
+  .summary-total strong{font-size:22px}
+  .payment-grid{margin-top:10px;gap:6px}
+  .payment-btn{min-height:46px;padding:6px 4px;font-size:10px;border-radius:10px;gap:3px}
+  .payment-btn svg{width:14px;height:14px}
+  .quick-cash{margin-top:8px;gap:6px}
+  .quick-cash button{padding:7px 3px;font-size:11px;min-height:34px}
+  .cash-input{margin-top:8px}
+  .cash-input input{padding:9px 12px;font-size:14px;min-height:38px}
+  .change{font-size:10px;padding:5px 0 0}
+  .change #change{font-size:13px}
+  .sell-btn{padding:11px;font-size:13px;min-height:44px;margin-top:8px;border-radius:12px}
+  .clear-btn{padding:7px;font-size:10px;min-height:32px;margin-top:5px;border-radius:10px}
+  .client-badges{padding:6px 16px 10px}
+  .cart-selectors{padding:10px 16px 4px;gap:10px}
+  .selector-group select{padding:9px 12px;min-height:38px;font-size:12px}
+  .cart-item{padding:12px 16px;gap:12px}
+  .qty-controls{margin-top:6px}
+  .cart-header{padding:14px 18px}
+}
+@media(max-height:760px) and (min-width:1201px){
+  .cart-items{min-height:60px}
+  .client-badges{display:none}
+  .quick-cash{display:none !important}
+  .cart-header .panel-title{font-size:14px}
+  .summary-total strong{font-size:20px}
+}
 
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px}
 .stat{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:16px;padding:22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:all var(--t-base)}
@@ -602,7 +636,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
 /* ====== RESPONSIVE LAYOUTS ====== */
 @media(max-width:1200px){
   .sale-layout{grid-template-columns:1fr}
-  .cart{position:static;max-height:none;top:auto}
+  .cart{position:static;max-height:none;top:auto;overflow:visible}
   .products{grid-template-columns:repeat(3,1fr);max-height:none}
 }
 @media(max-width:900px){
@@ -645,7 +679,6 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
   .panel-header{padding:14px 16px}
   .settings-list{padding:16px}
   .setting-row{padding:14px 16px}
-  /* search area stack */
   .search-area{flex-direction:row;gap:10px}
   .search{min-height:46px;font-size:14px;padding-inline-start:42px}
   .scan-btn{padding:11px 16px;font-size:12px}
@@ -689,7 +722,6 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
   .cart-item{padding:12px 14px;gap:10px}
 }
 @media(max-width:360px){
-  /* Foldable & very small devices */
   .products{grid-template-columns:1fr;gap:10px}
   .stats-grid{grid-template-columns:1fr}
   .payment-grid{grid-template-columns:repeat(2,1fr)}
@@ -747,7 +779,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
       <span id="loginBtnText">Se connecter</span>
     </button>
     <div class="login-footer">
-      <span class="dot"></span>Système sécurisé · v14
+      <span class="dot"></span>Système sécurisé · v15.1
     </div>
   </div>
 </div>
@@ -934,8 +966,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
 
 <script>
 /* =========================================================
-   ZAROUALI POS — LOGIQUE COMPLÈTE v15
-   Fix: Search placeholder + Responsive improvements
+   ZAROUALI POS — LOGIQUE COMPLÈTE v15.1
+   Fix: Cart clipping on Windows + Screensaver freeze on wake
    ========================================================= */
 const DB_KEY="zarouali_caisse_v1",PASSWORD_KEY="zarouali_caisse_password",LOGIN_KEY="zarouali_caisse_login",STORE_KEY="zarouali_caisse_store",THEME_KEY="zarouali_caisse_theme",LANG_KEY="zarouali_lang",IMAGE_BASE_URL="./images/";
 
@@ -1023,7 +1055,6 @@ let currentUser=null;
 
 const USER_KEY="zarouali_current_user";
 
-/* ✅ FIX: t() retourne une chaîne vide si la clé n'existe pas (au lieu du nom de la clé) */
 function t(k){
   if(!k) return "";
   const val = (translations[currentLanguage] && translations[currentLanguage][k]);
@@ -1389,7 +1420,22 @@ function updateUserLabels(){
   if(ml)ml.textContent=currentUser?(currentUser.type==="admin"?"Admin":"Caissier")+": "+currentUser.name:"Terminal de caisse";
 }
 
-function resetInactivityTimer(){clearTimeout(inactivityTimer);const ss=document.getElementById("screensaver");if(ss)ss.classList.remove("show");if(isLoggedIn){inactivityTimer=setTimeout(()=>{const s=document.getElementById("screensaver");if(s&&!document.querySelector(".modal.show")&&!document.querySelector(".scanner-modal.show"))s.classList.add("show");},20000);}}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  const ss=document.getElementById("screensaver");
+  if(ss&&ss.classList.contains("show"))ss.classList.remove("show");
+  if(!isLoggedIn)return;
+  inactivityTimer=setTimeout(()=>{
+    const s=document.getElementById("screensaver");
+    if(s&&!document.hidden&&!document.querySelector(".modal.show")&&!document.querySelector(".scanner-modal.show"))s.classList.add("show");
+  },20000);
+}
+function wakeFromScreensaver(){
+  const ss=document.getElementById("screensaver");
+  if(ss)ss.classList.remove("show");
+  clearTimeout(inactivityTimer);
+  if(isLoggedIn)resetInactivityTimer();
+}
 
 function saveStoreInfo(){const info={name:document.getElementById("storeName").value.trim(),address:document.getElementById("storeAddress").value.trim(),phone:document.getElementById("storePhone").value.trim(),email:document.getElementById("storeEmail").value.trim(),taxId:document.getElementById("storeTaxId").value.trim()};localStorage.setItem(STORE_KEY,JSON.stringify(info));db.settings.storeName=info.name||"Zarouali POS";updateStorePreview();toast('Enregistré','success');}
 function updateStorePreview(){const g=id=>(document.getElementById(id)?.value||"").trim();const el=document.getElementById('storePreviewName');if(el)el.textContent=g("storeName")||"Zarouali POS";const a=document.getElementById('previewAddress');if(a)a.textContent=g("storeAddress")||"—";}
@@ -1563,7 +1609,7 @@ function populateHistoryFilters(){const cs=document.getElementById("historyCashi
 function renderHistory(){const box=document.getElementById("history");if(!box)return;const d=document.getElementById("historyDate")?.value||"";const ci=document.getElementById("historyCashier")?.value||"";const cli=document.getElementById("historyClient")?.value||"";let list=[...db.sales];if(d)list=list.filter(s=>s.date.startsWith(d));if(ci)list=list.filter(s=>String(s.cashierId)===String(ci));if(cli)list=list.filter(s=>String(s.clientId)===String(cli));list.sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=list.map(s=>{const c=db.cashiers.find(x=>String(x.id)===String(s.cashierId));const cl=db.clients.find(x=>String(x.id)===String(s.clientId));const n=(s.items||[]).reduce((sm,i)=>sm+i.qty,0);return'<tr><td><strong class="mono">'+escapeHTML(s.id)+'</strong></td><td>'+new Date(s.date).toLocaleString('fr-FR')+'</td><td>'+(c?escapeHTML(c.name):"—")+'</td><td>'+(cl?escapeHTML(cl.name):"—")+'</td><td class="mono">'+n+'</td><td class="mono"><strong>'+money(s.total)+'</strong></td><td>'+escapeHTML(s.payment)+'</td><td><div class="row-actions"><button onclick="printReceipt(db.sales.find(x=>x.id===\''+s.id+'\'))">'+icon('print',14)+'</button><button onclick="Returns.open(\''+s.id+'\')" style="color:var(--danger-500)">↩</button></div></td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">Aucune vente</td></tr>';}
 function resetHistoryFilters(){const d=document.getElementById("historyDate");if(d)d.value=localDateISO();const c=document.getElementById("historyCashier");if(c)c.value="";const cl=document.getElementById("historyClient");if(cl)cl.value="";renderHistory();}
 
-function renderDashboard(){const today=localDateISO();const ts=db.sales.filter(s=>s.date.startsWith(today));const ca=ts.reduce((s,x)=>s+x.total,0);const cost=ts.reduce((s,x)=>s+(x.cost||0),0);const count=ts.length;const avg=count?ca/count:0;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};set("statCA",money(ca));set("statProfit",money(ca-cost));set("statTickets",count);set("statAverage",money(avg));const cs={};for(const s of ts){const id=String(s.cashierId||"unknown");if(!cs[id])cs[id]={tickets:0,ca:0};cs[id].tickets++;cs[id].ca+=s.total;}const cb=document.getElementById("cashierStats");if(cb)cb.innerHTML=Object.keys(cs).map(id=>{const c=db.cashiers.find(x=>String(x.id)===String(id));return'<tr><td><strong>'+escapeHTML(c?c.name:id)+'</strong></td><td class="mono">'+cs[id].tickets+'</td><td class="mono">'+money(cs[id].ca)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';const ps={};for(const s of db.sales)for(const it of s.items||[]){const k=String(it.id);if(!ps[k])ps[k]={qty:0,ca:0};ps[k].qty+=it.qty;ps[k].ca+=it.price*it.qty;}const sorted=Object.keys(ps).sort((a,b)=>ps[b].qty-ps[a].qty).slice(0,6);const maxQ=sorted.length?ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=db.products.find(x=>String(x.id)===String(id));const pct=(ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';}
+function renderDashboard(){const today=localDateISO();const ts=db.sales.filter(s=>s.date.startsWith(today));const ca=ts.reduce((s,x)=>s+x.total,0);const cost=ts.reduce((s,x)=>s+(x.cost||0),0);const count=ts.length;const avg=count?ca/count:0;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};set("statCA",money(ca));set("statProfit",money(ca-cost));set("statTickets",count);set("statAverage",money(avg));const cs={};for(const s of ts){const id=String(s.cashierId||"unknown");if(!cs[id])cs[id]={tickets:0,ca:0};cs[id].tickets++;cs[id].ca+=s.total;}const =document.getElementById("cashierStats");if(cb)cb.innerHTML=Object.keys(cs).map(id=>{const c=db.cashiers.find(x=>String(x.id)===String(id));return'<tr><td><strong>'+escapeHTML(c?c.name:id)+'</strong></td><td class="mono">'+cs[id].tickets+'</td><td class="mono">'+money(cs[id].ca)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';const ps={};for(const s of db.sales)for(const it of s.items||[]){const k=String(it.id);if(!ps[k])ps[k]={qty:0,ca:0};ps[k].qty+=it.qty;ps[k].ca+=it.price*it.qty;}const sorted=Object.keys(ps).sort((a,b)=>ps[b].qty-ps[a].qty).slice(0,6);const maxQ=sorted.length?ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=db.products.find(x=>String(x.id)===String(id));const pct=(ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';}
 
 function renderAll(){renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();renderProductAdmin();renderClientsAdmin();renderCashiersAdmin();renderHistory();renderDashboard();populateHistoryFilters();updateCreditBar();updateCartCount();Suppliers.render();Purchases.render();updateUserLabels();}
 
@@ -2025,11 +2071,22 @@ async function init(){
   const store=localStorage.getItem(STORE_KEY);
   if(store){try{const s=JSON.parse(store);if(s.name){db.settings.storeName=s.name;}}catch(e){}}
   const saved=localStorage.getItem(DB_KEY);
-  let cloud=null;
-  if(window.fsLoadDB){try{cloud=await Promise.race([window.fsLoadDB(),new Promise(r=>setTimeout(()=>r(null),10000))]);}catch(e){console.warn("[Cloud load]",e);}}
-  if(cloud){db=cloud;localStorage.setItem(DB_KEY,JSON.stringify(db));}
-  else if(saved){try{db=JSON.parse(saved);}catch(e){createDefaultDB();}}
-  else createDefaultDB();
+  let localDB=null,cloud=null;
+  if(saved){try{localDB=JSON.parse(saved);}catch(e){localDB=null;}}
+  if(window.fsLoadDB){try{cloud=await window.fsLoadDB();}catch(e){console.warn("Firebase load failed",e);}}
+
+  if(cloud && Array.isArray(cloud.products) && cloud.products.length>0){
+    db=cloud;
+    localStorage.setItem(DB_KEY,JSON.stringify(db));
+  }else if(localDB){
+    db=localDB;
+    if(cloud===null && window.fsSaveDB)window.fsSaveDB(db);
+  }else if(cloud){
+    db=cloud;
+    localStorage.setItem(DB_KEY,JSON.stringify(db));
+  }else{
+    createDefaultDB();
+  }
 
   if(!db.products)db.products=[];
   if(!db.clients)db.clients=[];
@@ -2077,6 +2134,13 @@ async function init(){
   updateStorePreview();
 
   if(window.fsListen){window.fsListen(remote=>{
+    if(!remote)return;
+    const remoteProducts=Array.isArray(remote.products)?remote.products:[];
+    const localProducts=Array.isArray(db.products)?db.products:[];
+    if(remoteProducts.length===0 && localProducts.length>0){
+      console.warn("[Zarouali POS] Ignoring empty Firebase catalog snapshot");
+      return;
+    }
     db=remote;
     (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
     (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
@@ -2091,6 +2155,18 @@ async function init(){
 
   resetInactivityTimer();
   ["click","touchstart","keydown","mousemove"].forEach(e=>document.addEventListener(e,resetInactivityTimer));
+
+  /* ===== FIX: Robust wake handlers (capture phase on window) ===== */
+  ["pointerdown","mousedown","touchstart","touchmove","click","keydown","wheel"].forEach(evt=>{
+    window.addEventListener(evt,()=>{
+      const s=document.getElementById("screensaver");
+      if(s&&s.classList.contains("show")){
+        s.classList.remove("show");
+        clearTimeout(inactivityTimer);
+        if(isLoggedIn)resetInactivityTimer();
+      }
+    },{capture:true,passive:true});
+  });
 
   document.addEventListener("keydown",e=>{
     if(e.key==="F1"){e.preventDefault();showKeyboardHelp();}
@@ -2111,14 +2187,29 @@ async function init(){
 
   const ss=document.getElementById("screensaver");
   if(ss){
-    ss.addEventListener("click",function(){this.classList.remove("show");resetInactivityTimer();});
-    ss.addEventListener("touchstart",function(){this.classList.remove("show");resetInactivityTimer();});
+    ss.style.cursor="pointer";
+    ss.addEventListener("click",wakeFromScreensaver);
+    ss.addEventListener("touchstart",wakeFromScreensaver,{passive:true});
+    ss.addEventListener("pointerdown",wakeFromScreensaver,{passive:true});
+    ss.addEventListener("mousedown",wakeFromScreensaver);
   }
+
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden){
+      wakeFromScreensaver();
+      try{renderAll();}catch(e){console.warn("resume render",e);}
+    }else{
+      clearTimeout(inactivityTimer);
+    }
+  });
+  window.addEventListener("pageshow",wakeFromScreensaver);
+  window.addEventListener("focus",wakeFromScreensaver);
+  window.addEventListener("online",wakeFromScreensaver);
 
   const ld=localStorage.getItem(USER_KEY)||localStorage.getItem(LOGIN_KEY);
   if(ld){try{const dd=JSON.parse(ld);if(dd.username)document.getElementById("loginUser").value=dd.username;else if(dd.name)document.getElementById("loginUser").value=dd.name;}catch(e){}}
 
-  console.log("[Zarouali POS v15] ready · "+db.products.length+" produits · "+db.cashiers.length+" caissiers");
+  console.log("[Zarouali POS v15.1] ready · "+db.products.length+" produits · "+db.cashiers.length+" caissiers");
 }
 
 document.addEventListener("DOMContentLoaded",init);
@@ -2130,53 +2221,14 @@ import{getFirestore,doc,getDoc,setDoc,onSnapshot}from"https://www.gstatic.com/fi
 import{getAuth,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyB9juWEafOYe0uKeh_rhSBzCy6OMfyVAhM",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
-
-try{
-  const app=initializeApp(firebaseConfig);
-  const fs=getFirestore(app);
-  const auth=getAuth(app);
-  const ref=doc(fs,"caisse","main");
-
-  let currentUser=null, authResolve, authReject;
-  const authPromise=new Promise((resolve,reject)=>{authResolve=resolve;authReject=reject;});
-  const authTimeout=setTimeout(()=>authReject(new Error("Firebase Auth timeout")),10000);
-
-  onAuthStateChanged(auth,u=>{
-    if(u){currentUser=u;clearTimeout(authTimeout);authResolve(u);}
-  });
-
-  signInAnonymously(auth).catch(e=>{
-    clearTimeout(authTimeout);
-    authReject(e);
-    console.warn("[Firebase auth]",e);
-  });
-
-  window.fsSaveDB=async d=>{
-    try{
-      await authPromise;
-      d._updatedAt=Date.now();
-      d._updatedBy=currentUser?.uid||"anonymous";
-      await setDoc(ref,d);
-    }catch(e){console.warn("[Firebase save]",e);}
-  };
-
-  window.fsLoadDB=async()=>{
-    try{
-      await authPromise;
-      const snap=await getDoc(ref);
-      return snap.exists()?snap.data():null;
-    }catch(e){console.warn("[Firebase load]",e);return null;}
-  };
-
-  window.fsListen=cb=>{
-    authPromise.then(()=>onSnapshot(ref,s=>{
-      if(s.exists())cb(s.data());
-    },e=>console.warn("[Firebase listen]",e)))
-    .catch(e=>console.warn("[Firebase listen auth]",e));
-  };
-}catch(e){
-  console.warn("[Firebase init]",e);
-}
+const app=initializeApp(firebaseConfig);
+const fs=getFirestore(app);
+const auth=getAuth(app);
+const ref=doc(fs,"caisse","main");
+const ready=new Promise(res=>{onAuthStateChanged(auth,u=>{if(u)res(u);});signInAnonymously(auth).catch(e=>console.warn("Auth",e));});
+window.fsSaveDB=d=>ready.then(()=>setDoc(ref,d)).catch(e=>console.warn("[Firebase save]",e));
+window.fsLoadDB=()=>ready.then(()=>getDoc(ref)).then(s=>s.exists()?s.data():null).catch(e=>{console.warn("[Firebase load]",e);return null;});
+window.fsListen=cb=>ready.then(()=>onSnapshot(ref,s=>{if(s.exists())cb(s.data());},e=>console.warn("[Firebase listen]",e)));
 </script>
 
 <!-- ZAROUALI_RUNTIME_FIX_V16 -->

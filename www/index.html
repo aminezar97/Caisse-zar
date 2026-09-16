@@ -489,7 +489,6 @@ tbody tr:last-child td{border-bottom:none}
 .toast.info .toast-icon{background:var(--info-50);color:var(--info-500)}
 @keyframes toastIn{from{opacity:0;transform:translateX(30px) scale(.95)}to{opacity:1;transform:none}}
 @keyframes toastOut{to{opacity:0;transform:translateX(30px) scale(.95)}}
-@media(max-width:640px){.toast-stack{inset-inline:12px;bottom:12px;max-width:none}.toast{min-width:0}}
 
 .settings-list{padding:22px;display:grid;gap:10px}
 .setting-row{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--bg-surface-2);border:1px solid var(--border-subtle);border-radius:14px;gap:14px;flex-wrap:wrap;transition:all var(--t-fast)}
@@ -737,7 +736,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
-</style>
+#screensaver,#screensaver.show{display:none!important;pointer-events:none!important}\n</style>
 </head>
 <body>
 
@@ -1174,6 +1173,40 @@ function normalizeProductImage(img){
   return result;
 }
 function clearImageCache(){_imageCache.clear();}
+function mergeLocalProductImages(remote){
+  try{
+    const raw=localStorage.getItem(DB_KEY);
+    const local=raw?JSON.parse(raw):null;
+    if(!local||!Array.isArray(local.products)||!remote||!Array.isArray(remote.products))return remote;
+
+    const localMap=new Map(local.products.map(p=>[String(p.id),p]));
+
+    remote.products=remote.products.map(p=>{
+      const lp=localMap.get(String(p.id));
+      if(lp&&lp.image){
+        const key=CatalogImages.key(lp.image);
+        const localReady=
+          /^data:/i.test(String(lp.image)) ||
+          /^https?:/i.test(String(lp.image)) ||
+          CatalogImages.urls.has(key);
+
+        const remoteKey=CatalogImages.key(p.image||"");
+        const remoteReady=
+          /^data:/i.test(String(p.image||"")) ||
+          /^https?:/i.test(String(p.image||"")) ||
+          CatalogImages.urls.has(remoteKey) ||
+          /^images\//i.test(String(p.image||""));
+
+        if(localReady && !remoteReady)p.image=lp.image;
+      }
+      return p;
+    });
+  }catch(e){
+    console.warn("[Images] merge local failed",e);
+  }
+  return remote;
+}
+
 
 function parseCSVLine(line,sep){const r=[];let c="",ins=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(ins&&line[i+1]==='"'){c+='"';i++;}else ins=!ins;}else if(ch===sep&&!ins){r.push(c);c="";}else c+=ch;}r.push(c);return r;}
 
@@ -1420,16 +1453,7 @@ function updateUserLabels(){
   if(ml)ml.textContent=currentUser?(currentUser.type==="admin"?"Admin":"Caissier")+": "+currentUser.name:"Terminal de caisse";
 }
 
-function resetInactivityTimer(){
-  clearTimeout(inactivityTimer);
-  const ss=document.getElementById("screensaver");
-  if(ss&&ss.classList.contains("show"))ss.classList.remove("show");
-  if(!isLoggedIn)return;
-  inactivityTimer=setTimeout(()=>{
-    const s=document.getElementById("screensaver");
-    if(s&&!document.hidden&&!document.querySelector(".modal.show")&&!document.querySelector(".scanner-modal.show"))s.classList.add("show");
-  },20000);
-}
+function resetInactivityTimer(){inactivityTimer=null;const ss=document.getElementById("screensaver");if(ss)ss.classList.remove("show");}
 function wakeFromScreensaver(){
   const ss=document.getElementById("screensaver");
   if(ss)ss.classList.remove("show");
@@ -1645,7 +1669,29 @@ function playErrorBeep(){try{const c=new(window.AudioContext||window.webkitAudio
 
 function openGallery(){document.getElementById("galleryInput").click();}
 function openCamera(){document.getElementById("cameraInput").click();}
-function handleImageFile(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{currentImage=ev.target.result;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(currentImage)+'">';};r.readAsDataURL(f);e.target.value="";}
+async function handleImageFile(e){
+  const f=e.target.files?.[0];
+  if(!f)return;
+  try{
+    const ext=(f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+    const key="custom_"+Date.now()+"_"+Math.random().toString(36).slice(2,8)+"."+ext;
+    await CatalogImages.put(key,f);
+    if(CatalogImages.urls.has(key)){
+      try{URL.revokeObjectURL(CatalogImages.urls.get(key));}catch(_){}
+    }
+    const url=URL.createObjectURL(f);
+    CatalogImages.urls.set(key,url);
+    clearImageCache();
+    currentImage="images/"+key;
+    const preview=document.getElementById("imagePreview");
+    if(preview)preview.innerHTML='<img src="'+escapeAttr(url)+'">';
+    toast("Image enregistrée","success");
+  }catch(err){
+    console.error("[Images] save failed:",err);
+    toast("Erreur enregistrement image","error");
+  }
+  e.target.value="";
+}
 
 function exportProductsCSV(){const h=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];const rows=db.products.map(p=>h.map(k=>csvEscape(p[k]||"")).join(","));downloadFile("produits.csv",h.join(",")+"\n"+rows.join("\n"),"text/csv");toast('Export CSV','success');}
 
@@ -2147,7 +2193,7 @@ async function init(){
       console.warn("[Zarouali POS] Ignoring stale Firebase snapshot");
       return;
     }
-    db=remote;
+    db=mergeLocalProductImages(remote);
     (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
     (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
     (db.clients||[]).forEach(c=>{c.id=String(c.id??"").trim();});
@@ -2160,7 +2206,6 @@ async function init(){
   if(d)d.value=localDateISO();
 
   resetInactivityTimer();
-  ["click","touchstart","keydown","mousemove"].forEach(e=>document.addEventListener(e,resetInactivityTimer));
 
   /* ===== FIX: Robust wake handlers (capture phase on window) ===== */
   ["pointerdown","mousedown","touchstart","touchmove","click","keydown","wheel"].forEach(evt=>{
@@ -2295,15 +2340,12 @@ function adminPassword(){
 }
 function wakeZ(){
   clearTimeout(zarTimer);
+  zarTimer=null;
   const s=z("screensaver");
-  if(s){s.classList.remove("show");s.hidden=true;s.style.display="none";}
-  if(localStorage.getItem(USER_KEY_FIX)){
-    zarTimer=setTimeout(()=>{
-      const ss=z("screensaver");
-      if(ss&&!document.hidden&&!document.querySelector(".modal.show,.scanner-modal.show")){
-        ss.hidden=false;ss.style.display="flex";ss.classList.add("show");
-      }
-    },20000);
+  if(s){
+    s.classList.remove("show");
+    s.hidden=true;
+    s.style.display="none";
   }
 }
 function fallbackLogin(){

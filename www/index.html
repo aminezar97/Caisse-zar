@@ -2221,14 +2221,53 @@ import{getFirestore,doc,getDoc,setDoc,onSnapshot}from"https://www.gstatic.com/fi
 import{getAuth,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyB9juWEafOYe0uKeh_rhSBzCy6OMfyVAhM",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
-const app=initializeApp(firebaseConfig);
-const fs=getFirestore(app);
-const auth=getAuth(app);
-const ref=doc(fs,"caisse","main");
-const ready=new Promise(res=>{onAuthStateChanged(auth,u=>{if(u)res(u);});signInAnonymously(auth).catch(e=>console.warn("Auth",e));});
-window.fsSaveDB=d=>ready.then(()=>setDoc(ref,d)).catch(e=>console.warn("[Firebase save]",e));
-window.fsLoadDB=()=>ready.then(()=>getDoc(ref)).then(s=>s.exists()?s.data():null).catch(e=>{console.warn("[Firebase load]",e);return null;});
-window.fsListen=cb=>ready.then(()=>onSnapshot(ref,s=>{if(s.exists())cb(s.data());},e=>console.warn("[Firebase listen]",e)));
+
+try{
+  const app=initializeApp(firebaseConfig);
+  const fs=getFirestore(app);
+  const auth=getAuth(app);
+  const ref=doc(fs,"caisse","main");
+
+  let currentUser=null, authResolve, authReject;
+  const authPromise=new Promise((resolve,reject)=>{authResolve=resolve;authReject=reject;});
+  const authTimeout=setTimeout(()=>authReject(new Error("Firebase Auth timeout")),10000);
+
+  onAuthStateChanged(auth,u=>{
+    if(u){currentUser=u;clearTimeout(authTimeout);authResolve(u);}
+  });
+
+  signInAnonymously(auth).catch(e=>{
+    clearTimeout(authTimeout);
+    authReject(e);
+    console.warn("[Firebase auth]",e);
+  });
+
+  window.fsSaveDB=async d=>{
+    try{
+      await authPromise;
+      d._updatedAt=Date.now();
+      d._updatedBy=currentUser?.uid||"anonymous";
+      await setDoc(ref,d);
+    }catch(e){console.warn("[Firebase save]",e);}
+  };
+
+  window.fsLoadDB=async()=>{
+    try{
+      await authPromise;
+      const snap=await getDoc(ref);
+      return snap.exists()?snap.data():null;
+    }catch(e){console.warn("[Firebase load]",e);return null;}
+  };
+
+  window.fsListen=cb=>{
+    authPromise.then(()=>onSnapshot(ref,s=>{
+      if(s.exists())cb(s.data());
+    },e=>console.warn("[Firebase listen]",e)))
+    .catch(e=>console.warn("[Firebase listen auth]",e));
+  };
+}catch(e){
+  console.warn("[Firebase init]",e);
+}
 </script>
 
 <!-- ZAROUALI_RUNTIME_FIX_V16 -->

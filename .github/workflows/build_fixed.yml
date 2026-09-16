@@ -1,0 +1,268 @@
+name: Zarouali Caisse - Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zarouali-caisse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android APK + AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.caching=true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+
+      - name: Verify Java
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          javac -version
+          test "$(javac -version 2>&1 | awk '{print $2}' | cut -d. -f1)" = "21"
+
+      - name: Setup Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if [ ! -d "$SDK_ROOT" ]; then
+            echo "Android SDK not found at $SDK_ROOT" >&2
+            exit 1
+          fi
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -path '*/bin/sdkmanager' -print -quit 2>/dev/null || true)"
+          fi
+          if [ -z "${SDKMANAGER:-}" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager not found in $SDK_ROOT/cmdline-tools" >&2
+            exit 1
+          fi
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "${SDK_ROOT}/platform-tools" >> "$GITHUB_PATH"
+          echo "${SDK_ROOT}/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_SDK_MANAGER=${SDKMANAGER}" >> "$GITHUB_ENV"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_MANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "build-tools;36.0.0"
+
+      - name: Install project dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --legacy-peer-deps --no-audit --no-fund
+          else
+            npm install --legacy-peer-deps --no-audit --no-fund
+          fi
+
+      - name: Install offline catalog libraries
+        run: npm install --no-save jszip sql.js @capacitor/assets
+
+
+      - name: Prepare offline catalog runtime
+        shell: bash
+        run: |
+          mkdir -p www/vendor
+          cp node_modules/jszip/dist/jszip.min.js www/vendor/jszip.min.js
+          cp node_modules/sql.js/dist/sql-wasm.js www/vendor/sql-wasm.js
+          cp node_modules/sql.js/dist/sql-wasm.wasm www/vendor/sql-wasm.wasm
+          test -s www/vendor/jszip.min.js
+          test -s www/vendor/sql-wasm.js
+          test -s www/vendor/sql-wasm.wasm
+
+      - name: Verify project
+        run: |
+          test -f package.json
+          test -f capacitor.config.json
+          test -f www/index.html
+          test -f www/vendor/jszip.min.js
+          test -f www/vendor/sql-wasm.js
+          test -f www/vendor/sql-wasm.wasm
+
+      - name: Verify Capacitor CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx cap --version
+          test -f capacitor.config.json
+          test -d www
+
+      - name: Create fresh Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf android
+          npx cap add android
+
+      - name: Add camera permission
+        shell: bash
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+            sed -i '/<manifest /a\
+            <uses-permission android:name="android.permission.CAMERA" />' "$MANIFEST"
+          fi
+
+      - name: Generate Android app icons
+        shell: bash
+        run: |
+          if [ -d resources ] && find resources -maxdepth 1 -type f | grep -q .; then
+            npx @capacitor/assets generate --android --assetPath resources
+          else
+            echo "No resources directory found; keeping Capacitor default icons."
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Setup Gradle with cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          cache-overwrite-existing: true
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK + AAB (with retry)
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          build_android() {
+            ./gradlew assembleDebug assembleRelease bundleRelease               --no-daemon               --stacktrace               --console=plain
+          }
+
+          for attempt in 1 2 3; do
+            echo "========================================"
+            echo "Android build attempt $attempt/3"
+            echo "========================================"
+
+            if build_android; then
+              echo "Android build completed successfully."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Gradle build failed. Retrying after 20 seconds..."
+              sleep 20
+            fi
+          done
+
+          echo "Android build failed after 3 attempts."
+          exit 1
+
+      - name: Verify Android outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          test -s android/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Prepare Android artifacts
+        shell: bash
+        run: |
+          mkdir -p release/android
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/android/Zarouali-Caisse-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk release/android/Zarouali-Caisse-release-unsigned.apk
+          fi
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab release/android/Zarouali-Caisse.aab
+          fi
+          find release/android -type f -maxdepth 1 -print
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zarouali-Caisse-Android
+          path: release/android/*
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows EXE
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: |
+          if (Test-Path package-lock.json) {
+            npm ci --legacy-peer-deps --no-audit --no-fund
+          } else {
+            npm install --legacy-peer-deps --no-audit --no-fund
+          }
+
+      - name: Install offline catalog libraries
+        run: npm install --no-save jszip sql.js @capacitor/assets
+
+
+      - name: Prepare offline catalog runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path www/vendor | Out-Null
+          Copy-Item node_modules/jszip/dist/jszip.min.js www/vendor/jszip.min.js -Force
+          Copy-Item node_modules/sql.js/dist/sql-wasm.js www/vendor/sql-wasm.js -Force
+          Copy-Item node_modules/sql.js/dist/sql-wasm.wasm www/vendor/sql-wasm.wasm -Force
+
+      - name: Verify Electron Builder
+        shell: pwsh
+        run: npx electron-builder --version
+
+      - name: Build Windows application
+        shell: pwsh
+        run: npx electron-builder --win nsis portable --publish never
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zarouali-Caisse-Windows
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30

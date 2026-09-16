@@ -1050,8 +1050,9 @@ function saveDB(){
     if(s.clientId!=null)s.clientId=String(s.clientId).trim();
     (s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});
   });
-  localStorage.setItem(DB_KEY,JSON.stringify(db));
-  if(window.fsSaveDB)window.fsSaveDB(db);
+  db._updatedAt=Date.now();
+  try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
+  if(window.fsSaveDB)window.fsSaveDB({...db});
 }
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
@@ -1833,7 +1834,94 @@ const Users={
 
 const CommandPalette={items:[],filtered:[],selected:0,isOpen:false,init(){document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();this.toggle();}if(!this.isOpen)return;if(e.key==='Escape'){e.preventDefault();this.close();}if(e.key==='ArrowDown'){e.preventDefault();this.move(1);}if(e.key==='ArrowUp'){e.preventDefault();this.move(-1);}if(e.key==='Enter'){e.preventDefault();this.execute();}});const input=document.getElementById('cmdInput');if(input)input.addEventListener('input',()=>this.search(input.value));const m=document.getElementById('cmdPaletteModal');if(m)m.addEventListener('click',e=>{if(e.target===m)this.close();});},build(){const items=[];MENU_SECTIONS.forEach(section=>{section.items.forEach(p=>{items.push({type:'page',section:section.title,title:t(p.label),sub:'',icon:p.icon,action:()=>{if(p.protected){const btn=[...document.querySelectorAll('.menu-item')].find(b=>b.textContent.includes(t(p.label).split(' ')[0]));protectedPage(p.id,btn);}else{goPage(p.id,document.querySelector('.menu-item'));}}});});});[{label:'Nouvelle vente',icon:'plus',action:()=>{cart=[];renderCart();}},{label:'Scanner',icon:'camera',action:()=>openScanner()},{label:'Historique scans',icon:'history',action:()=>ScanHistory.open()},{label:'Valider vente',icon:'check',action:()=>completeSale()},{label:'Vider panier',icon:'trash',action:()=>clearCart()},{label:'Ventes en attente',icon:'package',action:()=>ParkedSales.openPanel()},{label:'Rapports',icon:'chart',action:()=>AdvancedReports.open()},{label:'Étiquettes',icon:'tag',action:()=>LabelGenerator.open()},{label:'Audit',icon:'history',action:()=>AuditLog.open()},{label:'Alertes',icon:'alert',action:()=>StockAlerts.openPanel()},{label:'Utilisateurs',icon:'user-check',action:()=>Users.open()},{label:'Déconnexion',icon:'user',action:()=>doLogout()}].forEach(a=>items.push({type:'action',section:'Actions',title:a.label,sub:'',icon:a.icon,action:a.action}));db.products.slice(0,30).forEach(p=>items.push({type:'product',section:'Produits',title:p.name,sub:money(p.price)+' · Stock: '+p.stock,icon:'package',action:()=>{addToCart(p.id);toast('✓ '+p.name,'success');}}));db.clients.slice(0,20).forEach(c=>items.push({type:'client',section:'Clients',title:c.name,sub:(c.phone||'')+((c.debt||0)>0?' · Dette: '+money(c.debt):''),icon:'users',action:()=>{const sel=document.getElementById('saleClient');if(sel){sel.value=String(c.id);onClientChange();}goPage('sale',document.querySelector('.menu-item'));}}));return items;},ICONS:MENU_ICONS,svg(name,size){size=size||16;return'<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(this.ICONS[name]||'')+'</svg>';},open(){this.items=this.build();this.filtered=this.items.slice(0,40);this.selected=0;this.isOpen=true;const m=document.getElementById('cmdPaletteModal');const i=document.getElementById('cmdInput');m.classList.add('show');if(i){i.value='';setTimeout(()=>i.focus(),100);}this.render();},close(){this.isOpen=false;document.getElementById('cmdPaletteModal').classList.remove('show');},toggle(){this.isOpen?this.close():this.open();},search(q){q=String(q||'').toLowerCase().trim();if(!q){this.filtered=this.items.slice(0,40);this.selected=0;this.render();return;}const terms=q.split(/\s+/);this.filtered=this.items.filter(it=>{const text=(it.title+' '+(it.sub||'')).toLowerCase();return terms.every(t=>text.includes(t));}).slice(0,50);this.selected=0;this.render();},move(d){const n=this.filtered.length;if(!n)return;this.selected=(this.selected+d+n)%n;this.render();},execute(){const item=this.filtered[this.selected];if(!item)return;this.close();setTimeout(()=>{try{item.action();}catch(e){console.warn(e);}},100);},render(){const box=document.getElementById('cmdResults');if(!box)return;if(!this.filtered.length){box.innerHTML='<div class="cmd-empty">Aucun résultat</div>';return;}const groups={};this.filtered.forEach(it=>{if(!groups[it.section])groups[it.section]=[];groups[it.section].push(it);});let html='';let idx=0;for(const[section,items]of Object.entries(groups)){html+='<div class="cmd-section">'+section+'</div>';for(const it of items){const isSel=idx===this.selected;html+='<div class="cmd-item '+(isSel?'selected':'')+'" data-idx="'+idx+'" onmouseenter="CommandPalette.select('+idx+')" onclick="CommandPalette.pick('+idx+')"><div class="cmd-item-icon">'+this.svg(it.icon,16)+'</div><div class="cmd-item-body"><div class="cmd-item-title">'+escapeHTML(it.title)+'</div>'+(it.sub?'<div class="cmd-item-sub">'+escapeHTML(it.sub)+'</div>':'')+'</div></div>';idx++;}}box.innerHTML=html;const sel=box.querySelector('.cmd-item.selected');if(sel)sel.scrollIntoView({block:'nearest'});},select(i){this.selected=i;this.render();},pick(i){this.selected=i;this.execute();}};
 
-const CustomerDisplay={win:null,channel:null,init(){try{this.channel=new BroadcastChannel('zarouali_customer_display');}catch(e){}},open(){if(this.win&&!this.win.closed){this.win.focus();return;}this.win=window.open('','CustomerDisplay','width=900,height=650');if(!this.win){toast('Popup bloqué','warn');return;}const store=getStoreInfo();this.win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Client</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;min-height:100vh;display:flex;flex-direction:column}.h{padding:22px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08)}.n{font-size:24px;font-weight:800}.c{font-family:monospace;font-size:34px;font-weight:700;color:#86b948}.items{flex:1;overflow-y:auto;padding:26px 32px}.item{display:grid;grid-template-columns:1fr auto auto;gap:24px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:20px;align-items:center}.nm{font-weight:600}.q{color:rgba(255,255,255,.5);font-family:monospace}.p{font-family:monospace;font-weight:700;color:#86b948;min-width:130px;text-align:right}.f{padding:28px 32px;background:rgba(0,0,0,.35);border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center}.lbl{font-size:14px;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:8px}.t{font-size:64px;font-weight:900;font-family:monospace;color:#86b948}.emp{text-align:center;padding:100px 20px;opacity:.4}</style></head><body><div class="h"><div class="n">'+escapeHTML(store.name||'Zarouali POS')+'</div><div class="c" id="clk">--:--:--</div></div><div class="items" id="it"><div class="emp"><h2>Bienvenue</h2><p>En attente...</p></div></div><div class="f"><div><div class="lbl">Total</div></div><div class="t" id="tot">0.00 DH</div></div><script>const ch=new BroadcastChannel("zarouali_customer_display");ch.onmessage=e=>{if(e.data&&e.data.type==="update")r(e.data.payload);};function r(d){const i=document.getElementById("it"),t=document.getElementById("tot");if(!d.items||!d.items.length){i.innerHTML=\'<div class="emp"><h2>Bienvenue</h2><p>En attente...</p></div>\';t.textContent="0.00 DH";return;}i.innerHTML=d.items.map(x=>\'<div class="item"><div class="nm">\'+x.name+\'</div><div class="q">× \'+x.qty+\'</div><div class="p">\'+(x.price*x.qty).toFixed(2)+\' DH</div></div>\').join("");t.textContent=d.total.toFixed(2)+" DH";}function tick(){const n=new Date();document.getElementById("clk").textContent=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")+":"+String(n.getSeconds()).padStart(2,"0");}setInterval(tick,1000);tick();<\/script></body></html>');this.win.document.close();toast('Écran client ouvert','success');}};
+const CustomerDisplay={win:null,channel:null,init(){try{this.channel=new BroadcastChannel('zarouali_customer_display');}catch(e){}},open(){if(this.win&&!this.win.closed){this.win.focus();return;}this.win=window.open('','CustomerDisplay','width=900,height=650');if(!this.win){toast('Popup bloqué','warn');return;}const store=getStoreInfo();this.win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Client</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;min-height:100vh;display:flex;flex-direction:column}.h{padding:22px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08)}.n{font-size:24px;font-weight:800}.c{font-family:monospace;font-size:34px;font-weight:700;color:#86b948}.items{flex:1;overflow-y:auto;padding:26px 32px}.item{display:grid;grid-template-columns:1fr auto auto;gap:24px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:20px;align-items:center}.nm{font-weight:600}.q{color:rgba(255,255,255,.5);font-family:monospace}.p{font-family:monospace;font-weight:700;color:#86b948;min-width:130px;text-align:right}.f{padding:28px 32px;background:rgba(0,0,0,.35);border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center}.lbl{font-size:14px;text-transform:uppercase;letter-spacing:.12em;opacity:.6;margin-bottom:8px}.t{font-size:64px;font-weight:900;font-family:monospace;color:#86b948}.emp{text-align:center;padding:100px 20px;opacity:.4}</style></head><body><div class="h"><div class="n">'+escapeHTML(store.name||'Zarouali POS')+'</div><div class="c" id="clk">--:--:--</div></div><div class="items" id="it"><div class="emp"><h2>Bienvenue</h2><p>En attente...</p></div></div><div class="f"><div><div class="lbl">Total</div></div><div class="t" id="tot">0.00 DH</div></div><script>const ch=new BroadcastChannel("zarouali_customer_display");ch.onmessage=e=>{if(e.data&&e.data.type==="update")r(e.data.payload);};function r(d){const i=document.getElementById("it"),t=document.getElementById("tot");if(!d.items||!d.items.length){i.innerHTML=\'<div class="emp"><h2>Bienvenue</h2><p>En attente...</p></div>\';t.textContent="0.00 DH";return;}i.innerHTML=d.items.map(x=>\'<div class="item"><div class="nm">\'+x.name+\'</div><div class="q">× \'+x.qty+\'</div><div class="p">\'+(x.price*x.qty).toFixed(2)+\' DH</div></div>\').join("");t.textContent=d.total.toFixed(2)+" DH";}function tick(){const n=new Date();document.getElementById("clk").textContent=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")+":"+String(n.getSeconds()).padStart(2,"0");}setInterval(tick,1000);tick();<\/script>
+<!-- ZAROUALI_RUNTIME_FIX_V16 -->
+<script>
+(function(){
+"use strict";
+const PASS_KEY="zarouali_caisse_password";
+const LOGIN_KEY="zarouali_caisse_login";
+const USER_KEY_FIX="zarouali_current_user";
+let zarTimer=null;
+const z=id=>document.getElementById(id);
+
+function showErr(v){const e=z("loginError");if(e)e.textContent=v||"";}
+function adminPassword(){
+  let p="";
+  try{p=(localStorage.getItem(PASS_KEY)||"").trim();}catch(e){}
+  if(!p){try{const x=JSON.parse(localStorage.getItem(LOGIN_KEY)||"null");p=String(x?.password||"").trim();}catch(e){}}
+  return p||"1234";
+}
+function wakeZ(){
+  clearTimeout(zarTimer);
+  const s=z("screensaver");
+  if(s){s.classList.remove("show");s.hidden=true;s.style.display="none";}
+  if(localStorage.getItem(USER_KEY_FIX)){
+    zarTimer=setTimeout(()=>{
+      const ss=z("screensaver");
+      if(ss&&!document.hidden&&!document.querySelector(".modal.show,.scanner-modal.show")){
+        ss.hidden=false;ss.style.display="flex";ss.classList.add("show");
+      }
+    },20000);
+  }
+}
+function fallbackLogin(){
+  const u=(z("loginUser")?.value||"").trim();
+  const p=(z("loginPass")?.value||"").trim();
+  showErr("");
+  if(!u||!p){showErr("Identifiants requis");return false;}
+  if(u.toLowerCase()==="admin"&&p===adminPassword()){
+    const user={type:"admin",name:"admin"};
+    try{localStorage.setItem(USER_KEY_FIX,JSON.stringify(user));}catch(e){}
+    z("loginScreen")?.classList.add("hidden");
+    if(z("loginPass"))z("loginPass").value="";
+    try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
+    wakeZ();return false;
+  }
+  try{
+    const d=JSON.parse(localStorage.getItem("zarouali_caisse_v1")||"null");
+    const cs=Array.isArray(d?.cashiers)?d.cashiers:[];
+    const c=cs.find(x=>(String(x.name||"").toLowerCase()===u.toLowerCase()||String(x.id||"")===u)&&String(x.password||"")===p);
+    if(c){
+      localStorage.setItem(USER_KEY_FIX,JSON.stringify({type:"cashier",id:String(c.id),name:String(c.name||u)}));
+      z("loginScreen")?.classList.add("hidden");
+      if(z("loginPass"))z("loginPass").value="";
+      try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
+      wakeZ();return false;
+    }
+  }catch(e){}
+  showErr("Identifiants incorrects");return false;
+}
+function installZ(){
+  const original=window.doLogin;
+  window.doLogin=function(){
+    try{
+      if(typeof original==="function"){
+        const before=z("loginScreen")?.classList.contains("hidden");
+        const result=original();
+        const after=z("loginScreen")?.classList.contains("hidden");
+        if(after&&!before){wakeZ();return result;}
+      }
+    }catch(e){console.warn("[login]",e);}
+    return fallbackLogin();
+  };
+  const b=z("loginBtn");
+  if(b&&!b.dataset.zarFix){
+    b.dataset.zarFix="1";
+    b.addEventListener("click",e=>{e.preventDefault();window.doLogin();},true);
+  }
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)clearTimeout(zarTimer);else{wakeZ();try{renderAll()}catch(e){}}});
+  window.addEventListener("pageshow",wakeZ);
+  window.addEventListener("focus",wakeZ);
+  document.addEventListener("pointerdown",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},true);
+  document.addEventListener("touchstart",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},{passive:true,capture:true});
+  z("loginPass")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();window.doLogin()}},true);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installZ,{once:true});else installZ();
+})();
+</script>
+
+</body></html>');this.win.document.close();toast('Écran client ouvert','success');}};
 
 const LabelGenerator={selected:[],open(){this.selected=[];document.getElementById('labelSearch').value='';this.search('');document.getElementById('labelsModal').classList.add('show');},search(q){q=String(q||'').toLowerCase().trim();const box=document.getElementById('labelProductList');let list=db.products;if(q)list=list.filter(p=>p.name.toLowerCase().includes(q)||String(p.barcode).includes(q));list=list.slice(0,100);if(!list.length){box.innerHTML='<div style="padding:30px;text-align:center;color:var(--text-muted)">Aucun</div>';return;}box.innerHTML=list.map(p=>{const sel=this.selected.find(x=>String(x.id)===String(p.id));return'<div style="display:grid;grid-template-columns:30px 1fr auto;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border-subtle);align-items:center;cursor:pointer" onclick="LabelGenerator.toggle(\''+escapeAttr(String(p.id))+'\')"><input type="checkbox" '+(sel?'checked':'')+' style="accent-color:var(--brand-500);width:18px;height:18px"><div><div style="font-weight:600;font-size:13px">'+escapeHTML(p.name)+'</div><div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">'+(p.barcode||'—')+' · '+money(p.price)+'</div></div></div>';}).join('');},toggle(id){const idx=this.selected.findIndex(x=>String(x.id)===String(id));if(idx>=0)this.selected.splice(idx,1);else this.selected.push({id:String(id),copies:1});this.search(document.getElementById('labelSearch').value);},preview(){if(!this.selected.length){toast('Sélectionnez','warn');return;}const copies=parseInt(document.getElementById('labelCopies').value)||1;const labels=[];for(const sel of this.selected){const p=db.products.find(x=>String(x.id)===String(sel.id));if(!p)continue;for(let i=0;i<copies;i++)labels.push(p);}const prev=labels.slice(0,6);let box=document.getElementById('labelPreviewBox');if(!box){box=document.createElement('div');box.id='labelPreviewBox';document.querySelector('#labelsModal .modal-body').appendChild(box);}box.innerHTML='<div style="margin-top:14px"><div class="eyebrow" style="margin-bottom:8px">Aperçu ('+labels.length+')</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px;background:var(--bg-surface-2);border-radius:var(--r-md)">'+prev.map(p=>'<div style="background:#fff;border:1px dashed #ccc;border-radius:4px;padding:6px;text-align:center;font-size:10px;color:#000"><b style="display:block;font-size:11px;margin-bottom:2px">'+escapeHTML(p.name.substring(0,20))+'</b><div style="font-size:14px;font-weight:800">'+money(p.price)+'</div><svg viewBox="0 0 100 24" style="width:100%;height:24px">'+this.barcodeSVG(p.barcode||p.id)+'</svg></div>').join('')+'</div></div>';},print(){if(!this.selected.length){toast('Sélectionnez','warn');return;}const copies=parseInt(document.getElementById('labelCopies').value)||1;const labels=[];for(const sel of this.selected){const p=db.products.find(x=>String(x.id)===String(sel.id));if(!p)continue;for(let i=0;i<copies;i++)labels.push(p);}let h='<div style="background:white;color:black"><div style="display:flex;flex-wrap:wrap;gap:2mm;padding:5mm">';for(const p of labels){h+='<div style="width:50mm;height:30mm;border:1px solid #ccc;padding:2mm;text-align:center;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between"><div style="font-size:9px;font-weight:bold">'+escapeHTML(p.name.substring(0,25))+'</div><div style="font-size:14px;font-weight:900">'+money(p.price)+'</div><svg viewBox="0 0 100 20" style="width:100%;height:8mm">'+this.barcodeSVG(p.barcode||p.id)+'</svg></div>';}h+='</div></div>';const pa=document.getElementById('printArea');pa.innerHTML=h;setTimeout(()=>{window.print();pa.innerHTML='';},300);},barcodeSVG(code){const s=String(code||'00000000');let bars='';let x=0;const seed=s.split('').reduce((a,c)=>a+c.charCodeAt(0),0);for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);const w1=1+((c*7+seed)%3);const w2=1+((c*11+seed)%3);bars+='<rect x="'+x+'" y="0" width="'+w1+'" height="24" fill="black"/>';x+=w1+w2;bars+='<rect x="'+x+'" y="0" width="'+w2+'" height="24" fill="white"/>';x+=w1;}return'<rect width="'+x+'" height="24" fill="white"/>'+bars;}};
 
@@ -1938,7 +2026,7 @@ async function init(){
   if(store){try{const s=JSON.parse(store);if(s.name){db.settings.storeName=s.name;}}catch(e){}}
   const saved=localStorage.getItem(DB_KEY);
   let cloud=null;
-  if(window.fsLoadDB){try{cloud=await window.fsLoadDB();}catch(e){}}
+  if(window.fsLoadDB){try{cloud=await Promise.race([window.fsLoadDB(),new Promise(r=>setTimeout(()=>r(null),10000))]);}catch(e){console.warn("[Cloud load]",e);}}
   if(cloud){db=cloud;localStorage.setItem(DB_KEY,JSON.stringify(db));}
   else if(saved){try{db=JSON.parse(saved);}catch(e){createDefaultDB();}}
   else createDefaultDB();
@@ -2040,15 +2128,142 @@ document.addEventListener("DOMContentLoaded",init);
 import{initializeApp}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import{getFirestore,doc,getDoc,setDoc,onSnapshot}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 import{getAuth,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
 const firebaseConfig={apiKey:"AIzaSyB9juWEafOYe0uKeh_rhSBzCy6OMfyVAhM",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
-const app=initializeApp(firebaseConfig);
-const fs=getFirestore(app);
-const auth=getAuth(app);
-const ref=doc(fs,"caisse","main");
-const ready=new Promise(res=>{onAuthStateChanged(auth,u=>{if(u)res(u);});signInAnonymously(auth).catch(e=>console.warn("Auth",e));});
-window.fsSaveDB=d=>ready.then(()=>setDoc(ref,d)).catch(e=>console.warn(e));
-window.fsLoadDB=()=>ready.then(()=>getDoc(ref)).then(s=>s.exists()?s.data():null);
-window.fsListen=cb=>ready.then(()=>onSnapshot(ref,s=>{if(s.exists())cb(s.data());},e=>console.warn(e)));
+
+try{
+  const app=initializeApp(firebaseConfig);
+  const fs=getFirestore(app);
+  const auth=getAuth(app);
+  const ref=doc(fs,"caisse","main");
+
+  let currentUser=null, authResolve, authReject;
+  const authPromise=new Promise((resolve,reject)=>{authResolve=resolve;authReject=reject;});
+  const authTimeout=setTimeout(()=>authReject(new Error("Firebase Auth timeout")),10000);
+
+  onAuthStateChanged(auth,u=>{
+    if(u){currentUser=u;clearTimeout(authTimeout);authResolve(u);}
+  });
+
+  signInAnonymously(auth).catch(e=>{
+    clearTimeout(authTimeout);
+    authReject(e);
+    console.warn("[Firebase auth]",e);
+  });
+
+  window.fsSaveDB=async d=>{
+    try{
+      await authPromise;
+      d._updatedAt=Date.now();
+      d._updatedBy=currentUser?.uid||"anonymous";
+      await setDoc(ref,d);
+    }catch(e){console.warn("[Firebase save]",e);}
+  };
+
+  window.fsLoadDB=async()=>{
+    try{
+      await authPromise;
+      const snap=await getDoc(ref);
+      return snap.exists()?snap.data():null;
+    }catch(e){console.warn("[Firebase load]",e);return null;}
+  };
+
+  window.fsListen=cb=>{
+    authPromise.then(()=>onSnapshot(ref,s=>{
+      if(s.exists())cb(s.data());
+    },e=>console.warn("[Firebase listen]",e)))
+    .catch(e=>console.warn("[Firebase listen auth]",e));
+  };
+}catch(e){
+  console.warn("[Firebase init]",e);
+}
 </script>
+
+<!-- ZAROUALI_RUNTIME_FIX_V16 -->
+<script>
+(function(){
+"use strict";
+const PASS_KEY="zarouali_caisse_password";
+const LOGIN_KEY="zarouali_caisse_login";
+const USER_KEY_FIX="zarouali_current_user";
+let zarTimer=null;
+const z=id=>document.getElementById(id);
+
+function showErr(v){const e=z("loginError");if(e)e.textContent=v||"";}
+function adminPassword(){
+  let p="";
+  try{p=(localStorage.getItem(PASS_KEY)||"").trim();}catch(e){}
+  if(!p){try{const x=JSON.parse(localStorage.getItem(LOGIN_KEY)||"null");p=String(x?.password||"").trim();}catch(e){}}
+  return p||"1234";
+}
+function wakeZ(){
+  clearTimeout(zarTimer);
+  const s=z("screensaver");
+  if(s){s.classList.remove("show");s.hidden=true;s.style.display="none";}
+  if(localStorage.getItem(USER_KEY_FIX)){
+    zarTimer=setTimeout(()=>{
+      const ss=z("screensaver");
+      if(ss&&!document.hidden&&!document.querySelector(".modal.show,.scanner-modal.show")){
+        ss.hidden=false;ss.style.display="flex";ss.classList.add("show");
+      }
+    },20000);
+  }
+}
+function fallbackLogin(){
+  const u=(z("loginUser")?.value||"").trim();
+  const p=(z("loginPass")?.value||"").trim();
+  showErr("");
+  if(!u||!p){showErr("Identifiants requis");return false;}
+  if(u.toLowerCase()==="admin"&&p===adminPassword()){
+    const user={type:"admin",name:"admin"};
+    try{localStorage.setItem(USER_KEY_FIX,JSON.stringify(user));}catch(e){}
+    z("loginScreen")?.classList.add("hidden");
+    if(z("loginPass"))z("loginPass").value="";
+    try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
+    wakeZ();return false;
+  }
+  try{
+    const d=JSON.parse(localStorage.getItem("zarouali_caisse_v1")||"null");
+    const cs=Array.isArray(d?.cashiers)?d.cashiers:[];
+    const c=cs.find(x=>(String(x.name||"").toLowerCase()===u.toLowerCase()||String(x.id||"")===u)&&String(x.password||"")===p);
+    if(c){
+      localStorage.setItem(USER_KEY_FIX,JSON.stringify({type:"cashier",id:String(c.id),name:String(c.name||u)}));
+      z("loginScreen")?.classList.add("hidden");
+      if(z("loginPass"))z("loginPass").value="";
+      try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
+      wakeZ();return false;
+    }
+  }catch(e){}
+  showErr("Identifiants incorrects");return false;
+}
+function installZ(){
+  const original=window.doLogin;
+  window.doLogin=function(){
+    try{
+      if(typeof original==="function"){
+        const before=z("loginScreen")?.classList.contains("hidden");
+        const result=original();
+        const after=z("loginScreen")?.classList.contains("hidden");
+        if(after&&!before){wakeZ();return result;}
+      }
+    }catch(e){console.warn("[login]",e);}
+    return fallbackLogin();
+  };
+  const b=z("loginBtn");
+  if(b&&!b.dataset.zarFix){
+    b.dataset.zarFix="1";
+    b.addEventListener("click",e=>{e.preventDefault();window.doLogin();},true);
+  }
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)clearTimeout(zarTimer);else{wakeZ();try{renderAll()}catch(e){}}});
+  window.addEventListener("pageshow",wakeZ);
+  window.addEventListener("focus",wakeZ);
+  document.addEventListener("pointerdown",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},true);
+  document.addEventListener("touchstart",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},{passive:true,capture:true});
+  z("loginPass")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();window.doLogin()}},true);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installZ,{once:true});else installZ();
+})();
+</script>
+
 </body>
 </html>

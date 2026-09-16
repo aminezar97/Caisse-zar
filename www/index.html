@@ -1609,7 +1609,7 @@ function populateHistoryFilters(){const cs=document.getElementById("historyCashi
 function renderHistory(){const box=document.getElementById("history");if(!box)return;const d=document.getElementById("historyDate")?.value||"";const ci=document.getElementById("historyCashier")?.value||"";const cli=document.getElementById("historyClient")?.value||"";let list=[...db.sales];if(d)list=list.filter(s=>s.date.startsWith(d));if(ci)list=list.filter(s=>String(s.cashierId)===String(ci));if(cli)list=list.filter(s=>String(s.clientId)===String(cli));list.sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=list.map(s=>{const c=db.cashiers.find(x=>String(x.id)===String(s.cashierId));const cl=db.clients.find(x=>String(x.id)===String(s.clientId));const n=(s.items||[]).reduce((sm,i)=>sm+i.qty,0);return'<tr><td><strong class="mono">'+escapeHTML(s.id)+'</strong></td><td>'+new Date(s.date).toLocaleString('fr-FR')+'</td><td>'+(c?escapeHTML(c.name):"—")+'</td><td>'+(cl?escapeHTML(cl.name):"—")+'</td><td class="mono">'+n+'</td><td class="mono"><strong>'+money(s.total)+'</strong></td><td>'+escapeHTML(s.payment)+'</td><td><div class="row-actions"><button onclick="printReceipt(db.sales.find(x=>x.id===\''+s.id+'\'))">'+icon('print',14)+'</button><button onclick="Returns.open(\''+s.id+'\')" style="color:var(--danger-500)">↩</button></div></td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">Aucune vente</td></tr>';}
 function resetHistoryFilters(){const d=document.getElementById("historyDate");if(d)d.value=localDateISO();const c=document.getElementById("historyCashier");if(c)c.value="";const cl=document.getElementById("historyClient");if(cl)cl.value="";renderHistory();}
 
-function renderDashboard(){const today=localDateISO();const ts=db.sales.filter(s=>s.date.startsWith(today));const ca=ts.reduce((s,x)=>s+x.total,0);const cost=ts.reduce((s,x)=>s+(x.cost||0),0);const count=ts.length;const avg=count?ca/count:0;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};set("statCA",money(ca));set("statProfit",money(ca-cost));set("statTickets",count);set("statAverage",money(avg));const cs={};for(const s of ts){const id=String(s.cashierId||"unknown");if(!cs[id])cs[id]={tickets:0,ca:0};cs[id].tickets++;cs[id].ca+=s.total;}const =document.getElementById("cashierStats");if(cb)cb.innerHTML=Object.keys(cs).map(id=>{const c=db.cashiers.find(x=>String(x.id)===String(id));return'<tr><td><strong>'+escapeHTML(c?c.name:id)+'</strong></td><td class="mono">'+cs[id].tickets+'</td><td class="mono">'+money(cs[id].ca)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';const ps={};for(const s of db.sales)for(const it of s.items||[]){const k=String(it.id);if(!ps[k])ps[k]={qty:0,ca:0};ps[k].qty+=it.qty;ps[k].ca+=it.price*it.qty;}const sorted=Object.keys(ps).sort((a,b)=>ps[b].qty-ps[a].qty).slice(0,6);const maxQ=sorted.length?ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=db.products.find(x=>String(x.id)===String(id));const pct=(ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';}
+function renderDashboard(){const today=localDateISO();const ts=db.sales.filter(s=>s.date.startsWith(today));const ca=ts.reduce((s,x)=>s+x.total,0);const cost=ts.reduce((s,x)=>s+(x.cost||0),0);const count=ts.length;const avg=count?ca/count:0;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};set("statCA",money(ca));set("statProfit",money(ca-cost));set("statTickets",count);set("statAverage",money(avg));const cs={};for(const s of ts){const id=String(s.cashierId||"unknown");if(!cs[id])cs[id]={tickets:0,ca:0};cs[id].tickets++;cs[id].ca+=s.total;}const cb=document.getElementById("cashierStats");if(cb)cb.innerHTML=Object.keys(cs).map(id=>{const c=db.cashiers.find(x=>String(x.id)===String(id));return'<tr><td><strong>'+escapeHTML(c?c.name:id)+'</strong></td><td class="mono">'+cs[id].tickets+'</td><td class="mono">'+money(cs[id].ca)+'</td></tr>';}).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:20px">Aucune vente</td></tr>';const ps={};for(const s of db.sales)for(const it of s.items||[]){const k=String(it.id);if(!ps[k])ps[k]={qty:0,ca:0};ps[k].qty+=it.qty;ps[k].ca+=it.price*it.qty;}const sorted=Object.keys(ps).sort((a,b)=>ps[b].qty-ps[a].qty).slice(0,6);const maxQ=sorted.length?ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=db.products.find(x=>String(x.id)===String(id));const pct=(ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';}
 
 function renderAll(){renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();renderProductAdmin();renderClientsAdmin();renderCashiersAdmin();renderHistory();renderDashboard();populateHistoryFilters();updateCreditBar();updateCartCount();Suppliers.render();Purchases.render();updateUserLabels();}
 
@@ -2073,7 +2073,7 @@ async function init(){
   const saved=localStorage.getItem(DB_KEY);
   let localDB=null,cloud=null;
   if(saved){try{localDB=JSON.parse(saved);}catch(e){localDB=null;}}
-  if(window.fsLoadDB){try{cloud=await window.fsLoadDB();}catch(e){console.warn("Firebase load failed",e);}}
+  if(window.fsLoadDB){try{cloud=await Promise.race([window.fsLoadDB(),new Promise(r=>setTimeout(()=>r(null),4000))]);}catch(e){console.warn("Firebase load failed",e);}}
 
   if(cloud && Array.isArray(cloud.products) && cloud.products.length>0){
     db=cloud;
@@ -2123,7 +2123,7 @@ async function init(){
     (s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});
   });
 
-  try{ await CatalogImages.load(); }catch(e){ console.warn("CatalogImages.load failed",e); }
+  CatalogImages.load().catch(e=>console.warn("CatalogImages.load failed",e));
 
   try{
     const su=localStorage.getItem(USER_KEY);
@@ -2139,6 +2139,11 @@ async function init(){
     const localProducts=Array.isArray(db.products)?db.products:[];
     if(remoteProducts.length===0 && localProducts.length>0){
       console.warn("[Zarouali POS] Ignoring empty Firebase catalog snapshot");
+      return;
+    }
+    if(Number(remote._updatedAt||0) && Number(db._updatedAt||0) &&
+       Number(remote._updatedAt)<Number(db._updatedAt)){
+      console.warn("[Zarouali POS] Ignoring stale Firebase snapshot");
       return;
     }
     db=remote;

@@ -1,4 +1,4 @@
-const CACHE_NAME = "zarouali-caisse-v6";
+const CACHE_NAME = "zarouali-caisse-v7";
 
 const CORE_FILES = [
   "./",
@@ -10,7 +10,8 @@ const CORE_FILES = [
   "./vendor/sql-wasm.wasm",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icon.svg"
+  "./icon.svg",
+    "./js/firebase-images.js"
 ];
 
 self.addEventListener("install", event => {

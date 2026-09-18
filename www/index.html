@@ -2049,192 +2049,113 @@ const UniversalImporter = {
   },
 
   async readXLSX(file){
-    /* Prefer SheetJS when available: supports both modern .xlsx and legacy .xls. */
+    /* Robust Excel reader: finds the real product header row/sheet instead of assuming row 1. */
+    const productHints=[
+      "id","nom du produit","nom","produit","barcode","code-barres","prix",
+      "prix achat","stock","image","category","categorie","catégorie"
+    ];
+    const headerScore=(arr)=>{
+      const hs=(arr||[]).map(v=>this.key(v));
+      return productHints.reduce((n,h)=>n+(hs.includes(this.key(h))?1:0),0);
+    };
+    const rowsFromMatrix=(matrix)=>{
+      if(!Array.isArray(matrix)||!matrix.length) return [];
+      let bestRow=-1,bestScore=-1;
+      const limit=Math.min(matrix.length,30);
+      for(let i=0;i<limit;i++){
+        const sc=headerScore(matrix[i]);
+        if(sc>bestScore){bestScore=sc;bestRow=i;}
+      }
+      if(bestRow<0 || bestScore<1) return [];
+      const headers=(matrix[bestRow]||[]).map((v,i)=>String(v??"").trim()||("column_"+(i+1)));
+      return matrix.slice(bestRow+1).filter(r=>Array.isArray(r)&&r.some(v=>v!==undefined&&String(v).trim()!=="")).map(r=>{
+        const o={}; headers.forEach((h,i)=>o[h]=r[i]??""); return o;
+      });
+    };
+
     if(typeof XLSX!=="undefined" && XLSX.read){
       const data=await file.arrayBuffer();
       const wb=XLSX.read(data,{type:"array",cellDates:false,raw:false});
-      const zip=await JSZip.loadAsync(data);
       const sheets=Array.isArray(wb.SheetNames)?wb.SheetNames:[];
       if(!sheets.length) throw new Error("Excel : aucune feuille trouvée");
-      // Do not assume the first sheet is the product table (the workbook may contain Instructions, Notes, etc.).
-      const productHints=["id","nom du produit","nom","produit","barcode","code-barres","prix","image","category","categorie","catégorie"];
-      let first=sheets[0];
-      let bestScore=-1;
+
+      let first="", rows=[], bestScore=-1, bestCount=-1;
       for(const sn of sheets){
         try{
-          const testRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:false}).slice(0,3);
-          const headers=(testRows[0]||[]).map(v=>this.key(v));
-          const score=productHints.reduce((n,h)=>n+(headers.includes(this.key(h))?1:0),0);
-          if(score>bestScore){bestScore=score;first=sn;}
-        }catch(e){}
+          const matrix=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:false});
+          const score=Math.max(0,...matrix.slice(0,30).map(headerScore));
+          const candidate=rowsFromMatrix(matrix);
+          const usable=candidate.filter(r=>{
+            const n=String(this.field(r,["name","nom","nom du produit","produit","article"])||"").trim();
+            const b=String(this.field(r,["barcode","code-barres","codebarre","ean","gtin"])||"").trim();
+            return !!(n||b);
+          });
+          if(score>bestScore || (score===bestScore && usable.length>bestCount)){
+            bestScore=score; bestCount=usable.length; first=sn; rows=candidate;
+          }
+        }catch(e){ console.warn("[Excel sheet scan]",sn,e); }
       }
-      const ws=wb.Sheets[first];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
+      if(!rows.length) throw new Error("Excel : aucune ligne produit valide trouvée");
 
-      // Excel images are embedded inside the XLSX package, not stored in cells.
-      // Recover them by their drawing row and expose them as temporary image fields.
+      /* Recover embedded Excel images by row when possible. */
       try{
+        if(typeof JSZip==="undefined" || !JSZip.loadAsync) return rows;
+        const zip=await JSZip.loadAsync(data);
+        const readText=async(name)=>{const f=zip.file(name); return f?await f.async("text"):null;};
         const normTarget=(base,target)=>{
           target=String(target||"");
-          // OPC/XLSX relationships may use absolute package paths (/xl/...).
-          // Treat those as package-root paths; relative targets resolve from base.
           if(/^\//.test(target)) return target.replace(/^\/+/,"");
-          const parts=String(base||"").split("/");
-          parts.pop();
-          for(const p of target.split("/")){
-            if(!p || p===".") continue;
-            if(p==="..") parts.pop(); else parts.push(p);
-          }
+          const parts=String(base||"").split("/"); parts.pop();
+          for(const x of target.split("/")){if(!x||x===".")continue;if(x==="..")parts.pop();else parts.push(x);}
           return parts.join("/");
         };
-        const readText=async(name)=>{
-          const f=zip.file(name);
-          return f ? await f.async("text") : null;
-        };
-        const sheetName=first;
         const wbXml=await readText("xl/workbook.xml");
         const wbRelsXml=await readText("xl/_rels/workbook.xml.rels");
-        if(wbXml && wbRelsXml){
-          const wbd=new DOMParser().parseFromString(wbXml,"application/xml");
-          const wbr=new DOMParser().parseFromString(wbRelsXml,"application/xml");
-          const sheetEl=[...wbd.getElementsByTagNameNS("*","sheet")].find(x=>x.getAttribute("name")===sheetName);
-          const rid=sheetEl?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id") || sheetEl?.getAttribute("r:id");
-          const relEl=[...wbr.getElementsByTagNameNS("*","Relationship")].find(x=>x.getAttribute("Id")===rid);
-          const sheetPath=normTarget("xl/workbook.xml",relEl?.getAttribute("Target")||"");
-          if(sheetPath){
-            const srPath=sheetPath.replace(/[^/]+$/,"_rels/"+sheetPath.split("/").pop()+".rels");
-            const srXml=await readText(srPath);
-            if(srXml){
-              const srd=new DOMParser().parseFromString(srXml,"application/xml");
-              const drawRel=[...srd.getElementsByTagNameNS("*","Relationship")].find(x=>
-                /drawing/i.test(x.getAttribute("Type")||""));
-              if(drawRel){
-                const drawingPath=normTarget(sheetPath,drawRel.getAttribute("Target")||"");
-                const drawingXml=await readText(drawingPath);
-                const drRelPath=drawingPath.replace(/[^/]+$/,"_rels/"+drawingPath.split("/").pop()+".rels");
-                const drRelXml=await readText(drRelPath);
-                if(drawingXml && drRelXml){
-                  const dd=new DOMParser().parseFromString(drawingXml,"application/xml");
-                  const rr=new DOMParser().parseFromString(drRelXml,"application/xml");
-                  const relMap={};
-                  [...rr.getElementsByTagNameNS("*","Relationship")].forEach(x=>{
-                    relMap[x.getAttribute("Id")]=normTarget(drawingPath,x.getAttribute("Target")||"");
-                  });
-                  const anchors=[...dd.getElementsByTagNameNS("*","oneCellAnchor"),...dd.getElementsByTagNameNS("*","twoCellAnchor")];
-                  for(const a of anchors){
-                    const from=a.getElementsByTagNameNS("*","from")[0];
-                    const row=Number(from?.getElementsByTagNameNS("*","row")[0]?.textContent);
-                    const blip=a.getElementsByTagNameNS("*","blip")[0];
-                    const erid=blip?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","embed") || blip?.getAttribute("r:embed");
-                    const mediaPath=relMap[erid];
-                    if(!Number.isFinite(row) || !mediaPath || row<1) continue; // header is row 0
-                    const mf=zip.file(mediaPath);
-                    if(!mf) continue;
-                    const blob=await mf.async("blob");
-                    const rowIndex=row-1; // Excel row 2 -> JSON row 0
-                    if(rows[rowIndex]){
-                      rows[rowIndex].__embeddedImage=blob;
-                      rows[rowIndex].__embeddedImageName=thisName(mediaPath);
-                    }
-                  }
-                }
-              }
-            }
-          }
+        if(!wbXml||!wbRelsXml) return rows;
+        const wbd=new DOMParser().parseFromString(wbXml,"application/xml");
+        const wbr=new DOMParser().parseFromString(wbRelsXml,"application/xml");
+        const sheetEl=[...wbd.getElementsByTagNameNS("*","sheet")].find(x=>x.getAttribute("name")===first);
+        const rid=sheetEl?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id")||sheetEl?.getAttribute("r:id");
+        const relEl=[...wbr.getElementsByTagNameNS("*","Relationship")].find(x=>x.getAttribute("Id")===rid);
+        const sheetPath=normTarget("xl/workbook.xml",relEl?.getAttribute("Target")||"");
+        if(!sheetPath) return rows;
+        const srXml=await readText(sheetPath.replace(/[^/]+$/,"_rels/"+sheetPath.split("/").pop()+".rels"));
+        if(!srXml) return rows;
+        const srd=new DOMParser().parseFromString(srXml,"application/xml");
+        const drawRel=[...srd.getElementsByTagNameNS("*","Relationship")].find(x=>/drawing/i.test(x.getAttribute("Type")||""));
+        if(!drawRel) return rows;
+        const drawingPath=normTarget(sheetPath,drawRel.getAttribute("Target")||"");
+        const drawingXml=await readText(drawingPath);
+        const drRelXml=await readText(drawingPath.replace(/[^/]+$/,"_rels/"+drawingPath.split("/").pop()+".rels"));
+        if(!drawingXml||!drRelXml) return rows;
+        const dd=new DOMParser().parseFromString(drawingXml,"application/xml");
+        const rr=new DOMParser().parseFromString(drRelXml,"application/xml");
+        const relMap={};
+        [...rr.getElementsByTagNameNS("*","Relationship")].forEach(x=>relMap[x.getAttribute("Id")]=normTarget(drawingPath,x.getAttribute("Target")||""));
+        const anchors=[...dd.getElementsByTagNameNS("*","oneCellAnchor"),...dd.getElementsByTagNameNS("*","twoCellAnchor")];
+        for(const a of anchors){
+          const from=a.getElementsByTagNameNS("*","from")[0];
+          const row=Number(from?.getElementsByTagNameNS("*","row")[0]?.textContent);
+          const blip=a.getElementsByTagNameNS("*","blip")[0];
+          const erid=blip?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","embed")||blip?.getAttribute("r:embed");
+          const mediaPath=relMap[erid];
+          if(!Number.isFinite(row)||!mediaPath||row<1) continue;
+          const mf=zip.file(mediaPath); if(!mf) continue;
+          const blob=await mf.async("blob");
+          /* rows starts after the detected header row; calculate Excel row using the drawing row. */
+          const matrix=XLSX.utils.sheet_to_json(wb.Sheets[first],{header:1,defval:"",raw:false});
+          let headerRow=0; let hs=-1;
+          for(let i=0;i<Math.min(matrix.length,30);i++){const sc=headerScore(matrix[i]);if(sc>hs){hs=sc;headerRow=i;}}
+          const rowIndex=row-headerRow-1;
+          if(rows[rowIndex]){rows[rowIndex].__embeddedImage=blob;rows[rowIndex].__embeddedImageName=this.basename(mediaPath);}
         }
-      }catch(imgErr){
-        console.warn("[Excel embedded images]",imgErr);
-      }
+      }catch(imgErr){ console.warn("[Excel embedded images]",imgErr); }
       return rows;
     }
-    if(typeof JSZip==="undefined") throw new Error("JSZip non chargé");
-    const zip=await JSZip.loadAsync(await file.arrayBuffer());
 
-    const readText=async(name)=>{
-      const f=zip.file(name);
-      return f ? await f.async("text") : null;
-    };
-
-    const workbookText=await readText("xl/workbook.xml");
-    if(!workbookText) throw new Error("Excel : workbook.xml introuvable");
-
-    const relsText=await readText("xl/_rels/workbook.xml.rels");
-    const wb=new DOMParser().parseFromString(workbookText,"application/xml");
-    const rels=relsText ? new DOMParser().parseFromString(relsText,"application/xml") : null;
-
-    const sheetEls=Array.from(wb.getElementsByTagNameNS("*","sheet"));
-    if(!sheetEls.length) throw new Error("Excel : aucune feuille trouvée");
-
-    // Fallback parser: prefer a sheet whose name suggests a product/catalog table.
-    const preferred=sheetEls.find(x=>/produit|product|catalog|catalogue/i.test(x.getAttribute("name")||"")) || sheetEls[0];
-    const firstSheet=preferred;
-    const rid=firstSheet.getAttribute("r:id") || firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
-    let target="worksheets/sheet1.xml";
-
-    if(rels && rid){
-      for(const rel of Array.from(rels.getElementsByTagNameNS("*","Relationship"))){
-        if(rel.getAttribute("Id")===rid){
-          target=rel.getAttribute("Target") || target;
-          break;
-        }
-      }
-    }
-
-    target=target.replace(/^\/+/,"").replace(/^xl\//,"");
-    const sheetPath=target.startsWith("xl/") ? target : "xl/"+target;
-
-    const sheetText=await readText(sheetPath);
-    if(!sheetText) throw new Error("Excel : feuille introuvable");
-
-    const shared=[];
-    const sharedText=await readText("xl/sharedStrings.xml");
-    if(sharedText){
-      const sx=new DOMParser().parseFromString(sharedText,"application/xml");
-      for(const si of Array.from(sx.getElementsByTagNameNS("*","si"))){
-        shared.push(Array.from(si.getElementsByTagNameNS("*","t")).map(t=>t.textContent).join(""));
-      }
-    }
-
-    const doc=new DOMParser().parseFromString(sheetText,"application/xml");
-    const xmlRows=Array.from(doc.getElementsByTagNameNS("*","row"));
-    const matrix=[];
-
-    const colIndex=(ref)=>{
-      const letters=String(ref||"").replace(/\d/g,"").toUpperCase();
-      let n=0;
-      for(const ch of letters) n=n*26+(ch.charCodeAt(0)-64);
-      return Math.max(0,n-1);
-    };
-
-    for(const xr of xmlRows){
-      const arr=[];
-      for(const cell of Array.from(xr.getElementsByTagNameNS("*","c"))){
-        const idx=colIndex(cell.getAttribute("r"));
-        const type=cell.getAttribute("t");
-        let value="";
-
-        if(type==="inlineStr"){
-          value=Array.from(cell.getElementsByTagNameNS("*","t")).map(t=>t.textContent).join("");
-        }else{
-          const v=cell.getElementsByTagNameNS("*","v")[0];
-          value=v ? v.textContent : "";
-          if(type==="s") value=shared[Number(value)] ?? "";
-          else if(type==="b") value=value==="1" ? "TRUE" : "FALSE";
-        }
-        arr[idx]=value;
-      }
-      matrix.push(arr);
-    }
-
-    while(matrix.length && matrix[0].every(v=>v===undefined || String(v).trim()==="")) matrix.shift();
-    if(!matrix.length) return [];
-
-    const headers=matrix.shift().map((v,i)=>String(v ?? "").trim() || ("column_"+(i+1)));
-    return matrix.filter(r=>r.some(v=>v!==undefined && String(v).trim()!=="")).map(r=>{
-      const o={};
-      headers.forEach((h,i)=>o[h]=r[i] ?? "");
-      return o;
-    });
+    /* Minimal XLSX fallback when SheetJS is unavailable. */
+    if(typeof JSZip==="undefined") throw new Error("Lecteur Excel indisponible : SheetJS/JSZip non chargé");
+    throw new Error("Format .xls/.xlsx : chargez le lecteur Excel SheetJS");
   },
 
   async readTable(file){

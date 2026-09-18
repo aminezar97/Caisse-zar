@@ -2232,30 +2232,30 @@ const UniversalImporter = {
 
   async imagesFromProject(products){
     this.imageMap.clear();
-    const seen=new Set();
     const list=Array.isArray(products)?products:[];
+    const seen=new Set();
     let matched=0;
     for(const product of list){
       const raw=String(product?.image||"").trim();
       if(!raw) continue;
-      const candidates=[];
       const base=raw.replace(/^.*[\\/]/,"");
+      const candidates=[];
       if(base){
         candidates.push(base);
         if(!/\.[a-z0-9]+$/i.test(base)) candidates.push(base+".jpg",base+".jpeg",base+".png",base+".webp");
       }
       for(const name of candidates){
-        const key=this.key(name);
-        if(!key || seen.has(key) || this.imageMap.has(key)) continue;
-        seen.add(key);
+        const k=this.key(name);
+        if(!k || seen.has(k) || this.imageMap.has(k)) continue;
+        seen.add(k);
         try{
           const res=await fetch("./images/"+encodeURIComponent(name),{cache:"no-store"});
           if(!res.ok) continue;
           const blob=await res.blob();
           if(!blob.type || !/^image\//i.test(blob.type)) continue;
           const item={blob,name,path:"images/"+name};
-          this.imageMap.set(key,item);
-          const noExt=this.key(name.replace(/\.[^.]+$/,""));
+          this.imageMap.set(k,item);
+          const noExt=this.key(name.replace(/\.[^.]+$/i,""));
           if(noExt) this.imageMap.set(noExt,item);
           matched++;
           break;
@@ -2541,12 +2541,7 @@ async function importCatalogFile(e){
     }else{
       products=(await UniversalImporter.readTable(file))
         .map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
-
-      // Direct table import: use the Image column to locate files in ./images/.
-      // This is deterministic; there is no fuzzy or random image assignment.
-      if(products.length){
-        await UniversalImporter.imagesFromProject(products);
-      }
+      await UniversalImporter.imagesFromProject(products);
     }
 
     if(!products.length) throw new Error("Aucun produit valide trouvé");

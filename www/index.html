@@ -2230,6 +2230,42 @@ const UniversalImporter = {
     throw new Error("Format de tableau non supporté : "+ext);
   },
 
+  async imagesFromProject(products){
+    this.imageMap.clear();
+    const seen=new Set();
+    const list=Array.isArray(products)?products:[];
+    let matched=0;
+    for(const product of list){
+      const raw=String(product?.image||"").trim();
+      if(!raw) continue;
+      const candidates=[];
+      const base=raw.replace(/^.*[\\/]/,"");
+      if(base){
+        candidates.push(base);
+        if(!/\.[a-z0-9]+$/i.test(base)) candidates.push(base+".jpg",base+".jpeg",base+".png",base+".webp");
+      }
+      for(const name of candidates){
+        const key=this.key(name);
+        if(!key || seen.has(key) || this.imageMap.has(key)) continue;
+        seen.add(key);
+        try{
+          const res=await fetch("./images/"+encodeURIComponent(name),{cache:"no-store"});
+          if(!res.ok) continue;
+          const blob=await res.blob();
+          if(!blob.type || !/^image\//i.test(blob.type)) continue;
+          const item={blob,name,path:"images/"+name};
+          this.imageMap.set(key,item);
+          const noExt=this.key(name.replace(/\.[^.]+$/,""));
+          if(noExt) this.imageMap.set(noExt,item);
+          matched++;
+          break;
+        }catch(e){}
+      }
+    }
+    console.log("[CatalogImages] project images matched:",matched);
+    return matched;
+  },
+
   async imagesFromZip(zip){
     this.imageMap.clear();
     for(const entry of Object.values(zip.files)){
@@ -2505,6 +2541,12 @@ async function importCatalogFile(e){
     }else{
       products=(await UniversalImporter.readTable(file))
         .map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+
+      // Direct table import: use the Image column to locate files in ./images/.
+      // This is deterministic; there is no fuzzy or random image assignment.
+      if(products.length){
+        await UniversalImporter.imagesFromProject(products);
+      }
     }
 
     if(!products.length) throw new Error("Aucun produit valide trouvé");

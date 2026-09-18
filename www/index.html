@@ -1896,6 +1896,37 @@ function _showZIPDownloadModal(blobUrl, filename, imageCount){
   document.body.appendChild(m);
 }
 
+const ZaroualiExcelLoader = {
+  loaded:false,
+  loading:null,
+  async ensure(){
+    if(typeof XLSX!=="undefined" && XLSX.read){this.loaded=true;return true;}
+    if(this.loading) return this.loading;
+    const sources=[
+      "./vendor/xlsx.full.min.js",
+      "./xlsx.full.min.js",
+      "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+    ];
+    this.loading=(async()=>{
+      for(const src of sources){
+        try{
+          await new Promise((resolve,reject)=>{
+            const old=document.querySelector('script[data-zarouali-xlsx="1"]');
+            if(old) old.remove();
+            const sc=document.createElement("script");
+            sc.src=src; sc.async=true; sc.dataset.zaroualiXlsx="1";
+            sc.onload=()=>resolve(); sc.onerror=()=>reject(new Error("load failed"));
+            document.head.appendChild(sc);
+          });
+          if(typeof XLSX!=="undefined" && XLSX.read){this.loaded=true;console.log("[Excel] SheetJS loaded:",src);return true;}
+        }catch(e){console.warn("[Excel] failed:",src);}
+      }
+      return false;
+    })().finally(()=>{this.loading=null;});
+    return this.loading;
+  }
+};
+
 const UniversalImporter = {
   pending: null,
   imageMap: new Map(),
@@ -2050,6 +2081,8 @@ const UniversalImporter = {
 
   async readXLSX(file){
     /* Robust Excel reader: finds the real product header row/sheet instead of assuming row 1. */
+    const excelReady=await ZaroualiExcelLoader.ensure();
+    if(!excelReady) throw new Error("Lecteur Excel indisponible. Vérifiez www/vendor/xlsx.full.min.js ou Internet, puis réessayez.");
     const productHints=[
       "id","nom du produit","nom","produit","barcode","code-barres","prix",
       "prix achat","stock","image","category","categorie","catégorie"
@@ -2153,9 +2186,7 @@ const UniversalImporter = {
       return rows;
     }
 
-    /* Minimal XLSX fallback when SheetJS is unavailable. */
-    if(typeof JSZip==="undefined") throw new Error("Lecteur Excel indisponible : SheetJS/JSZip non chargé");
-    throw new Error("Format .xls/.xlsx : chargez le lecteur Excel SheetJS");
+    throw new Error("Lecteur Excel SheetJS non disponible.");
   },
 
   async readTable(file){

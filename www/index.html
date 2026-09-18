@@ -2054,8 +2054,20 @@ const UniversalImporter = {
       const data=await file.arrayBuffer();
       const wb=XLSX.read(data,{type:"array",cellDates:false,raw:false});
       const zip=await JSZip.loadAsync(data);
-      const first=wb.SheetNames?.[0];
-      if(!first) throw new Error("Excel : aucune feuille trouvée");
+      const sheets=Array.isArray(wb.SheetNames)?wb.SheetNames:[];
+      if(!sheets.length) throw new Error("Excel : aucune feuille trouvée");
+      // Do not assume the first sheet is the product table (the workbook may contain Instructions, Notes, etc.).
+      const productHints=["id","nom du produit","nom","produit","barcode","code-barres","prix","image","category","categorie","catégorie"];
+      let first=sheets[0];
+      let bestScore=-1;
+      for(const sn of sheets){
+        try{
+          const testRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:false}).slice(0,3);
+          const headers=(testRows[0]||[]).map(v=>this.key(v));
+          const score=productHints.reduce((n,h)=>n+(headers.includes(this.key(h))?1:0),0);
+          if(score>bestScore){bestScore=score;first=sn;}
+        }catch(e){}
+      }
       const ws=wb.Sheets[first];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
 
@@ -2150,9 +2162,12 @@ const UniversalImporter = {
     const wb=new DOMParser().parseFromString(workbookText,"application/xml");
     const rels=relsText ? new DOMParser().parseFromString(relsText,"application/xml") : null;
 
-    const firstSheet=wb.getElementsByTagNameNS("*","sheet")[0];
-    if(!firstSheet) throw new Error("Excel : aucune feuille trouvée");
+    const sheetEls=Array.from(wb.getElementsByTagNameNS("*","sheet"));
+    if(!sheetEls.length) throw new Error("Excel : aucune feuille trouvée");
 
+    // Fallback parser: prefer a sheet whose name suggests a product/catalog table.
+    const preferred=sheetEls.find(x=>/produit|product|catalog|catalogue/i.test(x.getAttribute("name")||"")) || sheetEls[0];
+    const firstSheet=preferred;
     const rid=firstSheet.getAttribute("r:id") || firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
     let target="worksheets/sheet1.xml";
 

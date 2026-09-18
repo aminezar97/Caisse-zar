@@ -13,6 +13,7 @@
 <script src="./html5-qrcode.min.js"></script>
 <script src="./vendor/jszip.min.js"></script>
 <script src="./vendor/sql-wasm.js"></script>
+<script src="./vendor/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg-app:#f5f7f2;--bg-surface:#ffffff;--bg-surface-2:#eef1e9;--bg-elevated:#ffffff;
@@ -736,7 +737,20 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
-#screensaver,#screensaver.show{display:none!important;pointer-events:none!important}\n</style>
+#screensaver,#screensaver.show{display:none!important;pointer-events:none!important}\n
+/* ===== UNIVERSAL IMPORT / NUMBER VISIBILITY FIX ===== */
+input,select,textarea{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;opacity:1!important;}
+input::placeholder,textarea::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;opacity:1!important;}
+input[type="number"]{font-variant-numeric:tabular-nums;color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;}
+.mono{font-variant-numeric:tabular-nums;}
+
+/* ===== NUMERIC / INPUT VISIBILITY FIX ===== */
+input,select,textarea{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;opacity:1!important;}
+input::placeholder,textarea::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;opacity:1!important;}
+input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabular-nums;}
+.login-box .form-group input{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;background:var(--bg-surface-2)!important;}
+.login-box .form-group input::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;}
+</style>
 </head>
 <body>
 
@@ -884,7 +898,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
 <div id="productModal" class="modal"><div class="modal-box"><div class="modal-header"><strong>📦 Produit</strong><button class="close" onclick="closeModal('productModal')">×</button></div><div class="modal-body"><input type="hidden" id="editProductId"><div class="form-grid" style="padding:0">
 <div class="form-group full"><label>Nom</label><input id="pName" placeholder="Nom du produit"></div>
 <div class="form-group"><label>Catégorie</label><select id="pCategory"><option>Épicerie</option><option>Boissons</option><option>Produits laitiers</option><option>Fruits & légumes</option><option>Viandes</option><option>Conserves</option><option>Snacks</option><option>Boulangerie</option><option>Hygiène</option><option>Autre</option></select></div>
-<div class="form-group"><label>Code-barres</label><input id="pBarcode" inputmode="numeric" placeholder="Code-barres"></div>
+<div class="form-group"><label>Code-barres</label><div style="display:flex;gap:8px;align-items:stretch"><input id="pBarcode" inputmode="numeric" placeholder="Code-barres" style="flex:1;min-width:0"><button type="button" class="btn btn-secondary" onclick="openScanner('productBarcode')" title="Scanner le code-barres" style="min-width:52px">📷</button></div></div>
 <div class="form-group"><label>Fournisseur</label><select id="pSupplier"><option value="">— Aucun —</option></select></div>
 <div class="form-group"><label>Type</label><select id="pSaleType" onchange="onProductSaleTypeChange()"><option value="unit">Unité</option><option value="weight">Poids (kg)</option><option value="volume">Volume (L)</option></select></div>
 <div class="form-group"><label>Prix vente (DH)</label><input id="pPrice" type="number" step="0.01" placeholder="0.00"></div>
@@ -1294,7 +1308,7 @@ function renderMainContent(){
   </section>
   <section id="productsPage" class="page ${currentPage==='productsPage'?'active':''}">
     <div class="panel"><div class="panel-header"><div class="panel-title">${icon('package',18)}Produits</div><button class="btn btn-primary" onclick="openProductModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-secondary" onclick="exportProductsCSV()">📤 Export CSV</button><button class="btn btn-primary" onclick="exportCatalogZIPWithShare()">📦 Export ZIP</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Import ZIP</button><input id="csvInput" type="file" accept=".zip,application/zip,application/x-zip-compressed,application/octet-stream" hidden onchange="importCatalogFile(event)"></div>
+    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-primary" onclick="exportProductsExcel()">📊 Export Excel</button><button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()">📥 Importer catalogue</button><input id="csvInput" type="file" accept=".xlsx,.xls,.csv,.json,.zip,.db,.sqlite,.sqlite3" hidden onchange="importCatalogFile(event)"></div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix</th><th>Achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table></div></div>
   </section>
   <section id="clientsPage" class="page ${currentPage==='clientsPage'?'active':''}">
@@ -1553,14 +1567,15 @@ function renderProductAdmin(){const box=document.getElementById("productsAdmin")
 function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=String(data.id);document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=data.price;document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){const img=normalizeProductImage(data.image);currentImage=data.image;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(img)+'">';}}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
 function onProductSaleTypeChange(){const type=document.getElementById("pSaleType")?.value;const vg=document.getElementById("variantGroup");if(vg)vg.style.display=type==='unit'?'block':'none';}
 function editProduct(id){const key=String(id).trim();const p=db.products.find(x=>String(x.id)===key);if(!p){toast("Produit introuvable","error");return;}openProductModal(p);}
+function _zarParseNumber(v){const raw=String(v??"").trim().replace(/\s/g,"").replace(",",".");if(raw==="")return 0;const n=Number(raw);return Number.isFinite(n)?n:0;}
 function saveProduct(){
   const rawId=document.getElementById("editProductId").value;
   const id=String(rawId||"").trim();
   const name=document.getElementById("pName").value.trim();
   const category=document.getElementById("pCategory").value;
-  const barcode=document.getElementById("pBarcode").value.trim();
-  const price=parseFloat(document.getElementById("pPrice").value)||0;
-  const purchasePrice=parseFloat(document.getElementById("pPurchasePrice").value)||0;
+  const barcode=String(document.getElementById("pBarcode").value||"").trim().replace(/\s+/g,"");
+  const price=_zarParseNumber(document.getElementById("pPrice").value);
+  const purchasePrice=_zarParseNumber(document.getElementById("pPurchasePrice").value);
   const stock=parseInt(document.getElementById("pStock").value)||0;
   const minStock=parseInt(document.getElementById("pMinStock").value)||5;
   const expirationDate=document.getElementById("pExpiration").value||"";
@@ -1576,7 +1591,7 @@ function saveProduct(){
   if(id){
     const p=db.products.find(x=>String(x.id)===id);
     if(!p){toast("Produit introuvable","error");return;}
-    Object.assign(p,{name,category,barcode,price,purchasePrice,stock,minStock,expirationDate,supplierId,saleType,variantGroup});
+    Object.assign(p,{name,category,barcode,price,purchasePrice,stock,minStock,expirationDate,supplierId,saleType,variantGroup,updatedAt:Date.now()});
     if(currentImage)p.image=currentImage;
     AuditLog.log("product.update",name,"");
   }else{
@@ -1586,10 +1601,10 @@ function saveProduct(){
       if(m)max=Math.max(max,parseInt(m[1],10));
     });
     const newId="P"+String(max+1).padStart(4,"0");
-    db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup});
+    db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup,updatedAt:Date.now()});
     AuditLog.log("product.create",name,money(price));
   }
-  saveDB();closeModal("productModal");renderAll();toast(t("productSaved"),"success");
+  db._updatedAt=Date.now();saveDB();closeModal("productModal");renderAll();toast(t("productSaved"),"success");
 }
 function deleteProduct(id){if(!confirm("Supprimer ce produit ?"))return;const key=String(id).trim();const p=db.products.find(x=>String(x.id)===key);db.products=db.products.filter(x=>String(x.id)!==key);saveDB();renderAll();if(p)AuditLog.log("product.delete",p.name,"");toast("Produit supprimé","success");}
 
@@ -1660,10 +1675,11 @@ function attachSearchListener(){
   });
 }
 
-function openScanner(){const m=document.getElementById("scannerModal");const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(!m)return;m.classList.add("show");scannerLocked=false;if(s){s.textContent="Prêt à scanner...";s.className="scanner-status";}if(r)r.style.display="none";setTimeout(()=>startScanner(),400);}
-async function closeScanner(){scannerLocked=true;if(scannerInstance){try{if(scannerRunning)await scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;}scannerRunning=false;const c=document.getElementById("scannerContainer");if(c)c.innerHTML='<div class="scanner-overlay"></div>';const m=document.getElementById("scannerModal");if(m)m.classList.remove("show");}
+let zarProductBarcodeScanTarget=false;
+function openScanner(target){zarProductBarcodeScanTarget=(target==="productBarcode");const m=document.getElementById("scannerModal");const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(!m)return;m.classList.add("show");scannerLocked=false;if(s){s.textContent="Prêt à scanner...";s.className="scanner-status";}if(r)r.style.display="none";setTimeout(()=>startScanner(),400);}
+async function closeScanner(){scannerLocked=true;const inst=scannerInstance;scannerInstance=null;scannerRunning=false;if(inst){try{await inst.stop();}catch(e){}try{inst.clear();}catch(e){}}const c=document.getElementById("scannerContainer");if(c)c.innerHTML='<div class="scanner-overlay"></div>';const m=document.getElementById("scannerModal");if(m)m.classList.remove("show");}
 function retryScanner(){scannerLocked=false;const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(s){s.textContent="Prêt...";s.className="scanner-status";}if(r)r.style.display="none";if(scannerInstance){try{scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;}scannerRunning=false;setTimeout(startScanner,250);}
-async function startScanner(){if(scannerRunning)return;const cont=document.getElementById("scannerContainer");const status=document.getElementById("scannerStatus");const retry=document.getElementById("retryScanBtn");if(!cont||!status)return;scannerLocked=false;const Scanner=window.Html5Qrcode||window.html5qrcode||null;if(!Scanner){status.textContent="Scanner indisponible";status.className="scanner-status error";if(retry)retry.style.display="inline-block";return;}try{if(scannerInstance){try{await scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;scannerRunning=false;}cont.innerHTML="";status.textContent="Recherche caméra...";let cams=[];try{cams=await Scanner.getCameras();}catch(e){}let camId=null;if(cams&&cams.length){const r=cams.find(c=>{const l=String(c.label||"").toLowerCase();return l.includes("back")||l.includes("rear")||l.includes("environment");});camId=r?r.id:cams[cams.length-1].id;}scannerInstance=new Scanner("scannerContainer");const fmts=[];if(window.Html5QrcodeSupportedFormats){const F=window.Html5QrcodeSupportedFormats;["EAN_13","EAN_8","UPC_A","UPC_E","CODE_128","CODE_39","CODE_93","ITF","CODABAR","QR_CODE"].forEach(n=>{if(F[n]!==undefined)fmts.push(F[n]);});}const cfg={fps:12,qrbox:(w,h)=>({width:Math.max(Math.min(Math.floor(w*0.9),420),240),height:Math.max(Math.min(Math.floor(h*0.38),180),120)}),aspectRatio:1.7777778};if(fmts.length)cfg.formatsToSupport=fmts;const camCfg=camId?camId:{facingMode:{exact:"environment"}};await scannerInstance.start(camCfg,cfg,async(text)=>{if(scannerLocked)return;const bc=String(text||"").trim();if(!bc)return;scannerLocked=true;status.textContent="Code: "+bc;status.className="scanner-status success";const p=db.products.find(x=>String(x.barcode||"").trim()===bc);if(p){try{addToCart(p.id);playBeep();toast('✓ '+p.name,'success');}catch(e){}setTimeout(()=>closeScanner(),250);}else{try{playErrorBeep();}catch(e){}toast('Code inconnu: '+bc,'warn');setTimeout(()=>{closeScanner();setTimeout(()=>openProductModal(null,bc),250);},250);}},()=>{});scannerRunning=true;status.textContent="Prêt à scanner";status.className="scanner-status";}catch(err){scannerRunning=false;let msg=err?.message||String(err);if(msg.toLowerCase().includes("permission"))msg="Caméra refusée";status.textContent="Erreur: "+msg;status.className="scanner-status error";if(retry)retry.style.display="inline-block";}}
+async function startScanner(){if(scannerRunning)return;const cont=document.getElementById("scannerContainer");const status=document.getElementById("scannerStatus");const retry=document.getElementById("retryScanBtn");if(!cont||!status)return;scannerLocked=false;const Scanner=window.Html5Qrcode||window.html5qrcode||null;if(!Scanner){status.textContent="Scanner indisponible";status.className="scanner-status error";if(retry)retry.style.display="inline-block";return;}try{if(scannerInstance){try{await scannerInstance.stop();}catch(e){}try{scannerInstance.clear();}catch(e){}scannerInstance=null;scannerRunning=false;}cont.innerHTML="";status.textContent="Recherche caméra...";let cams=[];try{cams=await Scanner.getCameras();}catch(e){}let camId=null;if(cams&&cams.length){const r=cams.find(c=>{const l=String(c.label||"").toLowerCase();return l.includes("back")||l.includes("rear")||l.includes("environment");});camId=r?r.id:cams[cams.length-1].id;}scannerInstance=new Scanner("scannerContainer");const fmts=[];if(window.Html5QrcodeSupportedFormats){const F=window.Html5QrcodeSupportedFormats;["EAN_13","EAN_8","UPC_A","UPC_E","CODE_128","CODE_39","CODE_93","ITF","CODABAR","QR_CODE"].forEach(n=>{if(F[n]!==undefined)fmts.push(F[n]);});}const cfg={fps:12,qrbox:(w,h)=>({width:Math.max(Math.min(Math.floor(w*0.9),420),240),height:Math.max(Math.min(Math.floor(h*0.38),180),120)}),aspectRatio:1.7777778};if(fmts.length)cfg.formatsToSupport=fmts;const camCfg=camId?camId:{facingMode:{exact:"environment"}};await scannerInstance.start(camCfg,cfg,async(text)=>{if(scannerLocked)return;const bc=String(text||"").trim();if(!bc)return;scannerLocked=true;status.textContent="Code: "+bc;status.className="scanner-status success";if(zarProductBarcodeScanTarget){try{playBeep();}catch(e){}const inp=document.getElementById("pBarcode");if(inp){inp.value=bc;inp.dispatchEvent(new Event("input",{bubbles:true}));}zarProductBarcodeScanTarget=false;setTimeout(async()=>{await closeScanner();setTimeout(()=>{const pm=document.getElementById("productModal");if(pm)pm.classList.add("show");const name=document.getElementById("pName");if(name)name.focus();},80);},80);return;}const p=db.products.find(x=>String(x.barcode||"").trim()===bc);if(p){try{addToCart(p.id);playBeep();toast('✓ '+p.name,'success');}catch(e){}setTimeout(()=>closeScanner(),250);}else{try{playErrorBeep();}catch(e){}toast('Code inconnu: '+bc,'warn');setTimeout(async()=>{await closeScanner();setTimeout(()=>openProductModal(null,bc),80);},120);}},()=>{});scannerRunning=true;status.textContent="Prêt à scanner";status.className="scanner-status";}catch(err){scannerRunning=false;let msg=err?.message||String(err);if(msg.toLowerCase().includes("permission"))msg="Caméra refusée";status.textContent="Erreur: "+msg;status.className="scanner-status error";if(retry)retry.style.display="inline-block";}}
 function playBeep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=800;o.type='sine';g.gain.value=0.3;o.start();o.stop(c.currentTime+0.1);}catch(e){}}
 function playErrorBeep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=400;o.type='sine';g.gain.value=0.3;o.start();o.stop(c.currentTime+0.2);}catch(e){}}
 
@@ -1693,6 +1709,40 @@ async function handleImageFile(e){
   e.target.value="";
 }
 
+function exportProductsExcel(){
+  try{
+    if(typeof XLSX==="undefined" || !XLSX.utils || !XLSX.writeFile){
+      throw new Error("Module Excel non chargé");
+    }
+    const products=Array.isArray(db.products)?db.products:[];
+    const rows=products.map(p=>({
+      ID:String(p.id??""),
+      "Nom du produit":String(p.name??""),
+      "Catégorie":String(p.category??""),
+      "Code-barres":String(p.barcode??""),
+      "Prix":Number.isFinite(Number(p.price))?Number(p.price):"",
+      "Prix achat":Number.isFinite(Number(p.purchasePrice))?Number(p.purchasePrice):"",
+      "Stock":Number.isFinite(Number(p.stock))?Number(p.stock):"",
+      "Stock minimum":Number.isFinite(Number(p.minStock))?Number(p.minStock):"",
+      "Image":String(p.image??""),
+      "Date expiration":String(p.expirationDate??""),
+      "Type vente":String(p.saleType??"unit"),
+      "Groupe variante":String(p.variantGroup??"")
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws["!cols"]=[
+      {wch:10},{wch:32},{wch:22},{wch:18},{wch:12},{wch:12},
+      {wch:10},{wch:14},{wch:40},{wch:16},{wch:12},{wch:20}
+    ];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Produits");
+    XLSX.writeFile(wb,"Zarouali_Catalogue.xlsx");
+    toast("Export Excel réussi","success");
+  }catch(err){
+    console.error("[Excel export]",err);
+    toast("Erreur export Excel : "+(err.message||err),"error");
+  }
+}
 function exportProductsCSV(){const h=["id","name","category","barcode","price","purchasePrice","stock","minStock","image","expirationDate"];const rows=db.products.map(p=>h.map(k=>csvEscape(p[k]||"")).join(","));downloadFile("produits.csv",h.join(",")+"\n"+rows.join("\n"),"text/csv");toast('Export CSV','success');}
 
 /* ==================== EXPORT ZIP (4 stratégies pour WebView Android) ==================== */
@@ -1846,19 +1896,630 @@ function _showZIPDownloadModal(blobUrl, filename, imageCount){
   document.body.appendChild(m);
 }
 
+const UniversalImporter = {
+  pending: null,
+  imageMap: new Map(),
+
+  norm(v){
+    return String(v ?? "")
+      .trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^\p{L}\p{N}\s._-]/gu," ")
+      .replace(/\s+/g," ").trim();
+  },
+
+  key(v){
+    return this.norm(v).replace(/[^a-z0-9]+/g,"");
+  },
+
+  basename(v){
+    return String(v ?? "").replace(/\\/g,"/").split("/").pop().trim();
+  },
+
+  field(row, names){
+    const keys = Object.keys(row || {});
+    const wanted = names.map(x => this.key(x));
+    for(const k of keys){
+      if(wanted.includes(this.key(k))) return row[k];
+    }
+    return "";
+  },
+
+  number(v, fallback=0){
+    if(v === null || v === undefined || v === "") return fallback;
+    let x = String(v).trim().replace(/\s/g,"");
+    if(x.includes(",") && x.includes(".")){
+      if(x.lastIndexOf(",") > x.lastIndexOf(".")) x=x.replace(/\./g,"").replace(",",".");
+      else x=x.replace(/,/g,"");
+    }else{
+      x=x.replace(",",".");
+    }
+    const n=Number(x);
+    return Number.isFinite(n) ? n : fallback;
+  },
+
+  product(row, i){
+    const barcode = String(this.field(row,[
+      "barcode","bar code","ean","ean13","ean8","gtin",
+      "code-barres","codebarre","code_barre","upc","code"
+    ]) ?? "").trim();
+
+    const name = String(this.field(row,[
+      "name","product_name","product name","nom","nom du produit","nom produit","produit",
+      "article","designation","désignation","اسم المنتج"
+    ]) ?? "").trim();
+
+    if(!name && !barcode) return null;
+
+    const category = String(this.field(row,[
+      "category","categorie","catégorie","department","rayon","famille","قسم"
+    ]) || "Autre").trim();
+
+    const image = String(this.field(row,[
+      "image","image_url","image url","photo","picture","fichier image","fichier_image","nom image","nom_image",
+      "picture_url","photo_url","imagepath","image_path","photo_path"
+    ]) || "").trim();
+
+    const price = this.number(this.field(row,[
+      "price","prix","sale_price","selling_price","prix_vente","price_dh","prix_dh"
+    ]));
+
+    const purchase = this.number(this.field(row,[
+      "purchasePrice","purchase_price","cost","cost_price","prix_achat","achat"
+    ]), price * 0.65);
+
+    const stock = this.number(this.field(row,[
+      "stock","quantity","qty","quantite","quantité","qte"
+    ]));
+
+    const minStock = this.number(this.field(row,[
+      "minStock","min_stock","minimum","seuil","stock_min"
+    ]), 5);
+
+    let id = String(this.field(row,[
+      "id","product_id","product id","reference","ref","sku"
+    ]) || "").trim();
+
+    if(!id) id = barcode || ("IMP" + String(i+1).padStart(5,"0"));
+
+    return {
+      id, name, category, barcode, price,
+      purchasePrice: purchase,
+      stock, minStock, image,
+      expirationDate: String(this.field(row,[
+        "expirationDate","expiration_date","expiry","date_expiration"
+      ]) || "").trim(),
+      saleType: String(this.field(row,[
+        "saleType","sale_type","unit","unite","unité"
+      ]) || "unit").trim(),
+      variantGroup: String(this.field(row,[
+        "variantGroup","variant_group","group","groupe"
+      ]) || "").trim(),
+      _embeddedImage: row.__embeddedImage || null,
+      _embeddedImageName: row.__embeddedImageName || ""
+    };
+  },
+
+  parseCSV(text){
+    text=String(text ?? "").replace(/^\uFEFF/,"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+    const first = text.split("\n").find(x=>x.trim()) || "";
+    const commas=(first.match(/,/g)||[]).length;
+    const semis=(first.match(/;/g)||[]).length;
+    const tabs=(first.match(/\t/g)||[]).length;
+    const delim = semis > commas && semis >= tabs ? ";" : (tabs > commas ? "\t" : ",");
+
+    const rows=[], row=[];
+    let field="", quoted=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i];
+      if(c === '"'){
+        if(quoted && text[i+1] === '"'){ field+='"'; i++; }
+        else quoted=!quoted;
+      }else if(c===delim && !quoted){
+        row.push(field); field="";
+      }else if(c==="\n" && !quoted){
+        row.push(field); field="";
+        if(row.some(v=>String(v).trim()!=="")) rows.push(row.splice(0));
+        else row.length=0;
+      }else{
+        field+=c;
+      }
+    }
+    if(field!=="" || row.length){
+      row.push(field);
+      if(row.some(v=>String(v).trim()!=="")) rows.push(row);
+    }
+
+    if(!rows.length) return [];
+    const headers=rows.shift().map((h,i)=>String(h).trim() || ("column_"+(i+1)));
+    return rows.map(r=>{
+      const o={};
+      headers.forEach((h,i)=>o[h]=r[i] ?? "");
+      return o;
+    });
+  },
+
+  async readJSON(file){
+    const d=JSON.parse(await file.text());
+    if(Array.isArray(d)) return d;
+    if(Array.isArray(d.products)) return d.products;
+    if(Array.isArray(d.items)) return d.items;
+    if(Array.isArray(d.data)) return d.data;
+    throw new Error("JSON : aucune liste de produits trouvée");
+  },
+
+  async readXLSX(file){
+    /* Prefer SheetJS when available: supports both modern .xlsx and legacy .xls. */
+    if(typeof XLSX!=="undefined" && XLSX.read){
+      const data=await file.arrayBuffer();
+      const wb=XLSX.read(data,{type:"array",cellDates:false,raw:false});
+      const zip=await JSZip.loadAsync(data);
+      const first=wb.SheetNames?.[0];
+      if(!first) throw new Error("Excel : aucune feuille trouvée");
+      const ws=wb.Sheets[first];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
+
+      // Excel images are embedded inside the XLSX package, not stored in cells.
+      // Recover them by their drawing row and expose them as temporary image fields.
+      try{
+        const normTarget=(base,target)=>{
+          target=String(target||"");
+          // OPC/XLSX relationships may use absolute package paths (/xl/...).
+          // Treat those as package-root paths; relative targets resolve from base.
+          if(/^\//.test(target)) return target.replace(/^\/+/,"");
+          const parts=String(base||"").split("/");
+          parts.pop();
+          for(const p of target.split("/")){
+            if(!p || p===".") continue;
+            if(p==="..") parts.pop(); else parts.push(p);
+          }
+          return parts.join("/");
+        };
+        const readText=async(name)=>{
+          const f=zip.file(name);
+          return f ? await f.async("text") : null;
+        };
+        const sheetName=first;
+        const wbXml=await readText("xl/workbook.xml");
+        const wbRelsXml=await readText("xl/_rels/workbook.xml.rels");
+        if(wbXml && wbRelsXml){
+          const wbd=new DOMParser().parseFromString(wbXml,"application/xml");
+          const wbr=new DOMParser().parseFromString(wbRelsXml,"application/xml");
+          const sheetEl=[...wbd.getElementsByTagNameNS("*","sheet")].find(x=>x.getAttribute("name")===sheetName);
+          const rid=sheetEl?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id") || sheetEl?.getAttribute("r:id");
+          const relEl=[...wbr.getElementsByTagNameNS("*","Relationship")].find(x=>x.getAttribute("Id")===rid);
+          const sheetPath=normTarget("xl/workbook.xml",relEl?.getAttribute("Target")||"");
+          if(sheetPath){
+            const srPath=sheetPath.replace(/[^/]+$/,"_rels/"+sheetPath.split("/").pop()+".rels");
+            const srXml=await readText(srPath);
+            if(srXml){
+              const srd=new DOMParser().parseFromString(srXml,"application/xml");
+              const drawRel=[...srd.getElementsByTagNameNS("*","Relationship")].find(x=>
+                /drawing/i.test(x.getAttribute("Type")||""));
+              if(drawRel){
+                const drawingPath=normTarget(sheetPath,drawRel.getAttribute("Target")||"");
+                const drawingXml=await readText(drawingPath);
+                const drRelPath=drawingPath.replace(/[^/]+$/,"_rels/"+drawingPath.split("/").pop()+".rels");
+                const drRelXml=await readText(drRelPath);
+                if(drawingXml && drRelXml){
+                  const dd=new DOMParser().parseFromString(drawingXml,"application/xml");
+                  const rr=new DOMParser().parseFromString(drRelXml,"application/xml");
+                  const relMap={};
+                  [...rr.getElementsByTagNameNS("*","Relationship")].forEach(x=>{
+                    relMap[x.getAttribute("Id")]=normTarget(drawingPath,x.getAttribute("Target")||"");
+                  });
+                  const anchors=[...dd.getElementsByTagNameNS("*","oneCellAnchor"),...dd.getElementsByTagNameNS("*","twoCellAnchor")];
+                  for(const a of anchors){
+                    const from=a.getElementsByTagNameNS("*","from")[0];
+                    const row=Number(from?.getElementsByTagNameNS("*","row")[0]?.textContent);
+                    const blip=a.getElementsByTagNameNS("*","blip")[0];
+                    const erid=blip?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","embed") || blip?.getAttribute("r:embed");
+                    const mediaPath=relMap[erid];
+                    if(!Number.isFinite(row) || !mediaPath || row<1) continue; // header is row 0
+                    const mf=zip.file(mediaPath);
+                    if(!mf) continue;
+                    const blob=await mf.async("blob");
+                    const rowIndex=row-1; // Excel row 2 -> JSON row 0
+                    if(rows[rowIndex]){
+                      rows[rowIndex].__embeddedImage=blob;
+                      rows[rowIndex].__embeddedImageName=thisName(mediaPath);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }catch(imgErr){
+        console.warn("[Excel embedded images]",imgErr);
+      }
+      return rows;
+    }
+    if(typeof JSZip==="undefined") throw new Error("JSZip non chargé");
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+
+    const readText=async(name)=>{
+      const f=zip.file(name);
+      return f ? await f.async("text") : null;
+    };
+
+    const workbookText=await readText("xl/workbook.xml");
+    if(!workbookText) throw new Error("Excel : workbook.xml introuvable");
+
+    const relsText=await readText("xl/_rels/workbook.xml.rels");
+    const wb=new DOMParser().parseFromString(workbookText,"application/xml");
+    const rels=relsText ? new DOMParser().parseFromString(relsText,"application/xml") : null;
+
+    const firstSheet=wb.getElementsByTagNameNS("*","sheet")[0];
+    if(!firstSheet) throw new Error("Excel : aucune feuille trouvée");
+
+    const rid=firstSheet.getAttribute("r:id") || firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
+    let target="worksheets/sheet1.xml";
+
+    if(rels && rid){
+      for(const rel of Array.from(rels.getElementsByTagNameNS("*","Relationship"))){
+        if(rel.getAttribute("Id")===rid){
+          target=rel.getAttribute("Target") || target;
+          break;
+        }
+      }
+    }
+
+    target=target.replace(/^\/+/,"").replace(/^xl\//,"");
+    const sheetPath=target.startsWith("xl/") ? target : "xl/"+target;
+
+    const sheetText=await readText(sheetPath);
+    if(!sheetText) throw new Error("Excel : feuille introuvable");
+
+    const shared=[];
+    const sharedText=await readText("xl/sharedStrings.xml");
+    if(sharedText){
+      const sx=new DOMParser().parseFromString(sharedText,"application/xml");
+      for(const si of Array.from(sx.getElementsByTagNameNS("*","si"))){
+        shared.push(Array.from(si.getElementsByTagNameNS("*","t")).map(t=>t.textContent).join(""));
+      }
+    }
+
+    const doc=new DOMParser().parseFromString(sheetText,"application/xml");
+    const xmlRows=Array.from(doc.getElementsByTagNameNS("*","row"));
+    const matrix=[];
+
+    const colIndex=(ref)=>{
+      const letters=String(ref||"").replace(/\d/g,"").toUpperCase();
+      let n=0;
+      for(const ch of letters) n=n*26+(ch.charCodeAt(0)-64);
+      return Math.max(0,n-1);
+    };
+
+    for(const xr of xmlRows){
+      const arr=[];
+      for(const cell of Array.from(xr.getElementsByTagNameNS("*","c"))){
+        const idx=colIndex(cell.getAttribute("r"));
+        const type=cell.getAttribute("t");
+        let value="";
+
+        if(type==="inlineStr"){
+          value=Array.from(cell.getElementsByTagNameNS("*","t")).map(t=>t.textContent).join("");
+        }else{
+          const v=cell.getElementsByTagNameNS("*","v")[0];
+          value=v ? v.textContent : "";
+          if(type==="s") value=shared[Number(value)] ?? "";
+          else if(type==="b") value=value==="1" ? "TRUE" : "FALSE";
+        }
+        arr[idx]=value;
+      }
+      matrix.push(arr);
+    }
+
+    while(matrix.length && matrix[0].every(v=>v===undefined || String(v).trim()==="")) matrix.shift();
+    if(!matrix.length) return [];
+
+    const headers=matrix.shift().map((v,i)=>String(v ?? "").trim() || ("column_"+(i+1)));
+    return matrix.filter(r=>r.some(v=>v!==undefined && String(v).trim()!=="")).map(r=>{
+      const o={};
+      headers.forEach((h,i)=>o[h]=r[i] ?? "");
+      return o;
+    });
+  },
+
+  async readTable(file){
+    const ext=(file.name.split(".").pop()||"").toLowerCase();
+    if(ext==="csv") return this.parseCSV(await file.text());
+    if(ext==="json") return this.readJSON(file);
+    if(ext==="xlsx" || ext==="xls") return this.readXLSX(file);
+    throw new Error("Format de tableau non supporté : "+ext);
+  },
+
+  async imagesFromZip(zip){
+    this.imageMap.clear();
+    for(const entry of Object.values(zip.files)){
+      if(entry.dir || !/\.(jpe?g|png|webp|gif)$/i.test(entry.name)) continue;
+      const blob=await entry.async("blob");
+      const name=this.basename(entry.name);
+      const item={blob,name,path:entry.name};
+
+      const exact=this.key(name);
+      const noExt=this.key(name.replace(/\.[^.]+$/,""));
+      if(exact) this.imageMap.set(exact,item);
+      if(noExt) this.imageMap.set(noExt,item);
+    }
+  },
+
+  matchImage(product){
+    if(product && product._embeddedImage && product._embeddedImageName){
+      return {blob:product._embeddedImage,name:product._embeddedImageName,path:product._embeddedImageName};
+    }
+    const candidates=[];
+    const explicit=this.basename(product.image);
+    if(explicit){
+      candidates.push(this.key(explicit));
+      candidates.push(this.key(explicit.replace(/\.[^.]+$/,"")));
+    }
+    if(product.barcode){
+      candidates.push(this.key(product.barcode));
+      candidates.push(this.key(product.barcode+".jpg"));
+      candidates.push(this.key(product.barcode+".png"));
+    }
+    if(product.name){
+      candidates.push(this.key(product.name));
+    }
+    for(const c of candidates){
+      if(c && this.imageMap.has(c)) return this.imageMap.get(c);
+    }
+    return null;
+  },
+
+  validate(products){
+    const seenId=new Set(), seenBarcode=new Set(), duplicates=[];
+    const clean=[];
+    products.forEach((p,i)=>{
+      p.id=String(p.id||("IMP"+String(i+1).padStart(5,"0"))).trim();
+      p.name=String(p.name||"").trim();
+      p.barcode=String(p.barcode||"").trim();
+
+      if(seenId.has(p.id)) p.id=p.id+"-"+(i+1);
+      seenId.add(p.id);
+
+      if(p.barcode){
+        if(seenBarcode.has(p.barcode)) duplicates.push(p.barcode);
+        seenBarcode.add(p.barcode);
+      }
+      if(p.name || p.barcode) clean.push(p);
+    });
+    return {products:clean,duplicates:[...new Set(duplicates)]};
+  },
+
+  async preview(products, sourceName){
+    const rows=products.map((p,i)=>({p,i,im:this.matchImage(p)}));
+    const matched=rows.filter(x=>x.im).length;
+    const validation=this.validate(products);
+
+    this.pending={products:validation.products,rows,sourceName,duplicates:validation.duplicates};
+
+    let modal=document.getElementById("universalImportModal");
+    if(!modal){
+      modal=document.createElement("div");
+      modal.id="universalImportModal";
+      modal.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:16px";
+      modal.innerHTML=`
+        <div style="width:min(900px,100%);max-height:92vh;overflow:auto;background:var(--bg-surface,#fff);color:var(--text-primary,#111);border:1px solid var(--border-default,#ddd);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.3);padding:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <div>
+              <div style="font-size:20px;font-weight:900">📦 Aperçu du catalogue</div>
+              <div id="universalImportSource" style="font-size:12px;opacity:.65;margin-top:4px"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="UniversalImporter.cancel()">✕</button>
+          </div>
+          <div id="universalImportStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0"></div>
+          <div id="universalImportWarning" style="margin-bottom:12px"></div>
+          <div id="universalImportBody" style="border:1px solid var(--border-subtle,#eee);border-radius:12px;padding:8px;max-height:360px;overflow:auto"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px">
+            <button class="btn btn-secondary" onclick="UniversalImporter.cancel()">Annuler</button>
+            <button class="btn btn-secondary" onclick="UniversalImporter.commit('merge')">➕ Ajouter / mettre à jour</button>
+            <button class="btn btn-primary" onclick="UniversalImporter.commit('replace')">📥 Remplacer le catalogue</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+
+    document.getElementById("universalImportSource").textContent=sourceName||"Fichier importé";
+
+    const card=(label,value)=>`<div style="padding:10px;border:1px solid var(--border-subtle,#eee);border-radius:12px;background:var(--bg-surface-2,#fafafa)"><div style="font-size:11px;opacity:.65">${label}</div><div style="font-size:20px;font-weight:900;margin-top:2px">${value}</div></div>`;
+    document.getElementById("universalImportStats").innerHTML=[
+      card("Produits",validation.products.length),
+      card("Images liées",matched),
+      card("Sans image",Math.max(0,validation.products.length-matched)),
+      card("Codes dupliqués",validation.duplicates.length)
+    ].join("");
+
+    document.getElementById("universalImportWarning").innerHTML=validation.duplicates.length
+      ? `<div style="padding:10px 12px;border-radius:10px;background:#fff4e5;color:#8a5200;font-size:12px">⚠️ ${validation.duplicates.length} code(s)-barres en double détecté(s). Vérifiez-les avant l'import.</div>`
+      : `<div style="padding:10px 12px;border-radius:10px;background:var(--bg-surface-2,#f7f7f7);font-size:12px">ℹ️ Les images intégrées dans Excel sont associées à leur ligne. Les fichiers image explicites peuvent aussi être utilisés. Aucun rapprochement aléatoire.</div>`;
+
+    const sample=rows.slice(0,12).map(x=>{
+      const im=x.im;
+      const safe=String(x.p.name||"Produit").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+      return `<div style="display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--border-subtle,#eee)">
+        <div style="width:48px;height:48px;border-radius:9px;border:1px solid var(--border-default,#ddd);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff">
+          ${im ? `<img src="${URL.createObjectURL(im.blob)}" style="width:100%;height:100%;object-fit:contain">` : "🖼️"}
+        </div>
+        <div><div style="font-weight:800;font-size:13px">${safe}</div><div style="font-size:11px;opacity:.65">${String(x.p.barcode||"Sans code")} · ${String(x.p.category||"Autre")}</div></div>
+        <div style="font-size:11px;font-weight:800">${im ? "✅ Image" : "— Sans image"}</div>
+      </div>`;
+    }).join("");
+
+    document.getElementById("universalImportBody").innerHTML=sample || "<div style='padding:20px;text-align:center'>Aucun produit à afficher.</div>";
+    modal.style.display="flex";
+  },
+
+  cancel(){
+    const m=document.getElementById("universalImportModal");
+    if(m) m.style.display="none";
+    this.pending=null;
+    this.imageMap.clear();
+  },
+
+  async commit(mode){
+    if(!this.pending) return;
+    const {products,rows}=this.pending;
+    const oldProducts=Array.isArray(db.products) ? db.products.slice() : [];
+
+    try{
+      let finalProducts;
+
+      if(mode==="replace"){
+        finalProducts=products.map(p=>({...p}));
+      }else{
+        const map=new Map(oldProducts.map(p=>[String(p.barcode||"").trim(),p]));
+        const byId=new Map(oldProducts.map(p=>[String(p.id||"").trim(),p]));
+
+        for(const p of products){
+          const key=String(p.barcode||"").trim();
+          const existing=(key && map.get(key)) || byId.get(String(p.id||"").trim());
+          if(existing){
+            Object.assign(existing,p);
+          }else{
+            oldProducts.push({...p});
+          }
+        }
+        finalProducts=oldProducts;
+      }
+
+      db.products=finalProducts.map(p=>{
+        const clean={...p};
+        delete clean._embeddedImage;
+        delete clean._embeddedImageName;
+        return {
+        ...clean,
+        id:String(clean.id||"").trim(),
+        name:String(p.name||"").trim(),
+        barcode:String(p.barcode||"").trim(),
+        category:String(p.category||"Autre"),
+        price:this.number(p.price),
+        purchasePrice:this.number(p.purchasePrice),
+        stock:this.number(p.stock),
+        minStock:this.number(clean.minStock,5)
+        };
+      });
+
+      let imageCount=0;
+      for(const row of rows){
+        if(!row.im) continue;
+        const p=row.p;
+        const key=CatalogImages.key(row.im.name);
+        await CatalogImages.put(key,row.im.blob);
+
+        if(CatalogImages.urls.has(key)){
+          try{ URL.revokeObjectURL(CatalogImages.urls.get(key)); }catch(e){}
+        }
+        CatalogImages.urls.set(key,URL.createObjectURL(row.im.blob));
+
+        const target=db.products.find(x=>
+          String(x.barcode||"")===String(p.barcode||"") &&
+          String(x.name||"")===String(p.name||"")
+        ) || db.products.find(x=>String(x.id||"")===String(p.id||""));
+
+        if(target){
+          target.image=key;
+        }
+        imageCount++;
+      }
+
+      clearImageCache();
+      saveDB();
+      renderAll();
+      if(typeof updateStorePreview==="function") updateStorePreview();
+
+      localStorage.setItem("zarouali_catalog_imported","1");
+      localStorage.setItem("zarouali_catalog_count",String(db.products.length));
+
+      this.cancel();
+      toast(
+        `${products.length} produit(s) ${mode==="replace"?"importé(s)":"ajouté(s)/mis à jour"} · ${imageCount} image(s)`,
+        "success"
+      );
+    }catch(err){
+      db.products=oldProducts;
+      console.error("[Universal Import]",err);
+      toast("Échec de l'import : "+(err?.message||err),"error");
+    }
+  }
+};
+
 async function importCatalogFile(e){
-  const f=e.target.files?.[0];
+  const file=e.target.files?.[0];
   e.target.value="";
-  if(!f)return;
+  if(!file) return;
+
   try{
-    if(!/\.zip$/i.test(f.name) && !/zip/i.test(f.type)) throw new Error("Sélectionnez un fichier ZIP");
-    await loadImportedCatalog(f);
-    toast(db.products.length+" produits importés","success");
+    UniversalImporter.imageMap.clear();
+    let products=[];
+
+    const ext=(file.name.split(".").pop()||"").toLowerCase();
+
+    if(ext==="zip"){
+      if(typeof JSZip==="undefined") throw new Error("JSZip non chargé");
+      const zip=await JSZip.loadAsync(await file.arrayBuffer());
+
+      const tableEntry=Object.values(zip.files).find(x=>
+        !x.dir && /\.(xlsx|xls|csv|json)$/i.test(x.name)
+      );
+
+      if(tableEntry){
+        const blob=await tableEntry.async("blob");
+        const tableFile=new File([blob],thisName(tableEntry.name),{type:"application/octet-stream"});
+        products=(await UniversalImporter.readTable(tableFile))
+          .map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+      }else{
+        const dbEntry=Object.values(zip.files).find(x=>
+          !x.dir && /\.(db|sqlite|sqlite3)$/i.test(x.name)
+        );
+        if(!dbEntry) throw new Error("ZIP : aucun Excel/CSV/JSON/SQLite trouvé");
+
+        if(typeof initSqlJs==="undefined") throw new Error("sql.js non chargé");
+        const SQL=await initSqlJs({locateFile:()=> "./vendor/sql-wasm.wasm"});
+        const cdb=new SQL.Database(await dbEntry.async("uint8array"));
+        const result=cdb.exec("SELECT * FROM products");
+        if(!result.length) throw new Error("SQLite : table products vide ou absente");
+
+        const cols=result[0].columns;
+        products=result[0].values.map(v=>{
+          const r={}; cols.forEach((c,i)=>r[c]=v[i] ?? ""); return r;
+        }).map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+      }
+
+      await UniversalImporter.imagesFromZip(zip);
+    }else if(/\.(db|sqlite|sqlite3)$/i.test(file.name)){
+      if(typeof initSqlJs==="undefined") throw new Error("sql.js non chargé");
+      const SQL=await initSqlJs({locateFile:()=> "./vendor/sql-wasm.wasm"});
+      const cdb=new SQL.Database(new Uint8Array(await file.arrayBuffer()));
+      const result=cdb.exec("SELECT * FROM products");
+      if(!result.length) throw new Error("SQLite : table products vide ou absente");
+      const cols=result[0].columns;
+      products=result[0].values.map(v=>{
+        const r={}; cols.forEach((c,i)=>r[c]=v[i] ?? ""); return r;
+      }).map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+    }else if(/\.(jpe?g|png|webp|gif)$/i.test(file.name)){
+      toast("Image seule : utilisez Modifier produit pour éviter une association erronée","info");
+      return;
+    }else{
+      products=(await UniversalImporter.readTable(file))
+        .map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+    }
+
+    if(!products.length) throw new Error("Aucun produit valide trouvé");
+
+    await UniversalImporter.preview(products,file.name);
   }catch(err){
-    console.error("Catalog import:",err);
-    toast("Erreur import: "+(err?.message||err),"error");
+    console.error("[Universal Import]",err);
+    toast("Erreur import : "+(err?.message||err),"error");
   }
 }
+
+function thisName(path){
+  return String(path||"").replace(/\\/g,"/").split("/").pop() || "catalog.csv";
+}
+
 function exportBackup(){const d={...db,_ts:new Date().toISOString()};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
 function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.sales){toast('Fichier invalide','error');return;}if(!confirm('Restaurer ?'))return;db.products=(d.products||[]).map(p=>({...p,id:String(p.id??"").trim(),barcode:String(p.barcode??"").trim()}));db.cashiers=(d.cashiers||[]).map(c=>({...c,id:String(c.id??"").trim(),password:String(c.password??"")}));db.clients=(d.clients||[]).map(c=>({...c,id:String(c.id??"").trim()}));db.sales=d.sales||[];db.suppliers=(d.suppliers||[]).map(s=>({...s,id:String(s.id??"").trim()}));db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
 function downloadDailyReport(){const today=localDateISO();const sales=db.sales.filter(s=>s.date.startsWith(today));let r="Rapport du "+today+"\n"+"=".repeat(40)+"\n";const ca=sales.reduce((s,x)=>s+x.total,0);const cost=sales.reduce((s,x)=>s+(x.cost||0),0);r+="CA: "+money(ca)+"\nBénéfice: "+money(ca-cost)+"\nTickets: "+sales.length+"\n\n";for(const s of sales){r+="Ticket: "+s.id+" | "+new Date(s.date).toLocaleTimeString('fr-FR')+" | "+s.payment+" | "+money(s.total)+"\n";}downloadFile("rapport_"+today+".txt",r,"text/plain");toast('Rapport téléchargé','success');}
@@ -2122,7 +2783,9 @@ async function init(){
   if(saved){try{localDB=JSON.parse(saved);}catch(e){localDB=null;}}
   if(window.fsLoadDB){try{cloud=await Promise.race([window.fsLoadDB(),new Promise(r=>setTimeout(()=>r(null),4000))]);}catch(e){console.warn("Firebase load failed",e);}}
 
-  if(cloud && Array.isArray(cloud.products) && cloud.products.length>0){
+  const localStamp=Number(localDB?._updatedAt||0);
+  const cloudStamp=Number(cloud?._updatedAt||0);
+  if(cloud && Array.isArray(cloud.products) && cloud.products.length>0 && cloudStamp>=localStamp){
     db=cloud;
     localStorage.setItem(DB_KEY,JSON.stringify(db));
   }else if(localDB){
@@ -2170,7 +2833,11 @@ async function init(){
     (s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});
   });
 
-  CatalogImages.load().catch(e=>console.warn("CatalogImages.load failed",e));
+  // Load persisted catalog images before the first render.
+  // Blob/Object URLs are recreated from IndexedDB on every page refresh.
+  await CatalogImages.load().catch(e=>console.warn("CatalogImages.load failed",e));
+
+  clearImageCache();
 
   try{
     const su=localStorage.getItem(USER_KEY);

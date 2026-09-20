@@ -1,4 +1,4 @@
-const CACHE_NAME = "zarouali-caisse-v6";
+const CACHE_NAME = "zarouali-caisse-v7";
 
 const CORE_FILES = [
   "./",

@@ -751,6 +751,98 @@ input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabul
 .login-box .form-group input{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;background:var(--bg-surface-2)!important;}
 .login-box .form-group input::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;}
 </style>
+
+<style id="zarouali-catalog-layout">
+/* ===== Catalog Import / Export mobile layout ===== */
+#productsPage .filters:has(#catalogImportFormat){
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px !important;
+  width:100%;
+  box-sizing:border-box;
+  align-items:stretch;
+}
+
+#productsPage .filters:has(#catalogImportFormat) #productAdminSearch{
+  grid-column:1 / -1;
+  width:100% !important;
+  min-width:0;
+  box-sizing:border-box;
+  height:58px;
+  margin:0;
+}
+
+#productsPage .filters:has(#catalogImportFormat) #catalogImportFormat{
+  grid-column:1;
+  width:100%;
+  min-width:0 !important;
+  height:56px;
+  box-sizing:border-box;
+}
+
+#productsPage .filters:has(#catalogImportFormat) button[onclick="chooseCatalogImport()"]{
+  grid-column:2;
+  width:125px;
+  min-width:125px;
+  height:56px;
+  white-space:nowrap;
+}
+
+#productsPage .filters:has(#catalogImportFormat) #catalogExportFormat{
+  grid-column:1;
+  width:100%;
+  min-width:0 !important;
+  height:56px;
+  box-sizing:border-box;
+}
+
+#productsPage .filters:has(#catalogImportFormat) button[onclick="exportCatalogByFormat()"]{
+  grid-column:2;
+  width:125px;
+  min-width:125px;
+  height:56px;
+  white-space:nowrap;
+}
+
+@media (max-width:520px){
+  #productsPage .filters:has(#catalogImportFormat){
+    grid-template-columns:minmax(0,1fr) 125px;
+    gap:10px !important;
+  }
+
+  #productsPage .filters:has(#catalogImportFormat) #productAdminSearch{
+    height:56px;
+    font-size:16px;
+  }
+
+  #productsPage .filters:has(#catalogImportFormat) select{
+    font-size:15px;
+  }
+
+  #productsPage .filters:has(#catalogImportFormat) button{
+    font-size:15px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+}
+
+@media (max-width:380px){
+  #productsPage .filters:has(#catalogImportFormat){
+    grid-template-columns:1fr;
+  }
+
+  #productsPage .filters:has(#catalogImportFormat) #productAdminSearch,
+  #productsPage .filters:has(#catalogImportFormat) #catalogImportFormat,
+  #productsPage .filters:has(#catalogImportFormat) #catalogExportFormat,
+  #productsPage .filters:has(#catalogImportFormat) button[onclick="chooseCatalogImport()"],
+  #productsPage .filters:has(#catalogImportFormat) button[onclick="exportCatalogByFormat()"]{
+    grid-column:1;
+    width:100%;
+    min-width:0;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -1096,7 +1188,6 @@ function saveDB(){
   });
   db._updatedAt=Date.now();
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
-
 }
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
@@ -1308,7 +1399,39 @@ function renderMainContent(){
   </section>
   <section id="productsPage" class="page ${currentPage==='productsPage'?'active':''}">
     <div class="panel"><div class="panel-header"><div class="panel-title">${icon('package',18)}Produits</div><button class="btn btn-primary" onclick="openProductModal()">+ Ajouter</button></div>
-    <div class="filters"><input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()"><button class="btn btn-primary" onclick="exportProductsExcel()">📊 Export Excel</button><button class="btn btn-secondary" onclick="document.getElementById('excelInput').click()">📥 Importer Excel</button><button class="btn btn-secondary" onclick="document.getElementById('zipInput').click()">📦 Importer catalogue</button><input id="excelInput" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden onchange="importCatalogFile(event)"><input id="zipInput" type="file" accept=".zip,.db,.sqlite,.sqlite3,.csv,.tsv,.json,.xlsx,.xls,application/zip,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onchange="importCatalogFile(event)"></div>
+    <div class="filters" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+  <input id="productAdminSearch" placeholder="Rechercher..." oninput="renderProductAdmin()">
+
+  <select id="catalogImportFormat" class="form-control" onchange="updateCatalogImportAccept()" style="min-width:150px">
+    <option value="xlsx">📊 Excel (.xlsx)</option>
+    <option value="xls">📊 Excel ancien (.xls)</option>
+    <option value="csv">📄 CSV</option>
+    <option value="json">🧩 JSON</option>
+    <option value="sqlite">🗄️ SQLite (.db)</option>
+    <option value="zip">📦 ZIP Catalog</option>
+  </select>
+
+  <button class="btn btn-secondary" onclick="chooseCatalogImport()">📥 Importer</button>
+
+  <select id="catalogExportFormat" class="form-control" style="min-width:150px">
+    <option value="xlsx">📊 Excel (.xlsx)</option>
+    <option value="csv">📄 CSV</option>
+    <option value="json">🧩 JSON</option>
+    <option value="sqlite">🗄️ SQLite (.db)</option>
+    <option value="zip">📦 ZIP Catalog</option>
+    <option value="images">🖼️ Images ZIP</option>
+  </select>
+
+  <button class="btn btn-primary" onclick="exportCatalogByFormat()">📤 Exporter</button>
+
+  <input
+    id="csvInput"
+    type="file"
+    accept=".xlsx,.xls,.csv,.json,.zip,.db,.sqlite,.sqlite3"
+    hidden
+    onchange="importCatalogFile(event)"
+  >
+</div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Catégorie</th><th>Code</th><th>Prix</th><th>Achat</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsAdmin"></tbody></table></div></div>
   </section>
   <section id="clientsPage" class="page ${currentPage==='clientsPage'?'active':''}">
@@ -1708,6 +1831,523 @@ async function handleImageFile(e){
   }
   e.target.value="";
 }
+
+
+/* ============================================================
+   ZAROUALI CAISSE - UNIVERSAL IMPORT / EXPORT
+   Offline / Excel / CSV / JSON / SQLite / ZIP
+   ============================================================ */
+
+function updateCatalogImportAccept(){
+  const sel=document.getElementById("catalogImportFormat");
+  const input=document.getElementById("csvInput");
+  if(!sel || !input)return;
+
+  const map={
+    xlsx:".xlsx",
+    xls:".xls",
+    csv:".csv",
+    json:".json",
+    sqlite:".db,.sqlite,.sqlite3",
+    zip:".zip"
+  };
+
+  input.accept=map[sel.value]||".xlsx";
+}
+
+function chooseCatalogImport(){
+  updateCatalogImportAccept();
+  const input=document.getElementById("csvInput");
+  if(input)input.click();
+}
+
+function catalogDownloadBlob(name, blob){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+
+function catalogProductsForExport(){
+  return Array.isArray(db.products)?db.products:[];
+}
+
+function catalogExportRows(){
+  return catalogProductsForExport().map(p=>({
+    id:String(p.id??""),
+    name:String(p.name??""),
+    category:String(p.category??""),
+    barcode:String(p.barcode??""),
+    price:Number.isFinite(Number(p.price))?Number(p.price):"",
+    purchasePrice:Number.isFinite(Number(p.purchasePrice))?Number(p.purchasePrice):"",
+    stock:Number.isFinite(Number(p.stock))?Number(p.stock):"",
+    minStock:Number.isFinite(Number(p.minStock))?Number(p.minStock):"",
+    image:String(p.image??""),
+    expirationDate:String(p.expirationDate??""),
+    supplierId:String(p.supplierId??""),
+    saleType:String(p.saleType??"unit"),
+    variantGroup:String(p.variantGroup??""),
+    updatedAt:Number(p.updatedAt)||0
+  }));
+}
+
+function exportCatalogJSON(){
+  try{
+    const payload={
+      format:"zarouali-caisse-catalog",
+      version:1,
+      exportedAt:new Date().toISOString(),
+      products:catalogProductsForExport()
+    };
+
+    catalogDownloadBlob(
+      "Zarouali_Catalogue.json",
+      new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"})
+    );
+
+    toast("Export JSON réussi","success");
+  }catch(err){
+    console.error("[JSON export]",err);
+    toast("Erreur export JSON : "+(err.message||err),"error");
+  }
+}
+
+function exportCatalogCSV(){
+  try{
+    const h=[
+      "id","name","category","barcode","price",
+      "purchasePrice","stock","minStock","image",
+      "expirationDate","supplierId","saleType",
+      "variantGroup","updatedAt"
+    ];
+
+    const rows=catalogProductsForExport().map(p=>
+      h.map(k=>csvEscape(p[k]??"")).join(",")
+    );
+
+    catalogDownloadBlob(
+      "Zarouali_Catalogue.csv",
+      new Blob(
+        [h.join(",")+"\n"+rows.join("\n")],
+        {type:"text/csv;charset=utf-8"}
+      )
+    );
+
+    toast("Export CSV réussi","success");
+  }catch(err){
+    console.error("[CSV export]",err);
+    toast("Erreur export CSV : "+(err.message||err),"error");
+  }
+}
+
+async function exportCatalogSQLite(){
+  try{
+    if(typeof initSqlJs==="undefined")
+      throw new Error("SQL.js non chargé");
+
+    const products=catalogProductsForExport();
+    if(!products.length){
+      toast("Aucun produit à exporter","warn");
+      return;
+    }
+
+    const SQL=await initSqlJs({
+      locateFile:()=> "./vendor/sql-wasm.wasm"
+    });
+
+    const sqlDb=new SQL.Database();
+
+    sqlDb.run(`
+      CREATE TABLE products (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        category TEXT,
+        barcode TEXT,
+        price REAL,
+        purchasePrice REAL,
+        stock REAL,
+        minStock REAL,
+        image TEXT,
+        expirationDate TEXT,
+        supplierId TEXT,
+        saleType TEXT,
+        variantGroup TEXT,
+        updatedAt INTEGER
+      )
+    `);
+
+    const stmt=sqlDb.prepare(`
+      INSERT INTO products
+      (id,name,category,barcode,price,purchasePrice,stock,minStock,
+       image,expirationDate,supplierId,saleType,variantGroup,updatedAt)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `);
+
+    for(const p of products){
+      stmt.run([
+        String(p.id||""),
+        String(p.name||""),
+        String(p.category||""),
+        String(p.barcode||""),
+        Number(p.price)||0,
+        Number(p.purchasePrice)||0,
+        Number(p.stock)||0,
+        Number(p.minStock)||0,
+        String(p.image||""),
+        String(p.expirationDate||""),
+        String(p.supplierId||""),
+        String(p.saleType||"unit"),
+        String(p.variantGroup||""),
+        Number(p.updatedAt)||0
+      ]);
+    }
+
+    stmt.free();
+
+    const bytes=sqlDb.export();
+    sqlDb.close();
+
+    catalogDownloadBlob(
+      "Zarouali_Catalogue.db",
+      new Blob([bytes],{type:"application/x-sqlite3"})
+    );
+
+    toast("Export SQLite réussi","success");
+  }catch(err){
+    console.error("[SQLite export]",err);
+    toast("Erreur export SQLite : "+(err.message||err),"error");
+  }
+}
+
+async function catalogReadStoredImages(){
+  const out=new Map();
+
+  if(typeof CatalogImages==="undefined" || !CatalogImages.open)
+    return out;
+
+  try{
+    const imageDB=await CatalogImages.open();
+
+    const stored=await new Promise((resolve,reject)=>{
+      const tx=imageDB.transaction(CatalogImages.STORE,"readonly");
+      const req=tx.objectStore(CatalogImages.STORE).openCursor();
+      const arr=[];
+
+      req.onsuccess=()=>{
+        const c=req.result;
+        if(c){
+          arr.push([String(c.key),c.value]);
+          c.continue();
+        }else{
+          resolve(arr);
+        }
+      };
+
+      req.onerror=()=>reject(req.error);
+    });
+
+    imageDB.close();
+
+    for(const [key,value] of stored){
+      out.set(key,value);
+    }
+  }catch(err){
+    console.warn("[Catalog images]",err);
+  }
+
+  return out;
+}
+
+async function exportCatalogImagesZIP(){
+  try{
+    if(typeof JSZip==="undefined")
+      throw new Error("JSZip non chargé");
+
+    const zip=new JSZip();
+    const images=await catalogReadStoredImages();
+    let count=0;
+
+    for(const [name,value] of images){
+      let filename=String(name||"").replace(/^.*[\\/]/,"");
+      if(!filename)filename="image_"+(++count)+".bin";
+
+      if(value instanceof Blob){
+        zip.file("images/"+filename,value);
+        count++;
+      }else if(value instanceof ArrayBuffer){
+        zip.file("images/"+filename,new Uint8Array(value));
+        count++;
+      }else if(value instanceof Uint8Array){
+        zip.file("images/"+filename,value);
+        count++;
+      }
+    }
+
+    if(!count){
+      toast("Aucune image enregistrée","warn");
+      return;
+    }
+
+    const blob=await zip.generateAsync({type:"blob"});
+    catalogDownloadBlob("Zarouali_Images.zip",blob);
+
+    toast(count+" images exportées","success");
+  }catch(err){
+    console.error("[Images ZIP export]",err);
+    toast("Erreur export images : "+(err.message||err),"error");
+  }
+}
+
+async function exportCatalogExcelForZIP(){
+  if(typeof XLSX==="undefined" || !XLSX.utils)
+    throw new Error("Module Excel non chargé");
+
+  const rows=catalogExportRows();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb,ws,"Produits");
+
+  const array=XLSX.write(wb,{
+    bookType:"xlsx",
+    type:"array"
+  });
+
+  return array;
+}
+
+async function exportCatalogZIPComplete(){
+  try{
+    if(typeof JSZip==="undefined")
+      throw new Error("JSZip non chargé");
+
+    const products=catalogProductsForExport();
+
+    if(!products.length){
+      toast("Aucun produit à exporter","warn");
+      return;
+    }
+
+    toast("Préparation du ZIP Catalog...","info");
+
+    const zip=new JSZip();
+
+    // Excel
+    const excel=await exportCatalogExcelForZIP();
+    zip.file("Produits.xlsx",excel);
+
+    // JSON backup
+    zip.file(
+      "Produits.json",
+      JSON.stringify({
+        format:"zarouali-caisse-catalog",
+        version:1,
+        exportedAt:new Date().toISOString(),
+        products
+      },null,2)
+    );
+
+    // SQLite
+    if(typeof initSqlJs!=="undefined"){
+      const SQL=await initSqlJs({
+        locateFile:()=> "./vendor/sql-wasm.wasm"
+      });
+
+      const sqlDb=new SQL.Database();
+
+      sqlDb.run(`
+        CREATE TABLE products (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          category TEXT,
+          barcode TEXT,
+          price REAL,
+          purchasePrice REAL,
+          stock REAL,
+          minStock REAL,
+          image TEXT,
+          expirationDate TEXT,
+          supplierId TEXT,
+          saleType TEXT,
+          variantGroup TEXT,
+          updatedAt INTEGER
+        )
+      `);
+
+      const stmt=sqlDb.prepare(`
+        INSERT INTO products
+        (id,name,category,barcode,price,purchasePrice,stock,minStock,
+         image,expirationDate,supplierId,saleType,variantGroup,updatedAt)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      `);
+
+      for(const p of products){
+        stmt.run([
+          String(p.id||""),
+          String(p.name||""),
+          String(p.category||""),
+          String(p.barcode||""),
+          Number(p.price)||0,
+          Number(p.purchasePrice)||0,
+          Number(p.stock)||0,
+          Number(p.minStock)||0,
+          String(p.image||""),
+          String(p.expirationDate||""),
+          String(p.supplierId||""),
+          String(p.saleType||"unit"),
+          String(p.variantGroup||""),
+          Number(p.updatedAt)||0
+        ]);
+      }
+
+      stmt.free();
+
+      zip.file("catalog.db",sqlDb.export());
+      sqlDb.close();
+    }
+
+    // Images
+    const images=await catalogReadStoredImages();
+
+    for(const [name,value] of images){
+      let filename=String(name||"").replace(/^.*[\\/]/,"");
+      if(!filename)continue;
+
+      if(value instanceof Blob){
+        zip.file("images/"+filename,value);
+      }else if(value instanceof ArrayBuffer){
+        zip.file("images/"+filename,new Uint8Array(value));
+      }else if(value instanceof Uint8Array){
+        zip.file("images/"+filename,value);
+      }
+    }
+
+    const blob=await zip.generateAsync({
+      type:"blob",
+      compression:"DEFLATE",
+      compressionOptions:{level:6}
+    });
+
+    catalogDownloadBlob("Zarouali_Catalog.zip",blob);
+
+    toast("ZIP Catalog exporté","success");
+  }catch(err){
+    console.error("[ZIP Catalog export]",err);
+    toast("Erreur ZIP : "+(err.message||err),"error");
+  }
+}
+
+async function exportCatalogByFormat(){
+  const sel=document.getElementById("catalogExportFormat");
+  const format=sel?.value||"xlsx";
+
+  try{
+    if(format==="xlsx"){
+      exportProductsExcel();
+      return;
+    }
+
+    if(format==="csv"){
+      exportCatalogCSV();
+      return;
+    }
+
+    if(format==="json"){
+      exportCatalogJSON();
+      return;
+    }
+
+    if(format==="sqlite"){
+      await exportCatalogSQLite();
+      return;
+    }
+
+    if(format==="zip"){
+      await exportCatalogZIPComplete();
+      return;
+    }
+
+    if(format==="images"){
+      await exportCatalogImagesZIP();
+      return;
+    }
+
+    toast("Format d'export inconnu","error");
+  }catch(err){
+    console.error("[Universal export]",err);
+    toast("Erreur export : "+(err.message||err),"error");
+  }
+}
+
+/* ============================================================
+   IMPORT FORMAT VALIDATION
+   ============================================================ */
+
+function validateCatalogImportFormat(file){
+  const sel=document.getElementById("catalogImportFormat");
+  const expected=sel?.value||"xlsx";
+  const name=String(file?.name||"").toLowerCase();
+
+  const ok={
+    xlsx:/\.xlsx$/i.test(name),
+    xls:/\.xls$/i.test(name),
+    csv:/\.csv$/i.test(name),
+    json:/\.json$/i.test(name),
+    sqlite:/\.(db|sqlite|sqlite3)$/i.test(name),
+    zip:/\.zip$/i.test(name)
+  };
+
+  if(!ok[expected]){
+    const labels={
+      xlsx:"Excel .xlsx",
+      xls:"Excel .xls",
+      csv:"CSV",
+      json:"JSON",
+      sqlite:"SQLite",
+      zip:"ZIP"
+    };
+
+    toast(
+      "Format incorrect. Choisissez un fichier "+(labels[expected]||expected),
+      "error"
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
+/* ============================================================
+   Override import handler while preserving existing importer
+   ============================================================ */
+
+const zaroualiOriginalImportCatalogFile =
+  window.importCatalogFile;
+
+window.importCatalogFile = async function(e){
+  const file=e.target.files?.[0];
+
+  if(!file){
+    return;
+  }
+
+  if(!validateCatalogImportFormat(file)){
+    e.target.value="";
+    return;
+  }
+
+  try{
+    await zaroualiOriginalImportCatalogFile(e);
+  }catch(err){
+    console.error("[Universal import]",err);
+    toast("Erreur import : "+(err.message||err),"error");
+  }
+};
 
 function exportProductsExcel(){
   try{
@@ -2230,6 +2870,42 @@ const UniversalImporter = {
     throw new Error("Format de tableau non supporté : "+ext);
   },
 
+  async imagesFromProject(products){
+    this.imageMap.clear();
+    const list=Array.isArray(products)?products:[];
+    const seen=new Set();
+    let matched=0;
+    for(const product of list){
+      const raw=String(product?.image||"").trim();
+      if(!raw) continue;
+      const base=raw.replace(/^.*[\\/]/,"");
+      const candidates=[];
+      if(base){
+        candidates.push(base);
+        if(!/\.[a-z0-9]+$/i.test(base)) candidates.push(base+".jpg",base+".jpeg",base+".png",base+".webp");
+      }
+      for(const name of candidates){
+        const k=this.key(name);
+        if(!k || seen.has(k) || this.imageMap.has(k)) continue;
+        seen.add(k);
+        try{
+          const res=await fetch("./images/"+encodeURIComponent(name),{cache:"no-store"});
+          if(!res.ok) continue;
+          const blob=await res.blob();
+          if(!blob.type || !/^image\//i.test(blob.type)) continue;
+          const item={blob,name,path:"images/"+name};
+          this.imageMap.set(k,item);
+          const noExt=this.key(name.replace(/\.[^.]+$/i,""));
+          if(noExt) this.imageMap.set(noExt,item);
+          matched++;
+          break;
+        }catch(e){}
+      }
+    }
+    console.log("[CatalogImages] project images matched:",matched);
+    return matched;
+  },
+
   async imagesFromZip(zip){
     this.imageMap.clear();
     for(const entry of Object.values(zip.files)){
@@ -2367,12 +3043,34 @@ const UniversalImporter = {
     try{
       let finalProducts;
 
-      if(mode==="replace"){
-        finalProducts=products.map(p=>({...p}));
-      }else{
-        const map=new Map(oldProducts.map(p=>[String(p.barcode||"").trim(),p]));
-        const byId=new Map(oldProducts.map(p=>[String(p.id||"").trim(),p]));
+      const map=new Map(oldProducts.map(p=>[String(p.barcode||"").trim(),p]));
+      const byId=new Map(oldProducts.map(p=>[String(p.id||"").trim(),p]));
 
+      if(mode==="replace"){
+        // Replace imported catalog data, but preserve locally/manual-added
+        // products that do not exist in the new catalog.
+        const importedKeys=new Set();
+        const importedIds=new Set();
+
+        for(const p of products){
+          const key=String(p.barcode||"").trim();
+          const pid=String(p.id||"").trim();
+          if(key) importedKeys.add(key);
+          if(pid) importedIds.add(pid);
+        }
+
+        const localOnly=oldProducts.filter(p=>{
+          const key=String(p.barcode||"").trim();
+          const pid=String(p.id||"").trim();
+          return (!key || !importedKeys.has(key)) &&
+                 (!pid || !importedIds.has(pid));
+        });
+
+        finalProducts=[
+          ...products.map(p=>({...p})),
+          ...localOnly.map(p=>({...p}))
+        ];
+      }else{
         for(const p of products){
           const key=String(p.barcode||"").trim();
           const existing=(key && map.get(key)) || byId.get(String(p.id||"").trim());
@@ -2505,6 +3203,7 @@ async function importCatalogFile(e){
     }else{
       products=(await UniversalImporter.readTable(file))
         .map((r,i)=>UniversalImporter.product(r,i)).filter(Boolean);
+      await UniversalImporter.imagesFromProject(products);
     }
 
     if(!products.length) throw new Error("Aucun produit valide trouvé");
@@ -2512,12 +3211,7 @@ async function importCatalogFile(e){
     await UniversalImporter.preview(products,file.name);
   }catch(err){
     console.error("[Universal Import]",err);
-    const msg=String(err?.message||err);
-    if(/xlsx|xls|sheetjs|lecteur excel/i.test(msg)){
-      toast("Excel: lecteur Excel indisponible. Vérifiez vendor/xlsx.full.min.js","error");
-    }else{
-      toast("Erreur import : "+msg,"error");
-    }
+    toast("Erreur import : "+(err?.message||err),"error");
   }
 }
 
@@ -2695,233 +3389,66 @@ const PriceLists={enabled:true,discounts:{standard:0,wholesale:-10,vip:-20,resel
 const Variants={groups:{},refreshGroups(){const g={};(db.products||[]).forEach(p=>{if(p.variantGroup){if(!g[p.variantGroup])g[p.variantGroup]=[];g[p.variantGroup].push(p);}});this.groups=g;},open(name){this.refreshGroups();const variants=this.groups[name]||[];document.getElementById('variantGroupName').textContent=name;const list=document.getElementById('variantsList');if(!variants.length)list.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted)">Aucune variante</div>';else list.innerHTML=variants.map(p=>{const img=p.image?normalizeProductImage(p.image):'';return'<div class="variant-card"><div class="variant-thumb">'+(img?'<img src="'+escapeAttr(img)+'">':icon('camera',24))+'</div><div class="variant-info"><div class="variant-name">'+escapeHTML(p.name)+'</div><div class="variant-meta">'+(p.barcode||'—')+'</div><div class="variant-stock" style="font-size:11px;color:var(--text-muted);margin-top:2px">Stock: '+p.stock+'</div></div><div style="text-align:end"><div class="variant-price">'+money(p.price)+'</div><button class="btn btn-secondary btn-sm" onclick="closeModal(\'variantsModal\');editProduct(\''+escapeAttr(String(p.id))+'\')" style="margin-top:6px">Modifier</button></div></div>';}).join('');document.getElementById('variantsModal').classList.add('show');}};
 
 async function loadImportedCatalog(file){
-  if(!file)return false;
+  if(!file) return false;
+  if(typeof JSZip==="undefined") throw new Error("JSZip not loaded");
+  if(typeof initSqlJs==="undefined") throw new Error("sql.js not loaded");
 
-  const name=String(file.name||"").toLowerCase();
-  const ext=name.split(".").pop();
+  const zip=await JSZip.loadAsync(file);
+  const dbFile=zip.file("catalog.db");
+  if(!dbFile) throw new Error("catalog.db introuvable dans le ZIP");
 
-  function normalizeRows(rows){
-    if(!Array.isArray(rows))throw new Error("Format catalogue invalide");
+  const bytes=await dbFile.async("uint8array");
+  const SQL=await initSqlJs({locateFile:()=> "./vendor/sql-wasm.wasm"});
+  const catalogDB=new SQL.Database(bytes);
 
-    const aliases={
-      id:["id","productid","product_id","code"],
-      name:["name","product","productname","product_name","nom","designation","libelle","libellé"],
-      category:["category","categorie","catégorie","family","famille","rayon"],
-      barcode:["barcode","ean","ean13","ean8","upc","codebar","code_barre","code_barres"],
-      price:["price","saleprice","sellingprice","prix","prixvente","prix_vente"],
-      purchasePrice:["purchaseprice","cost","costprice","buyprice","prixachat","prix_achat"],
-      stock:["stock","quantity","qty","quantite","quantité"],
-      minStock:["minstock","minimumstock","stockminimum"],
-      image:["image","photo","picture","img"]
-    };
+  const result=catalogDB.exec("SELECT id,name,category,barcode,price,purchasePrice,stock,minStock,image FROM products");
+  if(!result.length) throw new Error("Table products vide ou absente");
 
-    const keys=Object.keys(rows[0]||{});
-    const lower={};
-    keys.forEach(k=>lower[String(k).trim().toLowerCase()]=k);
+  const cols=result[0].columns;
+  const rows=result[0].values;
 
-    function findKey(list){
-      for(const a of list){
-        if(lower[a])return lower[a];
-      }
-      return null;
-    }
+  db.products=rows.map(r=>{
+    const p={};
+    cols.forEach((c,i)=>p[c]=r[i]??"");
+    p.id=String(p.id??"").trim();
+    p.barcode=String(p.barcode??"").trim();
+    p.name=String(p.name??"").trim();
+    p.category=String(p.category??"Autre").trim();
+    p.image=String(p.image??"");
+    p.price=Number(p.price)||0;
+    p.purchasePrice=Number(p.purchasePrice)||p.price*0.65;
+    p.stock=Number(p.stock)||0;
+    p.minStock=Number(p.minStock)||5;
+    p.expirationDate="";
+    p.saleType="unit";
+    p.variantGroup="";
+    return p;
+  });
 
-    const map={};
-    for(const k in aliases)map[k]=findKey(aliases[k]);
-
-    const out=rows.map((r,i)=>{
-      const get=k=>map[k]?r[map[k]]:"";
-      const p={
-        id:String(get("id")||("P"+(i+1))).trim(),
-        name:String(get("name")||"").trim(),
-        category:String(get("category")||"Autre").trim(),
-        barcode:String(get("barcode")||"").trim(),
-        price:Number(String(get("price")||"").replace(",","."))||0,
-        purchasePrice:Number(String(get("purchasePrice")||"").replace(",","."))||0,
-        stock:Number(String(get("stock")||"").replace(",","."))||0,
-        minStock:Number(String(get("minStock")||"").replace(",","."))||5,
-        image:String(get("image")||"").trim(),
-        expirationDate:"",
-        saleType:"unit",
-        variantGroup:""
-      };
-      if(!p.purchasePrice)p.purchasePrice=p.price*0.65;
-      return p;
-    }).filter(p=>p.name);
-
-    if(!out.length)throw new Error("Aucun produit reconnu");
-    return out;
+  let imageCount=0;
+  for(const entry of Object.values(zip.files)){
+    if(entry.dir)continue;
+    const path=String(entry.name||"").replace(/\\/g,"/");
+    if(!/^images\//i.test(path))continue;
+    try{
+      const blob=await entry.async("blob");
+      const key=CatalogImages.key(path);
+      await CatalogImages.put(key,blob);
+      if(CatalogImages.urls.has(key))URL.revokeObjectURL(CatalogImages.urls.get(key));
+      CatalogImages.urls.set(key,URL.createObjectURL(blob));
+      imageCount++;
+    }catch(err){console.warn("Image import failed",path,err);}
   }
 
-  async function importRows(rows){
-    const products=normalizeRows(rows);
-    db.products=products;
-    clearImageCache();
-    saveDB();
-    renderAll();
-    updateStorePreview();
-    localStorage.setItem("zarouali_catalog_imported","1");
-    localStorage.setItem("zarouali_catalog_count",String(products.length));
-    console.log("[Catalog] "+products.length+" produits importés");
-    toast(products.length+" produits importés","success");
-    return true;
-  }
+  clearImageCache();
+  saveDB();
+  renderAll();
+  updateStorePreview();
 
-  async function importText(text){
-    const lines=String(text||"").replace(/^\uFEFF/,"").split(/\r?\n/).filter(x=>x.trim());
-    if(!lines.length)throw new Error("Fichier vide");
-
-    const sep=(lines[0].split(";").length>lines[0].split(",").length)?";":",";
-    const parseLine=line=>{
-      const a=[];let cur="",q=false;
-      for(let i=0;i<line.length;i++){
-        const c=line[i];
-        if(c==='"'){
-          if(q&&line[i+1]==='"'){cur+='"';i++}
-          else q=!q;
-        }else if(c===sep&&!q){a.push(cur.trim());cur=""}
-        else cur+=c;
-      }
-      a.push(cur.trim());
-      return a;
-    };
-
-    const headers=parseLine(lines[0]);
-    const rows=lines.slice(1).map(line=>{
-      const vals=parseLine(line),o={};
-      headers.forEach((h,i)=>o[h]=vals[i]??"");
-      return o;
-    });
-    return importRows(rows);
-  }
-
-  async function importExcel(buffer){
-    if(typeof XLSX==="undefined")throw new Error("XLSX non disponible");
-    const wb=XLSX.read(buffer,{type:"array"});
-    const sheet=wb.Sheets[wb.SheetNames[0]];
-    if(!sheet)throw new Error("Feuille Excel introuvable");
-    return importRows(XLSX.utils.sheet_to_json(sheet,{defval:""}));
-  }
-
-  async function importSQLite(buffer){
-    if(typeof initSqlJs==="undefined")throw new Error("sql.js non disponible");
-    const SQL=await initSqlJs({locateFile:()=> "./vendor/sql-wasm.wasm"});
-    const catalogDB=new SQL.Database(new Uint8Array(buffer));
-
-    const tables=catalogDB.exec(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    );
-
-    if(!tables.length)throw new Error("Aucune table SQLite");
-
-    let table=tables[0].values[0][0];
-    for(const row of tables[0].values){
-      const t=row[0];
-      const info=catalogDB.exec('PRAGMA table_info("'+String(t).replace(/"/g,'""')+'")');
-      const cols=(info[0]?.values||[]).map(x=>String(x[1]).toLowerCase());
-      if(cols.some(x=>["name","product","nom","designation"].includes(x))){
-        table=t;break;
-      }
-    }
-
-    const result=catalogDB.exec('SELECT * FROM "'+String(table).replace(/"/g,'""')+'"');
-    if(!result.length)throw new Error("Table SQLite vide");
-
-    const cols=result[0].columns;
-    const rows=result[0].values.map(r=>{
-      const o={};
-      cols.forEach((c,i)=>o[c]=r[i]??"");
-      return o;
-    });
-    return importRows(rows);
-  }
-
-  async function importZip(file){
-    if(typeof JSZip==="undefined")throw new Error("JSZip non disponible");
-    const zip=await JSZip.loadAsync(file);
-
-    let catalogEntry=null;
-
-    for(const e of Object.values(zip.files)){
-      if(e.dir)continue;
-      const n=String(e.name).toLowerCase();
-      if(/\.(db|sqlite|sqlite3)$/.test(n)){
-        catalogEntry=e;break;
-      }
-    }
-
-    if(catalogEntry){
-      const buf=await catalogEntry.async("arraybuffer");
-      await importSQLite(buf);
-    }else{
-      for(const e of Object.values(zip.files)){
-        if(e.dir)continue;
-        const n=String(e.name).toLowerCase();
-        if(/\.(csv|tsv)$/.test(n)){
-          await importText(await e.async("text"));
-          break;
-        }
-        if(/\.(xlsx|xls)$/.test(n)){
-          await importExcel(await e.async("arraybuffer"));
-          break;
-        }
-        if(/\.json$/.test(n)){
-          const data=JSON.parse(await e.async("text"));
-          const rows=Array.isArray(data)?data:(Array.isArray(data.products)?data.products:[]);
-          await importRows(rows);
-          break;
-        }
-      }
-    }
-
-    let imageCount=0;
-    for(const entry of Object.values(zip.files)){
-      if(entry.dir)continue;
-      const path=String(entry.name||"").replace(/\\/g,"/");
-      if(!/^images\//i.test(path))continue;
-      try{
-        const blob=await entry.async("blob");
-        const key=CatalogImages.key(path);
-        await CatalogImages.put(key,blob);
-        if(CatalogImages.urls.has(key))URL.revokeObjectURL(CatalogImages.urls.get(key));
-        CatalogImages.urls.set(key,URL.createObjectURL(blob));
-        imageCount++;
-      }catch(e){console.warn("Image import failed",path,e);}
-    }
-
-    clearImageCache();
-    renderAll();
-    updateStorePreview();
-    console.log("[Catalog] images:",imageCount);
-    return true;
-  }
-
-  try{
-    if(ext==="zip")return await importZip(file);
-
-    const buffer=await file.arrayBuffer();
-
-    if(ext==="db"||ext==="sqlite"||ext==="sqlite3")
-      return await importSQLite(buffer);
-
-    if(ext==="xlsx"||ext==="xls")
-      return await importExcel(buffer);
-
-    if(ext==="csv"||ext==="tsv")
-      return await importText(await file.text());
-
-    if(ext==="json"){
-      const data=JSON.parse(await file.text());
-      const rows=Array.isArray(data)?data:(Array.isArray(data.products)?data.products:[]);
-      return await importRows(rows);
-    }
-
-    throw new Error("Format non supporté: ."+ext);
-  }catch(e){
-    console.error("[Catalog import]",e);
-    toast("Erreur catalogue: "+(e.message||e),"error");
-    return false;
-  }
+  localStorage.setItem("zarouali_catalog_imported","1");
+  localStorage.setItem("zarouali_catalog_count",String(db.products.length));
+  console.log("[Catalog] "+db.products.length+" produits, "+imageCount+" images importées");
+  return true;
 }
 
 async function init(){
@@ -2950,13 +3477,20 @@ async function init(){
 
   const store=localStorage.getItem(STORE_KEY);
   if(store){try{const s=JSON.parse(store);if(s.name){db.settings.storeName=s.name;}}catch(e){}}
-  // OFFLINE MODE: local device is the only source of truth.
-  // Firebase/cloud synchronization is intentionally disabled for now.
   const saved=localStorage.getItem(DB_KEY);
-  let localDB=null;
+  let localDB=null,cloud=null;
   if(saved){try{localDB=JSON.parse(saved);}catch(e){localDB=null;}}
-  if(localDB){
+
+  const localStamp=Number(localDB?._updatedAt||0);
+  const cloudStamp=Number(cloud?._updatedAt||0);
+  if(cloud && Array.isArray(cloud.products) && cloud.products.length>0 && cloudStamp>=localStamp){
+    db=cloud;
+    localStorage.setItem(DB_KEY,JSON.stringify(db));
+  }else if(localDB){
     db=localDB;
+  }else if(cloud){
+    db=cloud;
+    localStorage.setItem(DB_KEY,JSON.stringify(db));
   }else{
     createDefaultDB();
   }
@@ -3009,8 +3543,6 @@ async function init(){
 
   saveDB();renderAll();
   updateStorePreview();
-
-  // OFFLINE MODE: no remote listener.
 
   const d=document.getElementById("historyDate");
   if(d)d.value=localDateISO();
@@ -3075,6 +3607,7 @@ async function init(){
 
 document.addEventListener("DOMContentLoaded",init);
 </script>
+
 
 
 <!-- ZAROUALI_RUNTIME_FIX_V16 -->

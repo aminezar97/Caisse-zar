@@ -1,0 +1,127 @@
+name: Zarouali POS - Data Sync Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create fix branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B fix/data-sync-v17
+
+      - name: Patch POS data persistence
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("www/index.html")
+          text = path.read_text(encoding="utf-8")
+
+          old = '''function saveDB(){
+            (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
+            (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
+            (db.clients||[]).forEach(c=>{c.id=String(c.id??"").trim();});
+            (db.suppliers||[]).forEach(s=>{s.id=String(s.id??"").trim();});
+            (db.sales||[]).forEach(s=>{
+              s.id=String(s.id??"").trim();
+              if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();
+              if(s.clientId!=null)s.clientId=String(s.clientId).trim();
+              (s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});
+            });
+            db._updatedAt=Date.now();
+            try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
+            if(window.fsSaveDB)window.fsSaveDB({...db});
+          }'''
+
+          new = '''let __cloudSaveQueue = Promise.resolve();
+          let __lastCloudSave = 0;
+
+          function saveDB(){
+            (db.products||[]).forEach(p=>{
+              p.id=String(p.id??"").trim();
+              p.barcode=String(p.barcode??"").trim();
+            });
+
+            (db.cashiers||[]).forEach(c=>{
+              c.id=String(c.id??"").trim();
+              if(c.password===undefined)c.password="";
+            });
+
+            (db.clients||[]).forEach(c=>{
+              c.id=String(c.id??"").trim();
+            });
+
+            (db.suppliers||[]).forEach(s=>{
+              s.id=String(s.id??"").trim();
+            });
+
+            (db.sales||[]).forEach(s=>{
+              s.id=String(s.id??"").trim();
+              if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();
+              if(s.clientId!=null)s.clientId=String(s.clientId).trim();
+              (s.items||[]).forEach(it=>{
+                it.id=String(it.id??"").trim();
+              });
+            });
+
+            db._updatedAt=Date.now();
+
+            try{
+              localStorage.setItem(DB_KEY,JSON.stringify(db));
+            }catch(e){
+              console.warn("[local save]",e);
+            }
+
+            if(window.fsSaveDB){
+              const snapshot=JSON.parse(JSON.stringify(db));
+              const stamp=Number(snapshot._updatedAt||0);
+
+              __cloudSaveQueue=__cloudSaveQueue
+                .catch(()=>{})
+                .then(async()=>{
+                  if(stamp<__lastCloudSave)return;
+                  await window.fsSaveDB(snapshot);
+                  __lastCloudSave=stamp;
+                })
+                .catch(e=>{
+                  console.warn("[cloud save]",e);
+                });
+            }
+          }'''
+
+          if old not in text:
+              raise SystemExit("ERROR: saveDB block not found; no changes made.")
+
+          text = text.replace(old, new, 1)
+
+          marker = 'function mergeLocalProductImages(remote){'
+          if marker not in text:
+              raise SystemExit("ERROR: mergeLocalProductImages not found.")
+
+          path.write_text(text, encoding="utf-8")
+
+      - name: Verify changes
+        run: |
+          grep -n "__cloudSaveQueue" www/index.html
+          grep -n "function saveDB" www/index.html
+          git diff --check
+          git diff --stat
+
+      - name: Commit fix branch
+        run: |
+          git add www/index.html
+          git commit -m "Fix POS local and Firebase data persistence"
+          git push -u origin fix/data-sync-v17 --force

@@ -195,15 +195,15 @@ jobs:
             JAVA
 
           python3 - <<'PY2'
-from pathlib import Path
-p=Path("android/app/src/main/java/com/zarouali/caisse/MainActivity.java")
-s=p.read_text(encoding="utf-8")
-if "ZaroualiFileSaverPlugin" not in s:
-    s=s.replace("import com.getcapacitor.BridgeActivity;",
-                "import com.getcapacitor.BridgeActivity;\nimport com.zarouali.caisse.ZaroualiFileSaverPlugin;")
-    s=s.replace("{", "{\n        registerPlugin(ZaroualiFileSaverPlugin.class);", 1)
-    p.write_text(s, encoding="utf-8")
-PY2
+            from pathlib import Path
+            p=Path("android/app/src/main/java/com/zarouali/caisse/MainActivity.java")
+            s=p.read_text(encoding="utf-8")
+            if "ZaroualiFileSaverPlugin" not in s:
+                s=s.replace("import com.getcapacitor.BridgeActivity;",
+                            "import com.getcapacitor.BridgeActivity;\nimport com.zarouali.caisse.ZaroualiFileSaverPlugin;")
+                s=s.replace("{", "{\n        registerPlugin(ZaroualiFileSaverPlugin.class);", 1)
+                p.write_text(s, encoding="utf-8")
+            PY2
 
 
       - name: Add camera permission

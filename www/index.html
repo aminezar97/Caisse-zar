@@ -1872,6 +1872,41 @@ function catalogDownloadBlob(name, blob){
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
+async function catalogDownloadBlob(blob, filename, mimeType="application/octet-stream"){
+  try{
+    const cap = window.Capacitor;
+    const nativeSaver = cap && cap.Plugins && cap.Plugins.ZaroualiFileSaver;
+    if(nativeSaver && typeof nativeSaver.saveFile === "function"){
+      const buf = await blob.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const CHUNK = 0x8000;
+      for(let i=0;i<bytes.length;i+=CHUNK){
+        binary += String.fromCharCode(...bytes.subarray(i, i+CHUNK));
+      }
+      const dataBase64 = btoa(binary);
+      const r = await nativeSaver.saveFile({fileName: filename, mimeType, dataBase64});
+      if(r && r.uri){
+        if(typeof toast === "function") toast("Fichier enregistré");
+        return r.uri;
+      }
+      return true;
+    }
+  }catch(e){
+    console.warn("[Zarouali] Native save failed, fallback:", e);
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1500);
+  return true;
+}
+
 function catalogProductsForExport(){
   return Array.isArray(db.products)?db.products:[];
 }

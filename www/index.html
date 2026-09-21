@@ -1876,20 +1876,71 @@ async function catalogDownloadBlob(blob, filename, mimeType="application/octet-s
   try{
     const cap = window.Capacitor;
     const nativeSaver = cap && cap.Plugins && cap.Plugins.ZaroualiFileSaver;
+
     if(nativeSaver && typeof nativeSaver.saveFile === "function"){
       const buf = await blob.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = "";
       const CHUNK = 0x8000;
+
       for(let i=0;i<bytes.length;i+=CHUNK){
         binary += String.fromCharCode(...bytes.subarray(i, i+CHUNK));
       }
+
       const dataBase64 = btoa(binary);
-      const r = await nativeSaver.saveFile({fileName: filename, mimeType, dataBase64});
+
+      const r = await nativeSaver.saveFile({
+        fileName: filename,
+        mimeType,
+        dataBase64
+      });
+
       if(r && r.uri){
-        if(typeof toast === "function") toast("Fichier enregistré");
+        const location = r.path || "Download/Zarouali-Caisse";
+
+        if(typeof toast === "function"){
+          toast("📦 Export terminé — " + filename + " — 📁 " + location, "success");
+        }
+
+        try{
+          const old = document.getElementById("zaroualiExportPathNotice");
+          if(old) old.remove();
+
+          const notice = document.createElement("div");
+          notice.id = "zaroualiExportPathNotice";
+
+          notice.style.cssText =
+            "position:fixed;left:16px;right:16px;bottom:24px;" +
+            "z-index:10000;background:var(--bg-elevated);" +
+            "border:1px solid var(--brand-500);border-radius:16px;" +
+            "padding:16px 18px;box-shadow:var(--shadow-xl);" +
+            "font-size:14px;";
+
+          const title = document.createElement("strong");
+          title.textContent = "📦 Export terminé";
+          title.style.cssText = "display:block;font-size:15px;margin-bottom:6px;";
+
+          const file = document.createElement("span");
+          file.textContent = filename;
+          file.style.cssText = "display:block;color:var(--text-secondary);";
+
+          const path = document.createElement("span");
+          path.textContent = "📁 " + location;
+          path.style.cssText =
+            "display:block;color:var(--brand-600);" +
+            "font-weight:800;margin-top:6px;";
+
+          notice.appendChild(title);
+          notice.appendChild(file);
+          notice.appendChild(path);
+
+          document.body.appendChild(notice);
+          setTimeout(()=>notice.remove(),7000);
+        }catch(_){}
+
         return r.uri;
       }
+
       return true;
     }
   }catch(e){
@@ -1903,7 +1954,16 @@ async function catalogDownloadBlob(blob, filename, mimeType="application/octet-s
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1500);
+
+  setTimeout(()=>{
+    URL.revokeObjectURL(url);
+    a.remove();
+  },1500);
+
+  if(typeof toast === "function"){
+    toast("📥 Téléchargement lancé", "success");
+  }
+
   return true;
 }
 

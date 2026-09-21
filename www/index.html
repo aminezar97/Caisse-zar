@@ -364,6 +364,33 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .clear-btn{width:100%;border:1.5px solid var(--border-default);background:transparent;color:var(--text-secondary);padding:12px;margin-top:8px;border-radius:12px;font-weight:700;font-size:12px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all var(--t-fast);text-transform:uppercase;letter-spacing:.04em}
 .clear-btn:hover{color:var(--danger-500);border-color:var(--danger-500);background:var(--danger-50)}
 
+/* ===== WINDOWS DESKTOP LAYOUT ===== */
+@media(min-width:1201px) and (min-height:650px){
+  .sale-layout{
+    grid-template-columns:minmax(0,1fr) 440px;
+    align-items:stretch;
+    min-height:calc(100vh - 150px);
+  }
+  .products-panel{
+    min-width:0;
+    min-height:0;
+  }
+  .products{
+    min-height:0;
+    max-height:calc(100vh - 340px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .cart{
+    min-width:0;
+    height:calc(100vh - 116px);
+    max-height:calc(100vh - 116px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+  }
+}
+
 /* ===== Compact cart on short screens (Windows 768p/900p) ===== */
 @media(max-height:900px) and (min-width:1201px){
   .cart-summary{padding:12px 14px}

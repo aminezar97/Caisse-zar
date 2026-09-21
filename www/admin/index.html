@@ -328,7 +328,7 @@ button{cursor:pointer;border:0;background:none}
 <div class="modal-root" id="modalRoot"></div>
 
 <!-- LOGIN -->
-<div id="login" class="login">
+<div id="login" class="login" hidden>
   <div class="login-box">
     <div class="login-logo"><img src="../logo.png" alt="Zarouali"></div>
     <h1>Zarouali <span style="color:var(--green)">Caisse</span></h1>
@@ -689,7 +689,7 @@ button{cursor:pointer;border:0;background:none}
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import{getFirestore,doc,onSnapshot,setDoc}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail,setPersistence,browserLocalPersistence}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,signInAnonymously,sendPasswordResetEmail,setPersistence,browserLocalPersistence}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
 /* ================= FIREBASE ================= */
 const firebaseConfig={apiKey:"AIzaSyDRchMRjKdhKgCpOY54doqQWIpttP3PiJc",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
@@ -796,26 +796,8 @@ function formModal({title,subtitle="",fields,submitLabel="Enregistrer",onSubmit,
 
 /* ================= DATA SAVE ================= */
 async function save(partial,msg="Enregistré"){
-  if(!navigator.onLine){
-    toast("Connexion Internet requise pour enregistrer les modifications.","warn");
-    return false;
-  }
-  const previous={};
-  Object.keys(partial).forEach(k=>previous[k]=db[k]);
-  Object.assign(db,partial);
-  renderAll();
-  try{
-    await setDoc(ref,partial,{merge:true});
-    if(msg)toast(msg,"success");
-    $("setLastSync").textContent="Dernière synchro : "+new Date().toLocaleTimeString("fr-FR");
-    return true;
-  }catch(e){
-    console.error(e);
-    Object.assign(db,previous);
-    renderAll();
-    toast("Échec de l'enregistrement : "+e.message,"error");
-    return false;
-  }
+  toast("Mode surveillance : les modifications sont désactivées.","info");
+  return false;
 }
 
 /* ================= PAGE NAV ================= */
@@ -939,22 +921,24 @@ onAuthStateChanged(auth,async u=>{
   currentUser=u;
   if(!u){
     unsub?.(); unsub=null;
-    $("login").hidden=false;$("app").hidden=true;
+    $("login").hidden=true;
+    $("app").hidden=false;
+    try{
+      await signInAnonymously(auth);
+    }catch(e){
+      console.error("Anonymous auth:",e);
+      $("login").hidden=false;
+      $("app").hidden=true;
+      $("loginError").textContent="Activez la connexion anonyme Firebase.";
+    }
     return;
   }
 
-  if(!isAdminUser(u)){
-    await signOut(auth);
-    $("loginError").textContent="Accès réservé à l'administrateur.";
-    $("login").hidden=false;$("app").hidden=true;
-    return;
-  }
-
-  $("login").hidden=true;$("app").hidden=false;
-  const em=u.email||"Administrateur";
-  $("userEmail").textContent=em;
-  $("settingsEmail").textContent=em;
-  $("avatar").textContent=em.charAt(0).toUpperCase();
+  $("login").hidden=true;
+  $("app").hidden=false;
+  $("userEmail").textContent="Mode surveillance";
+  $("settingsEmail").textContent="Mode surveillance";
+  $("avatar").textContent="👁";
   greet();
   startRealtime();
 });

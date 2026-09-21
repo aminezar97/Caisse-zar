@@ -1175,6 +1175,111 @@ function icon(name,size){size=size||18;const I={plus:'<line x1="12" y1="5" x2="1
 
 function toast(msg,type){type=type||'info';const s=document.getElementById("toastStack");if(!s)return;const el=document.createElement("div");el.className="toast "+type;const i=type==='success'?'check':type==='error'?'alert':type==='warn'?'alert':'info';el.innerHTML='<div class="toast-icon">'+icon(i,16)+'</div><div>'+escapeHTML(msg)+'</div>';s.appendChild(el);setTimeout(()=>{el.classList.add("leaving");setTimeout(()=>el.remove(),200);},2800);}
 
+/* ===== ZAROUALI_FIRESTORE_SYNC_V1 ===== */
+let zarCloudReady=false;
+let zarCloudUnsub=null;
+let zarCloudTimer=null;
+let zarCloudWriting=false;
+
+async function zarInitCloudSync(){
+  try{
+    const [{initializeApp},{getFirestore,doc,onSnapshot,setDoc},{getAuth,signInAnonymously}]=await Promise.all([
+      import("https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"),
+      import("https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js")
+    ]);
+
+    const firebaseConfig={
+      apiKey:"AIzaSyDAD5fc2l6hPqSDh6RiS1725Uds6_XvOtQ",
+      authDomain:"zarouali-caisse.firebaseapp.com",
+      projectId:"zarouali-caisse",
+      storageBucket:"zarouali-caisse.firebasestorage.app",
+      messagingSenderId:"460165316759",
+      appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",
+      measurementId:"G-6JDNJTKEXJ"
+    };
+
+    const app=initializeApp(firebaseConfig);
+    const fs=getFirestore(app);
+    const auth=getAuth(app);
+    const ref=doc(fs,"caisse","main");
+
+    await signInAnonymously(auth);
+    zarCloudReady=true;
+
+    zarCloudUnsub=onSnapshot(ref,snap=>{
+      if(!snap.exists()){
+        zarCloudPush();
+        return;
+      }
+
+      const cloud=snap.data()||{};
+      const cloudStamp=Number(cloud._updatedAt||0);
+      const localStamp=Number(db?._updatedAt||0);
+
+      if(cloudStamp>localStamp){
+        db={
+          products:Array.isArray(cloud.products)?cloud.products:[],
+          cashiers:Array.isArray(cloud.cashiers)?cloud.cashiers:[],
+          clients:Array.isArray(cloud.clients)?cloud.clients:[],
+          sales:Array.isArray(cloud.sales)?cloud.sales:[],
+          suppliers:Array.isArray(cloud.suppliers)?cloud.suppliers:[],
+          purchases:Array.isArray(cloud.purchases)?cloud.purchases:[],
+          returns:Array.isArray(cloud.returns)?cloud.returns:[],
+          settings:cloud.settings||{},
+          _updatedAt:cloudStamp
+        };
+
+        try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){}
+        try{renderAll();}catch(e){}
+        console.log("[Firebase] données cloud reçues");
+      }else if(localStamp>cloudStamp){
+        zarCloudPush();
+      }
+    },e=>{
+      console.warn("[Firebase] lecture:",e);
+    });
+
+    console.log("[Firebase] POS synchronisé");
+    zarCloudPush();
+  }catch(e){
+    console.warn("[Firebase] synchronisation indisponible:",e);
+  }
+}
+
+function zarCloudPush(){
+  if(!zarCloudReady||zarCloudWriting)return;
+
+  clearTimeout(zarCloudTimer);
+  zarCloudTimer=setTimeout(async()=>{
+    try{
+      zarCloudWriting=true;
+
+      const {getFirestore,doc,setDoc}=await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+      const firebaseConfig={
+        apiKey:"AIzaSyDAD5fc2l6hPqSDh6RiS1725Uds6_XvOtQ",
+        authDomain:"zarouali-caisse.firebaseapp.com",
+        projectId:"zarouali-caisse",
+        storageBucket:"zarouali-caisse.firebasestorage.app",
+        messagingSenderId:"460165316759",
+        appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",
+        measurementId:"G-6JDNJTKEXJ"
+      };
+
+      const fs=getFirestore();
+      const ref=doc(fs,"caisse","main");
+
+      await setDoc(ref,JSON.parse(JSON.stringify(db)),{merge:true});
+      console.log("[Firebase] POS → Cloud");
+    }catch(e){
+      console.warn("[Firebase] écriture:",e);
+    }finally{
+      zarCloudWriting=false;
+    }
+  },700);
+}
+
 function saveDB(){
   (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
   (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
@@ -1188,6 +1293,7 @@ function saveDB(){
   });
   db._updatedAt=Date.now();
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
+  try{zarCloudPush();}catch(e){}
 }
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
@@ -3698,6 +3804,7 @@ async function init(){
   if(ld){try{const dd=JSON.parse(ld);if(dd.username)document.getElementById("loginUser").value=dd.username;else if(dd.name)document.getElementById("loginUser").value=dd.name;}catch(e){}}
 
   console.log("[Zarouali POS v15.1] ready · "+db.products.length+" produits · "+db.cashiers.length+" caissiers");
+  zarInitCloudSync();
 }
 
 document.addEventListener("DOMContentLoaded",init);

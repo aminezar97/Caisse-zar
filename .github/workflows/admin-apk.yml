@@ -27,9 +27,18 @@ jobs:
       - name: Create Capacitor project
         working-directory: admin-apk
         run: |
-          npm install @capacitor/cli@8.5.0 @capacitor/core@8.5.0 @capacitor/android@8.5.0
+          npm install @capacitor/cli@8.5.0 @capacitor/core@8.5.0 @capacitor/android@8.5.0 @capacitor/assets@3.0.5
           npx cap init "Zarouali Admin" "com.zarouali.caisse.admin" --web-dir www
           npx cap add android
+
+      - name: Generate Admin Android branding
+        working-directory: admin-apk
+        run: |
+          set -euo pipefail
+          mkdir -p resources
+          cp ../resources/icon.png resources/icon.png
+          test -s resources/icon.png
+          npx capacitor-assets generate --android --assetPath resources
           npx cap sync android
 
       - name: Setup Java 21

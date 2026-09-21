@@ -692,7 +692,7 @@ import{getFirestore,doc,onSnapshot,setDoc}from"https://www.gstatic.com/firebasej
 import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,signInAnonymously,sendPasswordResetEmail,setPersistence,browserLocalPersistence}from"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
 /* ================= FIREBASE ================= */
-const firebaseConfig={apiKey:"AIzaSyDRchMRjKdhKgCpOY54doqQWIpttP3PiJc",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
+const firebaseConfig={apiKey:"AIzaSyDAD5fc2l6hPqSDh6RiS1725Uds6_XvOtQ",authDomain:"zarouali-caisse.firebaseapp.com",projectId:"zarouali-caisse",storageBucket:"zarouali-caisse.firebasestorage.app",messagingSenderId:"460165316759",appId:"1:460165316759:web:5b8e8eab8c1fdaa70669d2",measurementId:"G-6JDNJTKEXJ"};
 const app=initializeApp(firebaseConfig),fs=getFirestore(app),auth=getAuth(app),ref=doc(fs,"caisse","main");
 
 /* Keep the admin session reliably on the device. */
@@ -866,82 +866,64 @@ addEventListener("offline",()=>{updateNet();toast("Mode hors ligne","warn")});
 updateNet();
 
 /* ================= AUTH ================= */
-$("loginBtn").onclick=async()=>{
-  const email=$("email").value.trim(),pass=$("password").value;
-  $("loginError").textContent="";
-  if(!email||!pass){$("loginError").textContent="E-mail et mot de passe requis.";return}
-  if(!ADMIN_EMAILS.has(email.toLowerCase())){
-    $("loginError").textContent="Accès réservé à l'administrateur.";
-    return;
-  }
-  const btn=$("loginBtn");
-  btn.disabled=true;$("loginLabel").innerHTML='<span class="spinner"></span> Connexion…';
-  try{
-    await setPersistence(auth,browserLocalPersistence);
-    const loginPromise=signInWithEmailAndPassword(auth,email,pass);
-    const cred=await Promise.race([
-      loginPromise,
-      new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error("timeout"),{code:"auth/timeout"})),15000))
-    ]);
-    if(cred?.user && isAdminUser(cred.user)){
-      $("login").hidden=true;
-      $("app").hidden=false;
-      $("userEmail").textContent=cred.user.email||"Administrateur";
-      $("settingsEmail").textContent=cred.user.email||"Administrateur";
-      $("avatar").textContent=(cred.user.email||"A").charAt(0).toUpperCase();
-      greet();
-      startRealtime();
-    }
-  }catch(e){
-    const msgs={
-      "auth/invalid-credential":"Identifiants incorrects.",
-      "auth/user-not-found":"Compte introuvable.",
-      "auth/wrong-password":"Mot de passe incorrect.",
-      "auth/too-many-requests":"Trop de tentatives. Réessayez plus tard.",
-      "auth/invalid-email":"Adresse e-mail invalide.",
-      "auth/unauthorized-domain":"Domaine non autorisé par Firebase. Ajoutez aminezar97.github.io dans Firebase Authentication → Settings → Authorized domains.",
-      "auth/network-request-failed":"Connexion Internet impossible. Vérifiez le réseau puis réessayez.",
-      "auth/operation-not-allowed":"La connexion par e-mail/mot de passe n'est pas activée dans Firebase Authentication.",
-      "auth/invalid-api-key":"Configuration Firebase invalide. Vérifiez la clé API du projet.",
-      "auth/timeout":"Firebase ne répond pas après 15 secondes. Vérifiez Internet et les domaines autorisés dans Firebase."
-    };
-    console.error("Admin login:",e);
-    $("loginError").textContent=msgs[e.code]||(`Connexion refusée (${e.code||"erreur"}).`);
-  }finally{
-    btn.disabled=false;$("loginLabel").textContent="Se connecter";
-  }
-};
-$("password").addEventListener("keydown",e=>{if(e.key==="Enter")$("loginBtn").click()});
-$("email").addEventListener("keydown",e=>{if(e.key==="Enter")$("password").focus()});
-$("logout").onclick=()=>{
-  confirmDialog({title:"Se déconnecter",message:"Voulez-vous vraiment quitter la session ?",confirmLabel:"Se déconnecter",onConfirm:()=>signOut(auth)});
-};
-
-onAuthStateChanged(auth,async u=>{
-  currentUser=u;
-  if(!u){
-    unsub?.(); unsub=null;
-    $("login").hidden=true;
-    $("app").hidden=false;
-    try{
-      await signInAnonymously(auth);
-    }catch(e){
-      console.error("Anonymous auth:",e);
-      $("login").hidden=false;
-      $("app").hidden=true;
-      $("loginError").textContent="Activez la connexion anonyme Firebase.";
-    }
-    return;
-  }
-
+function openAdmin(){
+  localStorage.setItem("zc-admin-session","1");
   $("login").hidden=true;
   $("app").hidden=false;
-  $("userEmail").textContent="Mode surveillance";
-  $("settingsEmail").textContent="Mode surveillance";
-  $("avatar").textContent="👁";
+  $("userEmail").textContent="admin";
+  $("settingsEmail").textContent="admin";
+  $("avatar").textContent="A";
   greet();
-  startRealtime();
+  try{
+    signInAnonymously(auth).then(()=>{
+      currentUser=auth.currentUser;
+      startRealtime();
+    }).catch(e=>{
+      console.warn("Anonymous Firebase:",e);
+      toast("Firebase: " + (e.code || e.message || "erreur inconnue"),"warn");
+    });
+  }catch(e){
+    console.warn("Anonymous Firebase:",e);
+  }
+}
+
+$("loginBtn").onclick=()=>{
+  const user=$("email").value.trim().toLowerCase();
+  const pass=$("password").value;
+  $("loginError").textContent="";
+
+  const savedUser=localStorage.getItem("zc-admin-user")||"admin";
+  const savedPass=localStorage.getItem("zc-admin-pass")||"1234";
+
+  if(user!==savedUser || pass!==savedPass){
+    $("loginError").textContent="Identifiant ou mot de passe incorrect.";
+    return;
+  }
+
+  openAdmin();
+};
+
+$("password").addEventListener("keydown",e=>{
+  if(e.key==="Enter")$("loginBtn").click();
 });
+
+$("email").addEventListener("keydown",e=>{
+  if(e.key==="Enter")$("password").focus();
+});
+
+$("logout").onclick=()=>{
+  localStorage.removeItem("zc-admin-session");
+  signOut(auth).catch(()=>{});
+  $("app").hidden=true;
+  $("login").hidden=false;
+};
+
+if(localStorage.getItem("zc-admin-session")==="1"){
+  openAdmin();
+}else{
+  $("login").hidden=false;
+  $("app").hidden=true;
+}
 
 function greet(){
   const h=new Date().getHours();

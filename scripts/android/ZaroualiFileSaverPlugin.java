@@ -52,6 +52,18 @@ public class ZaroualiFileSaverPlugin extends Plugin {
             byte[] data
     ) throws Exception {
 
+        // Replace the previous Zarouali-Caisse export with the same filename.
+        // This prevents Android from creating (1), (2), ... duplicates during auto-save.
+        getContext().getContentResolver().delete(
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+            MediaStore.Downloads.DISPLAY_NAME + "=? AND " +
+            MediaStore.Downloads.RELATIVE_PATH + "=?",
+            new String[]{
+                fileName,
+                Environment.DIRECTORY_DOWNLOADS + "/Zarouali-Caisse/"
+            }
+        );
+
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
         values.put(MediaStore.Downloads.MIME_TYPE, mimeType);

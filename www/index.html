@@ -1711,7 +1711,7 @@ function renderMainContent(){
   </select>
 
   <button class="btn btn-secondary" onclick="chooseCatalogImport()">📥 Importer</button>
-  <button class="btn btn-secondary" onclick="bindCatalogMasterFile()">🔗 Lier Auto Save Windows</button>
+  <button class="btn btn-secondary" onclick="bindCatalogMasterFile()">🔗 Lier Auto Save Master</button>
 
   <select id="catalogExportFormat" class="form-control" style="min-width:150px">
     <option value="xlsx">📊 Excel (.xlsx)</option>
@@ -2297,7 +2297,7 @@ async function zarEnsureMasterPermission(handle){
 }
 async function bindCatalogMasterFile(){
   if(typeof window.showOpenFilePicker!=="function"){
-    toast("Liaison automatique Windows indisponible dans ce navigateur","warn");
+    toast("Liaison automatique du catalogue maître indisponible dans ce navigateur","warn");
     return false;
   }
   try{
@@ -2320,7 +2320,7 @@ async function bindCatalogMasterFile(){
     zarMasterHandleReady=true;
     await zarSaveMasterHandle(handle);
     localStorage.setItem("zarouali_master_catalog_bound","1");
-    toast("Catalogue maître lié — Auto Save Windows activé","success");
+    toast("Catalogue maître lié — Auto Save activé","success");
     return true;
   }catch(e){
     if(e?.name!=="AbortError"){

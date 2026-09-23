@@ -1926,7 +1926,17 @@ async function saveProduct(){
   scheduleCatalogAutoExport();
   toast(t("productSaved"),"success");
 }
-function deleteProduct(id){if(!confirm("Supprimer ce produit ?"))return;const key=String(id).trim();const p=db.products.find(x=>String(x.id)===key);db.products=db.products.filter(x=>String(x.id)!==key);saveDB();renderAll();if(p)AuditLog.log("product.delete",p.name,"");toast("Produit supprimé","success");}
+function deleteProduct(id){
+  if(!confirm("Supprimer ce produit ?"))return;
+  const key=String(id).trim();
+  const p=db.products.find(x=>String(x.id)===key);
+  db.products=db.products.filter(x=>String(x.id)!==key);
+  saveDB();
+  renderAll();
+  if(p)AuditLog.log("product.delete",p.name,"");
+  scheduleCatalogAutoExport();
+  toast("Produit supprimé","success");
+}
 
 function renderClientsAdmin(){const box=document.getElementById("clientsAdmin");if(!box)return;const q=(document.getElementById("clientSearch")?.value||"").toLowerCase().trim();const list=db.clients.filter(c=>!q||c.name.toLowerCase().includes(q)||(c.phone||"").includes(q));box.innerHTML=list.map(c=>'<tr><td><strong>'+escapeHTML(c.name)+'</strong></td><td>'+escapeHTML(c.phone||"—")+'</td><td>'+(c.tier?'<span class="tier-badge '+c.tier+'">'+(c.tier==='standard'?'Standard':c.tier==='wholesale'?'Gros':c.tier==='vip'?'⭐ VIP':'Revendeur')+'</span>':'—')+'</td><td class="mono" style="color:'+((c.debt||0)>0?'var(--danger-500)':'var(--success-500)')+'">'+money(c.debt||0)+'</td><td>'+(c.points?'<span class="loyalty-badge">⭐ '+c.points+'</span>':'—')+'</td><td><div class="row-actions"><button onclick="editClient(\''+escapeAttr(String(c.id))+'\')">'+icon('edit',14)+'</button><button onclick="openRepaymentModal(\''+escapeAttr(String(c.id))+'\')">'+icon('money',14)+'</button><button class="danger-row" onclick="deleteClient(\''+escapeAttr(String(c.id))+'\')">'+icon('trash',14)+'</button></div></td></tr>').join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Aucun client</td></tr>';}
 function openClientModal(data){document.getElementById("editClientId").value="";document.getElementById("clientName").value="";document.getElementById("clientPhone").value="";document.getElementById("clientEmail").value="";document.getElementById("clientCredit").value="0";document.getElementById("clientTier").value="standard";if(data){document.getElementById("editClientId").value=String(data.id);document.getElementById("clientName").value=data.name;document.getElementById("clientPhone").value=data.phone||"";document.getElementById("clientEmail").value=data.email||"";document.getElementById("clientCredit").value=data.debt||0;document.getElementById("clientTier").value=data.tier||"standard";}document.getElementById("clientModal").classList.add("show");}
@@ -2516,7 +2526,7 @@ async function exportCatalogZIPComplete(options={}){
       compressionOptions:{level:6}
     });
 
-    catalogDownloadBlob("Zarouali_Catalog.zip",blob);
+    catalogDownloadBlob("Zarouali_Caisse_CORRIGE.zip",blob);
     if(!silent) toast("ZIP Catalog exporté","success");
     if(auto) localStorage.setItem("zarouali_catalog_last_export",new Date().toISOString());
   }catch(err){

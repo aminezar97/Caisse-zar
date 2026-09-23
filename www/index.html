@@ -3962,6 +3962,8 @@ async function loadImportedCatalog(file){
     }catch(err){console.warn("Image import failed",path,err);}
   }
 
+  // Restore local product images when the imported catalog does not have a usable image.
+  mergeLocalProductImages(db);
   clearImageCache();
   saveDB();
   renderAll();

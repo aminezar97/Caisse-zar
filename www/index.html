@@ -777,6 +777,153 @@ input::placeholder,textarea::placeholder{color:var(--text-muted)!important;-webk
 input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabular-nums;}
 .login-box .form-group input{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;background:var(--bg-surface-2)!important;}
 .login-box .form-group input::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;}
+
+/* =========================================================
+   ZAROUALI WINDOWS POS V2 — approved desktop POS layout
+   Fixed left navigation + fixed right cart + 5-column grid
+   Mobile/Android layout intentionally untouched.
+   ========================================================= */
+@media (min-width:1201px){
+  html,body{height:100%;overflow:hidden}
+  .app{height:100vh;min-height:0;overflow:hidden}
+  .menu-btn{display:none!important}
+  .menu-overlay{display:none!important}
+  .side-menu{
+    inset-inline-start:0!important;top:0!important;width:94px!important;
+    max-width:none!important;height:100vh!important;
+    border-inline-end:1px solid var(--border-subtle);
+    box-shadow:4px 0 18px rgba(13,18,8,.06);z-index:300!important;
+  }
+  .menu-header{padding:14px 8px 12px;height:74px;background:var(--bg-elevated);
+    color:var(--text-primary);border-bottom:1px solid var(--border-subtle)}
+  .menu-header-row,.menu-brand{justify-content:center}
+  .menu-brand-logo{width:42px;height:42px;background:var(--brand-50);
+    border:1px solid var(--border-subtle);box-shadow:none}
+  .menu-brand-text,.menu-close{display:none}
+  .menu-items{padding:10px 7px;overflow-y:auto;scrollbar-width:none}
+  .menu-items::-webkit-scrollbar{display:none}
+  .menu-section-title,#zarLanguageMenu{display:none!important}
+  .menu-item{
+    min-height:68px!important;width:100%;margin:2px 0 6px;padding:8px 4px!important;
+    border-radius:12px;flex-direction:column;justify-content:center;
+    align-items:center;gap:5px;text-align:center;font-size:10px;font-weight:700;line-height:1.15;
+  }
+  .menu-item .menu-icon{width:24px;height:24px;opacity:.9}
+  .menu-item .menu-icon svg{width:22px;height:22px}
+  .menu-item .menu-lock{display:none}
+  .menu-item.active{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
+    color:#fff;border-color:transparent;box-shadow:0 6px 14px rgba(124,179,66,.25)}
+  .menu-item.active::before{display:none}
+  .menu-item.active .menu-icon{color:#fff}
+
+  .header{margin-inline-start:94px;padding:10px 14px;height:72px;min-height:72px;
+    position:relative;z-index:200}
+  .header-row{max-width:none;width:100%;height:100%;min-height:0;
+    grid-template-columns:auto 1fr auto;gap:14px}
+  .logo-area{justify-content:flex-start;padding:0 4px;gap:10px}
+  .logo-badge{width:42px;height:42px;border-radius:12px}
+  .logo-text{font-size:20px}
+  .header-right{gap:7px}
+  .header-right .secondary-action{display:inline-flex}
+  .header-clock{font-size:12px;padding:8px 11px}
+  .status-pill{padding:8px 12px}
+  .icon-btn-sm{width:40px;height:40px}
+
+  .content{margin:0!important;margin-inline-start:94px!important;max-width:none!important;
+    width:auto!important;height:calc(100vh - 72px);min-height:0;overflow:hidden;
+    padding:12px 12px 14px!important}
+  #sale.page.active{height:100%;min-height:0}
+  .sale-layout{height:100%;min-height:0!important;
+    grid-template-columns:minmax(0,1fr) 390px!important;gap:12px!important;
+    align-items:stretch!important}
+  .products-panel{min-width:0;min-height:0!important;height:100%;overflow:hidden;border-radius:14px}
+
+  .categories{order:-1;padding:12px 12px 8px!important;gap:8px;
+    border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
+  .category{padding:8px 16px;min-height:38px;font-size:12px}
+  .search-area{padding:10px 12px!important;gap:10px;
+    border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
+  .search{min-height:44px;padding:11px 16px;padding-inline-start:42px;font-size:13px;
+    background:var(--bg-surface);border-color:var(--border-default)}
+  .search-wrapper .icon{inset-inline-start:14px;width:17px;height:17px}
+  .scan-btn{min-height:44px;padding:10px 18px;border-radius:11px;font-size:12px}
+
+  .products{flex:1 1 auto;min-height:0!important;max-height:none!important;
+    overflow-y:auto;overflow-x:hidden;padding:12px!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-auto-rows:max-content;gap:10px!important;align-content:start}
+  .product{border-radius:12px;min-width:0;box-shadow:var(--shadow-xs)}
+  .product:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  .product-img{aspect-ratio:1.05/1;background:#fff}
+  .product-img img{padding:8px}
+  .product-body{padding:10px 11px 11px;gap:5px}
+  .product-name{font-size:12px;line-height:1.3;min-height:2.6em}
+  .product-price{font-size:16px}
+  .product-stock{font-size:10px}
+  .product-add{width:34px;height:34px;bottom:9px;inset-inline-end:9px;
+    opacity:1;transform:scale(1);pointer-events:none}
+  .product-badge{top:8px;inset-inline-start:8px;font-size:9px;padding:3px 7px}
+
+  .cart{position:relative!important;top:auto!important;height:100%!important;max-height:none!important;
+    min-width:0;overflow:hidden!important;border-radius:14px;box-shadow:var(--shadow-md);
+    display:flex;flex-direction:column}
+  .cart-header{padding:14px 16px!important;min-height:54px}
+  .cart-selectors{padding:9px 12px 5px!important;gap:8px}
+  .selector-group{gap:4px}
+  .selector-group label{font-size:9px}
+  .selector-group select{min-height:36px;padding:8px 10px;font-size:11px}
+  .client-badges{padding:5px 12px 8px}
+  .client-badge{font-size:9px;padding:4px 8px}
+  .credit-bar-container{padding:7px 12px 9px}
+  .cart-items{flex:1 1 auto!important;min-height:70px!important;overflow-y:auto!important;overflow-x:hidden!important}
+  .cart-item{padding:10px 12px;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}
+  .cart-name{font-size:11px;line-height:1.25}
+  .cart-price{font-size:10px;margin-top:2px}
+  .qty-controls{margin-top:5px;padding:2px;border-radius:8px}
+  .qty-btn{width:26px;height:26px;min-height:26px}
+  .qty-input{width:30px;height:26px;min-height:26px;font-size:11px}
+  .cart-line-total{font-size:12px}
+  .remove-btn{padding:5px;min-height:26px;margin-top:0}
+  .cart-summary{padding:12px!important}
+  .summary-line{margin:5px 0;font-size:11px}
+  .summary-line strong{font-size:12px}
+  .summary-line input{width:72px;padding:6px 8px;min-height:30px;font-size:11px}
+  .summary-total{padding-top:9px;margin-top:8px;font-size:11px}
+  .summary-total strong{font-size:25px}
+  .payment-grid{margin-top:9px;gap:6px}
+  .payment-btn{min-height:45px;padding:5px 3px;font-size:10px;border-radius:9px;gap:2px}
+  .payment-btn svg{width:14px;height:14px}
+  .quick-cash{margin-top:7px;gap:5px}
+  .quick-cash button{min-height:31px;padding:5px 2px;font-size:10px}
+  .cash-input{margin-top:7px}
+  .cash-input input{min-height:35px;padding:7px 10px;font-size:13px}
+  .change{padding-top:4px;font-size:9px}
+  .change #change{font-size:13px}
+  .sell-btn{min-height:45px;padding:10px;font-size:12px;margin-top:8px;border-radius:10px}
+  .clear-btn{min-height:32px;padding:6px;font-size:9px;margin-top:5px;border-radius:9px}
+  .kbd-help-btn{display:none!important}
+}
+@media (min-width:1201px) and (max-width:1450px){
+  .sale-layout{grid-template-columns:minmax(0,1fr) 370px!important}
+  .products{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .logo-text{font-size:18px}
+  .header-right .secondary-action:nth-child(2){display:none}
+}
+@media (min-width:1201px) and (max-height:780px){
+  .header{height:64px;min-height:64px}
+  .content{height:calc(100vh - 64px)}
+  .menu-header{height:64px}
+  .menu-item{min-height:61px!important;margin-bottom:3px}
+  .cart-header{padding:10px 14px!important;min-height:46px}
+  .cart-selectors{padding-top:6px!important}
+  .client-badges{display:none}
+  .cart-item{padding:8px 10px}
+  .cart-summary{padding:9px!important}
+  .summary-total strong{font-size:22px}
+  .payment-btn{min-height:40px}
+  .sell-btn{min-height:40px;padding:8px;font-size:11px}
+}
+
 </style>
 
 <style id="zarouali-catalog-layout">
@@ -1778,7 +1925,7 @@ function clearCart(){if(!cart.length)return;if(confirm('Vider le panier ?')){car
 function getSubtotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
 function getTotal(){const s=getSubtotal();const d=Math.max(0,Number(document.getElementById("discount")?.value||0));return Math.max(0,s-d);}
 function getTotalCost(){return cart.reduce((s,i)=>s+(i.purchasePrice||0)*i.qty,0);}
-function renderCart(){const box=document.getElementById("cartItems");if(!box)return;if(!cart.length)box.innerHTML='<div class="empty-state" style="padding:40px 20px">'+icon('cart',48)+'<div class="empty-state-text">'+t('cartEmpty')+'</div></div>';else box.innerHTML=cart.map(i=>'<div class="cart-item"><div><div class="cart-name">'+escapeHTML(i.name)+'</div><div class="cart-price">'+money(i.price)+'</div><div class="qty-controls"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',-1)">'+icon('minus',14)+'</button><input class="qty-input" type="number" min="0" value="'+i.qty+'" onchange="setQtyFromInput(\''+escapeAttr(String(i.id))+'\',this.value)"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',1)">'+icon('plus',14)+'</button></div></div><div style="text-align:end"><div class="cart-line-total">'+money(i.price*i.qty)+'</div><button class="remove-btn" onclick="removeFromCart(\''+escapeAttr(String(i.id))+'\')">'+icon('trash',14)+'</button></div></div>').join('');updateCartCount();const s=document.getElementById("subtotal");if(s)s.textContent=money(getSubtotal());const tt=document.getElementById("total");if(tt)tt.textContent=money(getTotal());calculateChange();updateClientBadge();if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:'update',payload:{items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()}});}catch(e){}}}
+function renderCart(){const box=document.getElementById("cartItems");if(!box)return;if(!cart.length)box.innerHTML='<div class="empty-state" style="padding:40px 20px">'+icon('cart',48)+'<div class="empty-state-text">'+t('cartEmpty')+'</div></div>';else box.innerHTML=cart.map(i=>{const p=db.products.find(x=>String(x.id)===String(i.id));const img=p&&p.image?normalizeProductImage(p.image):'';const thumb=img?'<img class="cart-thumb" src="'+escapeAttr(img)+'" alt="" onerror="this.style.display=\'none\'">':'';return'<div class="cart-item">'+thumb+'<div><div class="cart-name">'+escapeHTML(i.name)+'</div><div class="cart-price">'+money(i.price)+'</div><div class="qty-controls"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',-1)">'+icon('minus',14)+'</button><input class="qty-input" type="number" min="0" value="'+i.qty+'" onchange="setQtyFromInput(\''+escapeAttr(String(i.id))+'\',this.value)"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',1)">'+icon('plus',14)+'</button></div></div><div style="text-align:end"><div class="cart-line-total">'+money(i.price*i.qty)+'</div><button class="remove-btn" onclick="removeFromCart(\''+escapeAttr(String(i.id))+'\')">'+icon('trash',14)+'</button></div></div>';}).join('');updateCartCount();const s=document.getElementById("subtotal");if(s)s.textContent=money(getSubtotal());const tt=document.getElementById("total");if(tt)tt.textContent=money(getTotal());calculateChange();updateClientBadge();if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:'update',payload:{items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()}});}catch(e){}}}
 function updateCartCount(){const c=cart.reduce((s,i)=>s+i.qty,0);const el=document.getElementById("cartCount");if(el)el.textContent=c;}
 
 function renderClientSelect(){const sel=document.getElementById("saleClient");if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">— Client libre —</option>'+db.clients.map(c=>'<option value="'+escapeAttr(String(c.id))+'">'+escapeHTML(c.name)+((c.debt||0)>0?' ('+(c.debt||0).toFixed(2)+' DH)':'')+'</option>').join('');if(cur)sel.value=cur;updateClientBadge();}

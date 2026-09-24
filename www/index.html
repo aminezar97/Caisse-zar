@@ -1468,7 +1468,7 @@ function saveDB(){
   db._updatedAt=Date.now();
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
   try{zarCloudPush();}catch(e){}
-  try{if((db.products||[]).length) scheduleCatalogAutoExport();}catch(e){}
+  try{scheduleCatalogAutoExport();}catch(e){console.warn("[Catalog Auto Save]",e);}
 }
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
@@ -2072,7 +2072,6 @@ async function saveProduct(){
   saveDB();
   closeModal("productModal");
   renderAll();
-  scheduleCatalogAutoExport();
   toast(t("productSaved"),"success");
 }
 function deleteProduct(id){
@@ -2083,7 +2082,6 @@ function deleteProduct(id){
   saveDB();
   renderAll();
   if(p)AuditLog.log("product.delete",p.name,"");
-  scheduleCatalogAutoExport();
   toast("Produit supprimé","success");
 }
 

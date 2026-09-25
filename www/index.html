@@ -1468,7 +1468,6 @@ function saveDB(){
   db._updatedAt=Date.now();
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
   try{zarCloudPush();}catch(e){}
-  try{scheduleCatalogAutoExport();}catch(e){console.warn("[Catalog Auto Save]",e);}
 }
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
 
@@ -1600,7 +1599,7 @@ function mergeLocalProductImages(remote){
           /^https?:/i.test(String(p.image||"")) ||
           CatalogImages.urls.has(remoteKey);
 
-        if(localReady && !remoteReady)p.image=lp.image;
+        if(localReady)p.image=lp.image;
       }
       return p;
     });
@@ -1710,7 +1709,6 @@ function renderMainContent(){
   </select>
 
   <button class="btn btn-secondary" onclick="chooseCatalogImport()">📥 Importer</button>
-  <button class="btn btn-secondary" onclick="bindCatalogMasterFile()">🔗 Lier Auto Save Master</button>
 
   <select id="catalogExportFormat" class="form-control" style="min-width:150px">
     <option value="xlsx">📊 Excel (.xlsx)</option>
@@ -1990,19 +1988,6 @@ function openProductModal(data,barcode){document.getElementById("editProductId")
 function onProductSaleTypeChange(){const type=document.getElementById("pSaleType")?.value;const vg=document.getElementById("variantGroup");if(vg)vg.style.display=type==='unit'?'block':'none';}
 function editProduct(id){const key=String(id).trim();const p=db.products.find(x=>String(x.id)===key);if(!p){toast("Produit introuvable","error");return;}openProductModal(p);}
 function _zarParseNumber(v){const raw=String(v??"").trim().replace(/\s/g,"").replace(",",".");if(raw==="")return 0;const n=Number(raw);return Number.isFinite(n)?n:0;}
-let _catalogAutoExportTimer=null;
-function catalogAutoExportEnabled(){
-  return localStorage.getItem("zarouali_catalog_auto_zip") !== "0";
-}
-
-function scheduleCatalogAutoExport(){
-  if(!catalogAutoExportEnabled()) return;
-  clearTimeout(_catalogAutoExportTimer);
-  _catalogAutoExportTimer=setTimeout(async()=>{
-    try{ await exportCatalogZIPComplete({silent:true,auto:true}); }
-    catch(e){ console.warn("[Catalog Auto ZIP]",e); }
-  },1200);
-}
 async function persistProductImageCanonical(productId){
   const raw=String(currentImage||"").trim();
   if(!raw) return;
@@ -2224,169 +2209,6 @@ function catalogDownloadBlob(name, blob){
   a.click();
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
-}
-
-/* ============================================================
-   ZAROUALI_MASTER_CATALOG_AUTOSAVE_V1
-   Master file: Zarouali_Caisse_FINAL_FULL1.zip
-   Android: native saver replaces the same filename.
-   Windows: File System Access API keeps a handle to the selected
-   master ZIP and overwrites that same file on every auto-save.
-   ============================================================ */
-const ZAR_MASTER_ZIP_NAME="Zarouali_Caisse_FINAL_FULL1.zip";
-const ZAR_MASTER_COLUMNS=[
-  "id","name","category","barcode","price","purchasePrice","stock","minStock","image",
-  "brand","price_status","price_demo_old","price_carrefour","price_marjane","price_source","statut","note"
-];
-const ZAR_MASTER_HANDLE_DB="ZaroualiMasterFileHandle";
-let zarMasterFileHandle=null;
-let zarMasterHandleReady=false;
-
-async function zarOpenMasterHandleDB(){
-  return await new Promise((resolve,reject)=>{
-    const req=indexedDB.open(ZAR_MASTER_HANDLE_DB,1);
-    req.onupgradeneeded=()=>{
-      try{req.result.createObjectStore("handles");}catch(_){ }
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error||new Error("IndexedDB master handle indisponible"));
-  });
-}
-async function zarSaveMasterHandle(handle){
-  try{
-    const dbh=await zarOpenMasterHandleDB();
-    await new Promise((resolve,reject)=>{
-      const tx=dbh.transaction("handles","readwrite");
-      tx.objectStore("handles").put(handle,"master");
-      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
-    });
-    dbh.close();
-  }catch(e){console.warn("[Master catalog handle save]",e);}
-}
-async function zarLoadMasterHandle(){
-  if(zarMasterHandleReady)return zarMasterFileHandle;
-  zarMasterHandleReady=true;
-  try{
-    const dbh=await zarOpenMasterHandleDB();
-    const h=await new Promise((resolve,reject)=>{
-      const tx=dbh.transaction("handles","readonly");
-      const req=tx.objectStore("handles").get("master");
-      req.onsuccess=()=>resolve(req.result||null); req.onerror=()=>reject(req.error);
-    });
-    dbh.close();
-    if(h)zarMasterFileHandle=h;
-  }catch(e){console.warn("[Master catalog handle load]",e);}
-  return zarMasterFileHandle;
-}
-async function zarEnsureMasterPermission(handle){
-  if(!handle)return false;
-  try{
-    if(typeof handle.queryPermission==="function"){
-      const q=await handle.queryPermission({mode:"readwrite"});
-      if(q==="granted")return true;
-    }
-    if(typeof handle.requestPermission==="function"){
-      const r=await handle.requestPermission({mode:"readwrite"});
-      return r==="granted";
-    }
-  }catch(e){console.warn("[Master catalog permission]",e);}
-  return false;
-}
-async function bindCatalogMasterFile(){
-  if(typeof window.showOpenFilePicker!=="function"){
-    toast("Liaison automatique du catalogue maître indisponible dans ce navigateur","warn");
-    return false;
-  }
-  try{
-    const [handle]=await window.showOpenFilePicker({
-      multiple:false,
-      excludeAcceptAllOption:false,
-      types:[{description:"Catalogue Zarouali",accept:{"application/zip":[".zip"]}}]
-    });
-    if(!handle)return false;
-    const name=String(handle.name||"");
-    if(name!==ZAR_MASTER_ZIP_NAME){
-      toast("Sélectionnez exactement "+ZAR_MASTER_ZIP_NAME,"error");
-      return false;
-    }
-    if(!(await zarEnsureMasterPermission(handle))){
-      toast("Autorisation d'écriture refusée pour le catalogue","error");
-      return false;
-    }
-    zarMasterFileHandle=handle;
-    zarMasterHandleReady=true;
-    await zarSaveMasterHandle(handle);
-    localStorage.setItem("zarouali_master_catalog_bound","1");
-    toast("Catalogue maître lié — Auto Save activé","success");
-    return true;
-  }catch(e){
-    if(e?.name!=="AbortError"){
-      console.error("[Master catalog bind]",e);
-      toast("Impossible de lier le catalogue maître","error");
-    }
-    return false;
-  }
-}
-async function writeCatalogToWindowsMasterFile(blob){
-  const handle=await zarLoadMasterHandle();
-  if(!handle)return false;
-  try{
-    if(!(await zarEnsureMasterPermission(handle)))return false;
-    const writable=await handle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    return true;
-  }catch(e){
-    console.warn("[Master catalog Windows write]",e);
-    return false;
-  }
-}
-
-async function catalogDownloadBlob(blob, filename, mimeType="application/octet-stream"){
-  // Windows: if the user linked the master ZIP once, overwrite that exact file.
-  if(filename===ZAR_MASTER_ZIP_NAME){
-    try{
-      const written=await writeCatalogToWindowsMasterFile(blob);
-      if(written){
-        if(typeof toast==="function")toast("💾 Auto Save — catalogue maître mis à jour","success");
-        return true;
-      }
-    }catch(e){console.warn("[Windows master save]",e);}
-  }
-
-  // Android/Capacitor: native saver already replaces the same filename in Downloads.
-  try{
-    const cap=window.Capacitor;
-    const nativeSaver=cap && cap.Plugins && cap.Plugins.ZaroualiFileSaver;
-    if(nativeSaver && typeof nativeSaver.saveFile==="function"){
-      const buf=await blob.arrayBuffer();
-      const bytes=new Uint8Array(buf);
-      let binary="";
-      const CHUNK=0x8000;
-      for(let i=0;i<bytes.length;i+=CHUNK){
-        binary+=String.fromCharCode(...bytes.subarray(i,i+CHUNK));
-      }
-      const dataBase64=btoa(binary);
-      const r=await nativeSaver.saveFile({fileName:filename,mimeType,dataBase64});
-      if(r && r.uri){
-        if(typeof toast==="function")toast("📦 Auto Save terminé — "+filename,"success");
-        return r.uri;
-      }
-      return true;
-    }
-  }catch(e){
-    console.warn("[Zarouali] Native save failed, fallback:",e);
-  }
-
-  // Final browser fallback. On Windows this is a normal download only when no
-  // master file handle was linked; the app never invents (1), (2) itself.
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download=filename; a.style.display="none";
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1500);
-  if(typeof toast==="function")toast("📥 Téléchargement lancé — liez le catalogue maître pour l'Auto Save Windows","success");
-  return true;
 }
 
 function catalogProductsForExport(){

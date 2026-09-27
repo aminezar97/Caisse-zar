@@ -1037,6 +1037,119 @@ textarea:focus{
 .product:active{transform:none!important}
 .product:hover .product-img img{transform:none!important}
 
+
+/* =========================================================
+   WINDOWS POS UI — final desktop adjustments
+   - Left navigation hidden by default; opened with hamburger
+   - Categories visible below search
+   - Larger cart area: hide subtotal/discount/parked/split controls
+   ========================================================= */
+@media (min-width:1201px){
+  /* Hamburger menu */
+  .menu-btn{
+    display:flex!important;
+    width:42px!important;
+    height:42px!important;
+    border-radius:11px!important;
+  }
+
+  /* Hide the permanent left rail on Windows */
+  .side-menu{
+    inset-inline-start:-360px!important;
+    width:320px!important;
+    max-width:88vw!important;
+    height:100vh!important;
+    z-index:500!important;
+    box-shadow:var(--shadow-xl)!important;
+  }
+  .side-menu.show{
+    inset-inline-start:0!important;
+  }
+  .menu-overlay{
+    display:none!important;
+  }
+  .menu-overlay.show{
+    display:block!important;
+  }
+
+  .header{
+    margin-inline-start:0!important;
+    padding:10px 14px!important;
+    height:72px!important;
+    min-height:72px!important;
+  }
+  .header-row{
+    max-width:none!important;
+    width:100%!important;
+    grid-template-columns:auto 1fr auto!important;
+    gap:12px!important;
+  }
+
+  .content{
+    margin-inline-start:0!important;
+    width:100%!important;
+    height:calc(100vh - 72px)!important;
+    padding:12px 12px 14px!important;
+  }
+
+  /* Search first, categories immediately underneath */
+  .products-panel{
+    overflow:hidden!important;
+  }
+  .search-area{
+    order:0!important;
+    position:relative!important;
+    z-index:2!important;
+  }
+  .categories{
+    order:1!important;
+    position:relative!important;
+    z-index:1!important;
+    display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    min-height:52px!important;
+    padding:8px 12px 10px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    border-bottom:1px solid var(--border-subtle)!important;
+    background:var(--bg-surface)!important;
+  }
+
+  /* Cart: use the freed vertical space for products */
+  .cart-items{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+  }
+
+  /* Hide only the requested summary/control rows on Windows.
+     Keep their IDs in the DOM so existing JS continues to work. */
+  .windows-hide-summary{
+    display:none!important;
+  }
+
+  .cart-summary{
+    padding:10px 12px!important;
+  }
+  .summary-total{
+    padding-top:7px!important;
+    margin-top:5px!important;
+  }
+  .payment-grid{
+    margin-top:7px!important;
+  }
+  .quick-cash{
+    margin-top:5px!important;
+  }
+  .cash-input{
+    margin-top:5px!important;
+  }
+  .sell-btn{
+    margin-top:6px!important;
+  }
+}
+
 </style>
 
 <style id="zarouali-catalog-layout">
@@ -1772,8 +1885,8 @@ function renderMainContent(){
         <div id="creditBarContainer" class="credit-bar-container"><div class="credit-bar-label"><span>Dette</span><span id="creditBarText">0 DH</span></div><div class="credit-bar-track"><div id="creditBarFill" class="credit-bar-fill" style="width:0%"></div></div></div>
         <div id="cartItems" class="cart-items"></div>
         <div class="cart-summary">
-          <div class="summary-line"><span>Sous-total</span><strong id="subtotal">0.00 DH</strong></div>
-          <div class="summary-line"><span>Remise</span><span><input id="discount" type="number" min="0" value="0" oninput="renderCart()"> DH</span></div>
+          <div class="summary-line windows-hide-summary"><span>Sous-total</span><strong id="subtotal">0.00 DH</strong></div>
+          <div class="summary-line windows-hide-summary"><span>Remise</span><span><input id="discount" type="number" min="0" value="0" oninput="renderCart()"> DH</span></div>
           <div class="summary-total"><span>TOTAL</span><strong id="total">0.00 DH</strong></div>
           <div class="payment-grid">
             <button class="payment-btn active" onclick="setPayment('Espèces')" id="cashPaymentBtn">💵<span>${t('cashPayment')}</span></button>
@@ -1783,8 +1896,8 @@ function renderMainContent(){
           <div id="quickCash" class="quick-cash"><button onclick="setCashAmount(20)">20</button><button onclick="setCashAmount(50)">50</button><button onclick="setCashAmount(100)">100</button><button onclick="setCashAmount(200)">200</button></div>
           <div id="cashInput" class="cash-input show"><input id="cashReceived" type="number" placeholder="Montant reçu" oninput="calculateChange()"><div class="change"><span>Monnaie</span><span id="change">0.00 DH</span></div></div>
           <button class="sell-btn" onclick="completeSale()">${icon('check',20)}<span>${t('completeSaleBtn')}</span></button>
-          <button class="clear-btn" onclick="ParkedSales.park()">⏸️ Mettre en attente</button>
-          <button class="clear-btn" onclick="SplitPayment.open()">💳 Paiement mixte</button>
+          <button class="clear-btn windows-hide-summary" onclick="ParkedSales.park()">⏸️ Mettre en attente</button>
+          <button class="clear-btn windows-hide-summary" onclick="SplitPayment.open()">💳 Paiement mixte</button>
           <button class="clear-btn" onclick="clearCart()">${icon('trash',14)} Vider</button>
         </div>
       </div>

@@ -1542,7 +1542,7 @@ textarea:focus{
 <div id="changePasswordModal" class="modal"><div class="modal-box"><div class="modal-header"><strong>🔐 Mot de passe</strong><button class="close" onclick="closeModal('changePasswordModal')">×</button></div><div class="modal-body"><div class="form-group"><label>Ancien</label><input id="oldPassword" type="password"></div><div class="form-group" style="margin-top:12px"><label>Nouveau</label><input id="newPassword" type="password"></div><div class="form-group" style="margin-top:12px"><label>Confirmer</label><input id="confirmPassword" type="password"></div><button class="btn btn-primary btn-full" onclick="changePassword()" style="margin-top:16px">💾 Modifier</button></div></div></div>
 
 <div id="usersModal" class="modal"><div class="modal-box" style="max-width:680px"><div class="modal-header"><strong>👥 Utilisateurs</strong><button class="close" onclick="closeModal('usersModal')">×</button></div><div class="modal-body">
-<div class="form-group"><label>🔐 Mot de passe admin</label><input id="adminPasswordField" type="text" placeholder="1234"></div>
+<div class="form-group"><label>🔐 Mot de passe admin</label><input id="adminPasswordField" type="password" placeholder="Nouveau mot de passe admin (vide = inchangé)"></div>
 <div class="eyebrow" style="margin:20px 0 10px">Caissiers & leurs mots de passe</div>
 <div id="cashiersUsersList" style="max-height:340px;overflow-y:auto"></div>
 <button class="btn btn-secondary btn-full" onclick="Users.addCashierRow()" style="margin-top:12px">+ Ajouter un caissier</button>
@@ -1596,7 +1596,229 @@ textarea:focus{
    Fixes: cart image grid, Windows content scroll, header cols,
    split payments persistence, id collision, double login, etc.
    ========================================================= */
-const DB_KEY="zarouali_caisse_v1",PASSWORD_KEY="zarouali_caisse_password",LOGIN_KEY="zarouali_caisse_login",STORE_KEY="zarouali_caisse_store",THEME_KEY="zarouali_caisse_theme",LANG_KEY="zarouali_lang",IMAGE_BASE_URL="./images/";
+const DB_KEY="zarouali_caisse_v1",PASSWORD_KEY="zarouali_caisse_password",LOGIN_KEY="zarouali_caisse_login",AUTH_ADMIN_KEY="zarouali_caisse_admin_auth",STORE_KEY="zarouali_caisse_store",THEME_KEY="zarouali_caisse_theme",LANG_KEY="zarouali_lang",IMAGE_BASE_URL="./images/";
+
+const Security={
+  ITERATIONS:300000,
+  admin:null,
+
+  _b64(bytes){
+    let s="";
+    for(const b of bytes)s+=String.fromCharCode(b);
+    return btoa(s);
+  },
+
+  _bytes(s){
+    const b=atob(String(s||""));
+    const out=new Uint8Array(b.length);
+    for(let i=0;i<b.length;i++)out[i]=b.charCodeAt(i);
+    return out;
+  },
+
+  async _derive(password,salt,iterations=this.ITERATIONS){
+    if(!globalThis.crypto?.subtle)throw new Error("Web Crypto indisponible");
+
+    const key=await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(String(password)),
+      "PBKDF2",
+      false,
+      ["deriveBits"]
+    );
+
+    const bits=await crypto.subtle.deriveBits(
+      {
+        name:"PBKDF2",
+        salt,
+        iterations:Number(iterations)||this.ITERATIONS,
+        hash:"SHA-256"
+      },
+      key,
+      256
+    );
+
+    return new Uint8Array(bits);
+  },
+
+  _equal(a,b){
+    if(!a||!b||a.length!==b.length)return false;
+
+    let v=0;
+    for(let i=0;i<a.length;i++)v|=a[i]^b[i];
+
+    return v===0;
+  },
+
+  async makeRecord(password,mustChange=false){
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const hash=await this._derive(password,salt,this.ITERATIONS);
+
+    return {
+      passwordHash:this._b64(hash),
+      passwordSalt:this._b64(salt),
+      passwordIterations:this.ITERATIONS,
+      mustChangePassword:!!mustChange
+    };
+  },
+
+  async verify(password,record){
+    if(!record?.passwordHash||!record?.passwordSalt)return false;
+
+    try{
+      const hash=await this._derive(
+        password,
+        this._bytes(record.passwordSalt),
+        Number(record.passwordIterations)||this.ITERATIONS
+      );
+
+      return this._equal(
+        hash,
+        this._bytes(record.passwordHash)
+      );
+    }catch(e){
+      console.error("[Security.verify]",e);
+      return false;
+    }
+  },
+
+  async init(){
+    let admin=null;
+
+    try{
+      admin=JSON.parse(
+        localStorage.getItem(AUTH_ADMIN_KEY)||"null"
+      );
+    }catch(e){
+      admin=null;
+    }
+
+    if(!admin?.passwordHash){
+      let legacy="";
+
+      try{
+        legacy=(localStorage.getItem(PASSWORD_KEY)||"").trim();
+      }catch(e){}
+
+      if(!legacy){
+        try{
+          const x=JSON.parse(
+            localStorage.getItem(LOGIN_KEY)||"null"
+          );
+          legacy=String(x?.password||"").trim();
+        }catch(e){}
+      }
+
+      if(!legacy)legacy="1234";
+
+      admin=await this.makeRecord(
+        legacy,
+        legacy==="1234"
+      );
+
+      localStorage.setItem(
+        AUTH_ADMIN_KEY,
+        JSON.stringify(admin)
+      );
+
+      try{localStorage.removeItem(PASSWORD_KEY);}catch(e){}
+      try{localStorage.removeItem(LOGIN_KEY);}catch(e){}
+    }else{
+      try{localStorage.removeItem(PASSWORD_KEY);}catch(e){}
+      try{localStorage.removeItem(LOGIN_KEY);}catch(e){}
+    }
+
+    this.admin=admin;
+
+    for(const c of (db.cashiers||[])){
+      c.id=String(c.id??"").trim();
+      c.name=String(c.name??"").trim();
+
+      if(!c.role)c.role="cashier";
+      if(c.active===undefined)c.active=true;
+
+      if(!c.passwordHash){
+        const legacy=String(c.password??"");
+
+        if(legacy){
+          const rec=await this.makeRecord(
+            legacy,
+            false
+          );
+
+          Object.assign(c,rec);
+        }else{
+          c.passwordHash=null;
+          c.passwordSalt=null;
+          c.passwordIterations=0;
+          c.mustChangePassword=true;
+        }
+
+        delete c.password;
+      }else{
+        if(c.mustChangePassword===undefined)
+          c.mustChangePassword=false;
+
+        delete c.password;
+      }
+    }
+  },
+
+  async verifyAdminPassword(password){
+    return this.verify(password,this.admin);
+  },
+
+  async setAdminPassword(password){
+    this.admin=await this.makeRecord(password,false);
+
+    localStorage.setItem(
+      AUTH_ADMIN_KEY,
+      JSON.stringify(this.admin)
+    );
+  },
+
+  async verifyCashierPassword(cashier,password){
+    return this.verify(password,cashier);
+  },
+
+  async setCashierPassword(cashier,password){
+    const rec=await this.makeRecord(password,false);
+
+    Object.assign(cashier,rec);
+    delete cashier.password;
+  },
+
+  async verifyCurrentPassword(user,password){
+    if(user?.type==="admin"){
+      return this.verifyAdminPassword(password);
+    }
+
+    const cashier=(db.cashiers||[]).find(
+      c=>String(c.id)===String(user?.id)
+    );
+
+    return cashier
+      ? this.verifyCashierPassword(cashier,password)
+      : false;
+  },
+
+  async setCurrentPassword(user,password){
+    if(user?.type==="admin"){
+      await this.setAdminPassword(password);
+      return;
+    }
+
+    const cashier=(db.cashiers||[]).find(
+      c=>String(c.id)===String(user?.id)
+    );
+
+    if(!cashier)
+      throw new Error("Caissier introuvable");
+
+    await this.setCashierPassword(cashier,password);
+    saveDB();
+  }
+};
+
 
 const translations={
 ar:{
@@ -1804,7 +2026,13 @@ function zarCloudPush(){
 
 function saveDB(){
   (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
-  (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
+  (db.cashiers||[]).forEach(c=>{
+    c.id=String(c.id??"").trim();
+    c.name=String(c.name??"").trim();
+    if(!c.role)c.role="cashier";
+    if(c.active===undefined)c.active=true;
+    delete c.password;
+  });
   (db.clients||[]).forEach(c=>{c.id=String(c.id??"").trim();});
   (db.suppliers||[]).forEach(s=>{s.id=String(s.id??"").trim();});
   (db.sales||[]).forEach(s=>{
@@ -1817,7 +2045,7 @@ function saveDB(){
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));}catch(e){console.warn("[local save]",e);}
   try{zarCloudPush();}catch(e){}
 }
-function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};saveDB();}
+function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234",role:"cashier",active:true,mustChangePassword:true},{id:"C2",name:"Caissière 2",password:"1234",role:"cashier",active:true,mustChangePassword:true}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};}
 
 function loadTheme(){const s=localStorage.getItem(THEME_KEY);const h=document.documentElement;const tg=document.getElementById("themeToggle");if(s==='dark'){h.setAttribute('data-theme','dark');if(tg)tg.checked=false;}else{h.removeAttribute('data-theme');if(tg)tg.checked=true;}}
 function toggleTheme(c){const h=document.documentElement;if(c){h.removeAttribute('data-theme');localStorage.setItem(THEME_KEY,'light');}else{h.setAttribute('data-theme','dark');localStorage.setItem(THEME_KEY,'dark');}}
@@ -2173,28 +2401,132 @@ function renderMainContent(){
 
 function goPage(id,btn){currentPage=id;closeMenu();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(id);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");setTimeout(()=>{renderAll();if(id==='sale'){const s=document.getElementById('search');if(s)s.focus();}},50);resetInactivityTimer();}
 function protectedPage(id,btn){protectedTarget=id;protectedButton=btn;closeMenu();document.getElementById("passwordInput").value="";document.getElementById("passwordError").textContent="";document.getElementById("passwordModal").classList.add("show");setTimeout(()=>document.getElementById("passwordInput").focus(),150);}
-function checkPassword(){const e=document.getElementById("passwordInput").value;const c=localStorage.getItem(PASSWORD_KEY)||"1234";if(e===c){closeModal("passwordModal");if(protectedTarget){currentPage=protectedTarget;document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(protectedTarget);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(protectedButton)protectedButton.classList.add("active");renderAll();}}else document.getElementById("passwordError").textContent=t('loginError');}
+async function checkPassword(){
+  const e=document.getElementById("passwordInput")?.value||"";
+  const ok=await Security.verifyAdminPassword(e);
+
+  if(ok){
+    closeModal("passwordModal");
+
+    if(protectedTarget){
+      currentPage=protectedTarget;
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+
+      const page=document.getElementById(protectedTarget);
+      if(page)page.classList.add("active");
+
+      document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));
+      if(protectedButton)protectedButton.classList.add("active");
+
+      renderAll();
+    }
+  }else{
+    const el=document.getElementById("passwordError");
+    if(el)el.textContent=t("loginError");
+  }
+}
 function openChangePassword(){document.getElementById("oldPassword").value="";document.getElementById("newPassword").value="";document.getElementById("confirmPassword").value="";document.getElementById("changePasswordModal").classList.add("show");}
-function changePassword(){const o=document.getElementById("oldPassword").value;const n=document.getElementById("newPassword").value;const c=document.getElementById("confirmPassword").value;const cur=localStorage.getItem(PASSWORD_KEY)||"1234";if(o!==cur){toast(t('loginError'),'error');return;}if(!n){toast('Mot de passe requis','warn');return;}if(n!==c){toast('Non concordance','warn');return;}localStorage.setItem(PASSWORD_KEY,n);closeModal("changePasswordModal");toast('Mot de passe modifié','success');}
+async function changePassword(){
+  const o=document.getElementById("oldPassword")?.value||"";
+  const n=document.getElementById("newPassword")?.value||"";
+  const c=document.getElementById("confirmPassword")?.value||"";
+
+  if(!n){
+    toast("Mot de passe requis","warn");
+    return;
+  }
+
+  if(n.length<4){
+    toast("Mot de passe trop court","warn");
+    return;
+  }
+
+  if(n!==c){
+    toast("Non concordance","warn");
+    return;
+  }
+
+  if(!currentUser){
+    toast("Session utilisateur introuvable","error");
+    return;
+  }
+
+  const ok=await Security.verifyCurrentPassword(currentUser,o);
+
+  if(!ok){
+    toast(t("loginError"),"error");
+    return;
+  }
+
+  try{
+    await Security.setCurrentPassword(currentUser,n);
+
+    currentUser.mustChangePassword=false;
+
+    try{
+      localStorage.setItem(
+        USER_KEY,
+        JSON.stringify(currentUser)
+      );
+    }catch(e){}
+
+    closeModal("changePasswordModal");
+    toast("Mot de passe modifié","success");
+  }catch(e){
+    console.error("[changePassword]",e);
+    toast("Erreur de modification du mot de passe","error");
+  }
+}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove("show");}
 function toggleMenu(){const m=document.getElementById("sideMenu");const o=document.getElementById("menuOverlay");const opening=!m.classList.contains("show");m.classList.toggle("show");o.classList.toggle("show");document.body.classList.toggle("menu-open",opening);}
 function closeMenu(){document.getElementById("sideMenu").classList.remove("show");document.getElementById("menuOverlay").classList.remove("show");document.body.classList.remove("menu-open");}
 function showKeyboardHelp(){document.getElementById("kbdHelpModal").classList.add("show");}
 
-function doLogin(){
+async function doLogin(){
   const u=(document.getElementById("loginUser")?.value||"").trim();
   const p=(document.getElementById("loginPass")?.value||"").trim();
   const err=document.getElementById("loginError");
+
   if(err)err.textContent="";
-  if(!u||!p){if(err)err.textContent="Identifiants requis";return false;}
-  const adminPass=localStorage.getItem(PASSWORD_KEY)||"1234";
-  if(u.toLowerCase()==="admin"&&p===adminPass){
-    return loginAs({type:"admin",name:"admin"});
+
+  if(!u||!p){
+    if(err)err.textContent="Identifiants requis";
+    return false;
   }
-  let cashier=(db.cashiers||[]).find(c=>String(c.name||"").toLowerCase()===u.toLowerCase()&&String(c.password||"")===p);
-  if(!cashier)cashier=(db.cashiers||[]).find(c=>String(c.id)===u&&String(c.password||"")===p);
-  if(cashier)return loginAs({type:"cashier",id:String(cashier.id),name:cashier.name});
-  if(err)err.textContent=t('loginError');
+
+  if(u.toLowerCase()==="admin"){
+    if(await Security.verifyAdminPassword(p)){
+      return loginAs({
+        type:"admin",
+        name:"admin",
+        role:"admin",
+        mustChangePassword:!!Security.admin?.mustChangePassword
+      });
+    }
+  }else{
+    for(const cashier of (db.cashiers||[])){
+      if(cashier.active===false)continue;
+
+      const matchName=
+        String(cashier.name||"").toLowerCase()===u.toLowerCase();
+
+      const matchId=
+        String(cashier.id||"")===u;
+
+      if((matchName||matchId) &&
+         await Security.verifyCashierPassword(cashier,p)){
+        return loginAs({
+          type:"cashier",
+          id:String(cashier.id),
+          name:cashier.name,
+          role:cashier.role||"cashier",
+          mustChangePassword:!!cashier.mustChangePassword
+        });
+      }
+    }
+  }
+
+  if(err)err.textContent=t("loginError");
   return false;
 }
 function loginAs(user){
@@ -2480,35 +2812,141 @@ function editClient(id){const c=db.clients.find(x=>String(x.id)===String(id));if
 function saveClient(){const id=String(document.getElementById("editClientId").value||"").trim();const name=document.getElementById("clientName").value.trim();const phone=document.getElementById("clientPhone").value.trim();const email=document.getElementById("clientEmail").value.trim();const tier=document.getElementById("clientTier").value||"standard";if(!name){toast('Nom obligatoire','error');return;}if(id){const c=db.clients.find(x=>String(x.id)===id);if(c){c.name=name;c.phone=phone;c.email=email;c.tier=tier;}AuditLog.log('client.update',name,'');}else{const nid="CL"+String(db.clients.length+1).padStart(3,"0");db.clients.push({id:nid,name,phone,email,tier,debt:0,totalPurchases:0,points:0});AuditLog.log('client.create',name,'');}saveDB();closeModal("clientModal");renderAll();toast(t('clientSaved'),'success');}
 function deleteClient(id){if(!confirm('Supprimer ce client ?'))return;db.clients=db.clients.filter(c=>String(c.id)!==String(id));saveDB();renderAll();toast('Client supprimé','success');}
 
-function renderCashiersAdmin(){const box=document.getElementById("cashiersAdmin");if(!box)return;const stats={};for(const s of db.sales){const id=String(s.cashierId||"unknown");if(!stats[id])stats[id]={tickets:0,ca:0};stats[id].tickets++;stats[id].ca+=s.total;}box.innerHTML=db.cashiers.map(c=>{const st=stats[String(c.id)]||{tickets:0,ca:0};const avg=st.tickets>0?st.ca/st.tickets:0;const pwd=c.password?('•'.repeat(Math.min(6,(c.password||'').length))):'—';return'<tr><td><strong>'+escapeHTML(c.name)+'</strong></td><td class="mono" style="color:var(--text-muted)">'+pwd+'</td><td class="mono">'+st.tickets+'</td><td class="mono">'+money(st.ca)+'</td><td class="mono">'+money(avg)+'</td><td><div class="row-actions"><button onclick="editCashier(\''+escapeAttr(String(c.id))+'\')">'+icon('edit',14)+'</button><button class="danger-row" onclick="deleteCashier(\''+escapeAttr(String(c.id))+'\')">'+icon('trash',14)+'</button></div></td></tr>';}).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Aucune caissière</td></tr>';}
+function renderCashiersAdmin(){
+  const box=document.getElementById("cashiersAdmin");
+  if(!box)return;
+
+  const stats={};
+
+  for(const sale of db.sales){
+    const id=String(sale.cashierId||"unknown");
+    if(!stats[id])stats[id]={tickets:0,ca:0};
+    stats[id].tickets++;
+    stats[id].ca+=sale.total;
+  }
+
+  box.innerHTML=db.cashiers.map(c=>{
+    const st=stats[String(c.id)]||{tickets:0,ca:0};
+    const avg=st.tickets>0?st.ca/st.tickets:0;
+
+    return '<tr>'
+      +'<td><strong>'+escapeHTML(c.name)+'</strong></td>'
+      +'<td class="mono" style="color:var(--text-muted)">••••••</td>'
+      +'<td class="mono">'+st.tickets+'</td>'
+      +'<td class="mono">'+money(st.ca)+'</td>'
+      +'<td class="mono">'+money(avg)+'</td>'
+      +'<td><div class="row-actions">'
+      +'<button onclick="editCashier(\''+escapeAttr(String(c.id))+'\')">'+icon('edit',14)+'</button>'
+      +'<button class="danger-row" onclick="deleteCashier(\''+escapeAttr(String(c.id))+'\')">'+icon('trash',14)+'</button>'
+      +'</div></td>'
+      +'</tr>';
+  }).join("")
+  ||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Aucune caissière</td></tr>';
+}
+
 function openCashierModal(data){
   document.getElementById("editCashierId").value="";
   document.getElementById("cashierName").value="";
+
   const pf=document.getElementById("cashierPassword");
-  if(pf)pf.value="";
+
+  if(pf){
+    pf.value="";
+    pf.type="password";
+    pf.placeholder=data
+      ?"Nouveau mot de passe (laisser vide = inchangé)"
+      :"Mot de passe requis";
+  }
+
   if(data){
     document.getElementById("editCashierId").value=String(data.id);
     document.getElementById("cashierName").value=data.name||"";
-    if(pf)pf.value=data.password||"";
   }
+
   document.getElementById("cashierModal").classList.add("show");
 }
-function editCashier(id){const c=db.cashiers.find(x=>String(x.id)===String(id));if(c)openCashierModal(c);}
-function saveCashier(){
+
+function editCashier(id){
+  const c=db.cashiers.find(x=>String(x.id)===String(id));
+  if(c)openCashierModal(c);
+}
+
+async function saveCashier(){
   const id=String(document.getElementById("editCashierId").value||"").trim();
   const name=document.getElementById("cashierName").value.trim();
   const password=(document.getElementById("cashierPassword")?.value||"").trim();
-  if(!name){toast('Nom obligatoire','error');return;}
-  if(id){
-    const c=db.cashiers.find(x=>String(x.id)===id);
-    if(c){c.name=name;c.password=password;}
-  }else{
-    const nid="C"+Date.now().toString(36).toUpperCase();
-    db.cashiers.push({id:nid,name,password});
+
+  if(!name){
+    toast("Nom obligatoire","error");
+    return;
   }
-  saveDB();closeModal("cashierModal");renderAll();toast('Caissière enregistrée','success');
+
+  try{
+    if(id){
+      const c=db.cashiers.find(x=>String(x.id)===id);
+
+      if(!c){
+        toast("Caissière introuvable","error");
+        return;
+      }
+
+      c.name=name;
+
+      if(password){
+        if(password.length<4){
+          toast("Mot de passe trop court","warn");
+          return;
+        }
+
+        await Security.setCashierPassword(c,password);
+      }
+
+      if(!c.role)c.role="cashier";
+      if(c.active===undefined)c.active=true;
+
+    }else{
+      if(!password){
+        toast("Mot de passe requis","warn");
+        return;
+      }
+
+      if(password.length<4){
+        toast("Mot de passe trop court","warn");
+        return;
+      }
+
+      const rec=await Security.makeRecord(password,false);
+
+      db.cashiers.push({
+        id:"C"+Date.now().toString(36).toUpperCase(),
+        name,
+        role:"cashier",
+        active:true,
+        ...rec
+      });
+    }
+
+    saveDB();
+    closeModal("cashierModal");
+    renderAll();
+    toast("Caissière enregistrée","success");
+
+  }catch(e){
+    console.error("[saveCashier]",e);
+    toast("Erreur lors de l'enregistrement","error");
+  }
 }
-function deleteCashier(id){if(!confirm('Supprimer ?'))return;const key=String(id);db.cashiers=db.cashiers.filter(c=>String(c.id)!==key);saveDB();renderAll();toast('Supprimée','success');}
+
+function deleteCashier(id){
+  if(!confirm("Supprimer ?"))return;
+
+  const key=String(id);
+  db.cashiers=db.cashiers.filter(c=>String(c.id)!==key);
+
+  saveDB();
+  renderAll();
+  toast("Supprimée","success");
+}
 
 function populateHistoryFilters(){const cs=document.getElementById("historyCashier");if(cs){const cur=cs.value;cs.innerHTML='<option value="">Toutes</option>'+db.cashiers.map(c=>'<option value="'+escapeAttr(String(c.id))+'">'+escapeHTML(c.name)+'</option>').join('');if(cur)cs.value=cur;}const cl=document.getElementById("historyClient");if(cl){const cur=cl.value;cl.innerHTML='<option value="">Tous clients</option>'+db.clients.map(c=>'<option value="'+escapeAttr(String(c.id))+'">'+escapeHTML(c.name)+'</option>').join('');if(cur)cl.value=cur;}}
 function renderHistory(){const box=document.getElementById("history");if(!box)return;const d=document.getElementById("historyDate")?.value||"";const ci=document.getElementById("historyCashier")?.value||"";const cli=document.getElementById("historyClient")?.value||"";let list=[...db.sales];if(d)list=list.filter(s=>s.date.startsWith(d));if(ci)list=list.filter(s=>String(s.cashierId)===String(ci));if(cli)list=list.filter(s=>String(s.clientId)===String(cli));list.sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=list.map(s=>{const c=db.cashiers.find(x=>String(x.id)===String(s.cashierId));const cl=db.clients.find(x=>String(x.id)===String(s.clientId));const n=(s.items||[]).reduce((sm,i)=>sm+i.qty,0);return'<tr><td><strong class="mono">'+escapeHTML(s.id)+'</strong></td><td>'+new Date(s.date).toLocaleString('fr-FR')+'</td><td>'+(c?escapeHTML(c.name):"—")+'</td><td>'+(cl?escapeHTML(cl.name):"—")+'</td><td class="mono">'+n+'</td><td class="mono"><strong>'+money(s.total)+'</strong></td><td>'+escapeHTML(s.payment)+'</td><td><div class="row-actions"><button onclick="printReceipt(db.sales.find(x=>x.id===\''+s.id+'\'))">'+icon('print',14)+'</button><button onclick="Returns.open(\''+s.id+'\')" style="color:var(--danger-500)">↩</button></div></td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">Aucune vente</td></tr>';}
@@ -3771,7 +4209,63 @@ function thisName(path){
 }
 
 function exportBackup(){const d={...db,_ts:new Date().toISOString()};downloadFile("zarouali_backup_"+localDateISO()+".json",JSON.stringify(d,null,2),"application/json");toast('Export réussi','success');}
-function importBackup(e){const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.sales){toast('Fichier invalide','error');return;}if(!confirm('Restaurer ?'))return;db.products=(d.products||[]).map(p=>({...p,id:String(p.id??"").trim(),barcode:String(p.barcode??"").trim()}));db.cashiers=(d.cashiers||[]).map(c=>({...c,id:String(c.id??"").trim(),password:String(c.password??"")}));db.clients=(d.clients||[]).map(c=>({...c,id:String(c.id??"").trim()}));db.sales=d.sales||[];db.suppliers=(d.suppliers||[]).map(s=>({...s,id:String(s.id??"").trim()}));db.purchases=d.purchases||[];db.returns=d.returns||[];db.settings=d.settings||{storeName:"Zarouali POS"};saveDB();renderAll();toast('Restauration réussie','success');}catch(err){toast('Erreur import','error');}e.target.value="";};r.readAsText(f);}
+async function importBackup(e){
+  const f=e.target.files?.[0];
+  if(!f)return;
+
+  const r=new FileReader();
+
+  r.onload=async ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+
+      if(!d.products||!d.sales){
+        toast("Fichier invalide","error");
+        return;
+      }
+
+      if(!confirm("Restaurer ?"))return;
+
+      db.products=(d.products||[]).map(p=>({
+        ...p,
+        id:String(p.id??"").trim(),
+        barcode:String(p.barcode??"").trim()
+      }));
+
+      db.cashiers=(d.cashiers||[]).map(c=>({
+        ...c,
+        id:String(c.id??"").trim()
+      }));
+
+      db.clients=(d.clients||[]).map(c=>({
+        ...c,
+        id:String(c.id??"").trim()
+      }));
+
+      db.sales=d.sales||[];
+      db.suppliers=(d.suppliers||[]).map(s=>({
+        ...s,
+        id:String(s.id??"").trim()
+      }));
+      db.purchases=d.purchases||[];
+      db.returns=d.returns||[];
+      db.settings=d.settings||{storeName:"Zarouali POS"};
+
+      await Security.init();
+      saveDB();
+      renderAll();
+
+      toast("Restauration réussie","success");
+    }catch(err){
+      console.error("[Backup import]",err);
+      toast("Erreur import","error");
+    }
+
+    e.target.value="";
+  };
+
+  r.readAsText(f);
+}
 function downloadDailyReport(){const today=localDateISO();const sales=db.sales.filter(s=>s.date.startsWith(today));let r="Rapport du "+today+"\n"+"=".repeat(40)+"\n";const ca=sales.reduce((s,x)=>s+x.total,0);const cost=sales.reduce((s,x)=>s+(x.cost||0),0);r+="CA: "+money(ca)+"\nBénéfice: "+money(ca-cost)+"\nTickets: "+sales.length+"\n\n";for(const s of sales){r+="Ticket: "+s.id+" | "+new Date(s.date).toLocaleTimeString('fr-FR')+" | "+s.payment+" | "+money(s.total)+"\n";}downloadFile("rapport_"+today+".txt",r,"text/plain");toast('Rapport téléchargé','success');}
 function resetDatabase(){if(!confirm('Réinitialiser TOUT ?'))return;if(!confirm('Confirmer ?'))return;localStorage.removeItem(DB_KEY);createDefaultDB();renderAll();toast('Base réinitialisée','success');}
 function clearAllProducts(){if(!confirm('Supprimer tous les produits ?'))return;db.products=[];saveDB();renderAll();toast('Produits supprimés','success');}
@@ -3846,33 +4340,155 @@ const Returns={currentSale:null,selections:{},open(saleId){const sale=db.sales.f
 
 const Users={
   tempCashiers:[],
+
   open(){
-    this.tempCashiers=(db.cashiers||[]).map(c=>({id:String(c.id),name:String(c.name||""),password:String(c.password||"")}));
+    this.tempCashiers=(db.cashiers||[]).map(c=>({
+      id:String(c.id),
+      name:String(c.name||""),
+      password:""
+    }));
+
     const ap=document.getElementById("adminPasswordField");
-    if(ap)ap.value=localStorage.getItem(PASSWORD_KEY)||"1234";
+
+    if(ap){
+      ap.value="";
+      ap.type="password";
+      ap.placeholder="Nouveau mot de passe admin (vide = inchangé)";
+    }
+
     this.render();
     document.getElementById("usersModal").classList.add("show");
   },
+
   render(){
     const box=document.getElementById("cashiersUsersList");
     if(!box)return;
+
     if(!this.tempCashiers.length){
       box.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Aucun caissier · cliquez sur "Ajouter"</div>';
       return;
     }
-    box.innerHTML=this.tempCashiers.map((c,i)=>'<div style="display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin-bottom:8px;align-items:center"><input value="'+escapeAttr(c.name)+'" placeholder="Nom" onchange="Users.setField('+i+',\'name\',this.value)" style="padding:10px 12px;border-radius:10px;min-height:42px"><input value="'+escapeAttr(c.password)+'" placeholder="Mot de passe" onchange="Users.setField('+i+',\'password\',this.value)" style="padding:10px 12px;border-radius:10px;min-height:42px;font-family:var(--font-mono)"><button class="btn btn-secondary btn-sm" onclick="Users.removeRow('+i+')" style="color:var(--danger-500);min-height:42px;padding:0">×</button></div>').join('');
+
+    box.innerHTML=this.tempCashiers.map((c,i)=>{
+      const existing=(db.cashiers||[]).some(
+        x=>String(x.id)===String(c.id)
+      );
+
+      return '<div style="display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin-bottom:8px;align-items:center">'
+        +'<input value="'+escapeAttr(c.name)+'" placeholder="Nom" onchange="Users.setField('+i+',\'name\',this.value)" style="padding:10px 12px;border-radius:10px;min-height:42px">'
+        +'<input type="password" value="" placeholder="'+(existing?'Nouveau mot de passe (vide = inchangé)':'Mot de passe requis')+'" onchange="Users.setField('+i+',\'password\',this.value)" style="padding:10px 12px;border-radius:10px;min-height:42px;font-family:var(--font-mono)">'
+        +'<button class="btn btn-secondary btn-sm" onclick="Users.removeRow('+i+')" style="color:var(--danger-500);min-height:42px;padding:0">×</button>'
+        +'</div>';
+    }).join("");
   },
-  setField(i,k,v){if(!this.tempCashiers[i])return;this.tempCashiers[i][k]=String(v||"").trim();},
-  addCashierRow(){const n=this.tempCashiers.length+1;this.tempCashiers.push({id:"C"+Date.now().toString(36).toUpperCase(),name:"Caissière "+n,password:""});this.render();},
-  removeRow(i){this.tempCashiers.splice(i,1);this.render();},
-  save(){
-    const ap=(document.getElementById("adminPasswordField")?.value||"").trim();
-    if(!ap){toast('Mot de passe admin requis','warn');return;}
-    for(const c of this.tempCashiers){if(!c.name){toast('Nom de caissier requis','warn');return;}}
-    localStorage.setItem(PASSWORD_KEY,ap);
-    db.cashiers=this.tempCashiers.map(c=>({id:String(c.id),name:c.name,password:c.password||""}));
-    saveDB();renderAll();closeModal("usersModal");
-    toast('Utilisateurs enregistrés','success');
+
+  setField(i,k,v){
+    if(!this.tempCashiers[i])return;
+    this.tempCashiers[i][k]=String(v||"").trim();
+  },
+
+  addCashierRow(){
+    const n=this.tempCashiers.length+1;
+
+    this.tempCashiers.push({
+      id:"C"+Date.now().toString(36).toUpperCase(),
+      name:"Caissière "+n,
+      password:""
+    });
+
+    this.render();
+  },
+
+  removeRow(i){
+    this.tempCashiers.splice(i,1);
+    this.render();
+  },
+
+  async save(){
+    try{
+      const ap=(document.getElementById("adminPasswordField")?.value||"").trim();
+
+      for(const c of this.tempCashiers){
+        if(!c.name){
+          toast("Nom de caissier requis","warn");
+          return;
+        }
+      }
+
+      if(ap){
+        if(ap.length<4){
+          toast("Mot de passe admin trop court","warn");
+          return;
+        }
+
+        await Security.setAdminPassword(ap);
+      }
+
+      const next=[];
+
+      for(const c of this.tempCashiers){
+        const old=(db.cashiers||[]).find(
+          x=>String(x.id)===String(c.id)
+        );
+
+        if(old){
+          old.name=c.name;
+
+          if(c.password){
+            if(c.password.length<4){
+              toast("Mot de passe trop court","warn");
+              return;
+            }
+
+            await Security.setCashierPassword(
+              old,
+              c.password
+            );
+          }
+
+          if(!old.role)old.role="cashier";
+          if(old.active===undefined)old.active=true;
+          if(old.mustChangePassword===undefined)
+            old.mustChangePassword=false;
+
+          delete old.password;
+          next.push(old);
+        }else{
+          if(!c.password){
+            toast("Mot de passe requis pour un nouveau caissier","warn");
+            return;
+          }
+
+          if(c.password.length<4){
+            toast("Mot de passe trop court","warn");
+            return;
+          }
+
+          const rec=await Security.makeRecord(
+            c.password,
+            false
+          );
+
+          next.push({
+            id:String(c.id),
+            name:c.name,
+            role:"cashier",
+            active:true,
+            ...rec
+          });
+        }
+      }
+
+      db.cashiers=next;
+      saveDB();
+      renderAll();
+      closeModal("usersModal");
+      toast("Utilisateurs enregistrés","success");
+
+    }catch(e){
+      console.error("[Users.save]",e);
+      toast("Erreur lors de l'enregistrement","error");
+    }
   }
 };
 
@@ -4093,9 +4709,7 @@ async function init(){
   if(!db.suppliers)db.suppliers=[];
   if(!db.purchases)db.purchases=[];
   if(!db.returns)db.returns=[];
-  if(!db.cashiers||!db.cashiers.length)db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234"},{id:"C2",name:"Caissière 2",password:"1234"}];
-  if(!localStorage.getItem(PASSWORD_KEY))localStorage.setItem(PASSWORD_KEY,"1234");
-  if(!localStorage.getItem(LOGIN_KEY))localStorage.setItem(LOGIN_KEY,JSON.stringify({username:"admin",password:"1234"}));
+  if(!db.cashiers||!db.cashiers.length)db.cashiers=[{id:"C1",name:"Caissière 1",password:"1234",role:"cashier",active:true,mustChangePassword:false},{id:"C2",name:"Caissière 2",password:"1234",role:"cashier",active:true,mustChangePassword:false}];
 
   db.products=db.products.map(p=>{
     p.id=String(p.id??"").trim();
@@ -4107,7 +4721,13 @@ async function init(){
     if(p.saleType===undefined)p.saleType="unit";
     return p;
   });
-  db.cashiers.forEach(c=>{c.id=String(c.id??"").trim();if(c.password===undefined)c.password="";});
+  db.cashiers.forEach(c=>{
+    c.id=String(c.id??"").trim();
+    c.name=String(c.name??"").trim();
+    if(!c.role)c.role="cashier";
+    if(c.active===undefined)c.active=true;
+  });
+  await Security.init();
   db.clients.forEach(c=>{
     c.id=String(c.id??"").trim();
     if(c.debt===undefined)c.debt=0;
@@ -4196,8 +4816,16 @@ async function init(){
   window.addEventListener("focus",wakeFromScreensaver);
   window.addEventListener("online",wakeFromScreensaver);
 
-  const ld=localStorage.getItem(USER_KEY)||localStorage.getItem(LOGIN_KEY);
-  if(ld){try{const dd=JSON.parse(ld);if(dd.username)document.getElementById("loginUser").value=dd.username;else if(dd.name)document.getElementById("loginUser").value=dd.name;}catch(e){}}
+  const ld=localStorage.getItem(USER_KEY);
+  if(ld){
+    try{
+      const dd=JSON.parse(ld);
+      if(dd?.name){
+        const el=document.getElementById("loginUser");
+        if(el)el.value=dd.name;
+      }
+    }catch(e){}
+  }
 
   console.log("[Zarouali POS v15.1] ready · "+db.products.length+" produits · "+db.cashiers.length+" caissiers");
   zarInitCloudSync();
@@ -4212,78 +4840,82 @@ document.addEventListener("DOMContentLoaded",init);
 <script>
 (function(){
 "use strict";
-const PASS_KEY="zarouali_caisse_password";
-const LOGIN_KEY="zarouali_caisse_login";
+
 const USER_KEY_FIX="zarouali_current_user";
 let zarTimer=null;
 const z=id=>document.getElementById(id);
 
-function showErr(v){const e=z("loginError");if(e)e.textContent=v||"";}
-function adminPassword(){
-  let p="";
-  try{p=(localStorage.getItem(PASS_KEY)||"").trim();}catch(e){}
-  if(!p){try{const x=JSON.parse(localStorage.getItem(LOGIN_KEY)||"null");p=String(x?.password||"").trim();}catch(e){}}
-  return p||"1234";
-}
 function wakeZ(){
   clearTimeout(zarTimer);
   zarTimer=null;
+
   const s=z("screensaver");
+
   if(s){
     s.classList.remove("show");
     s.hidden=true;
     s.style.display="none";
   }
 }
-function fallbackLogin(){
-  const u=(z("loginUser")?.value||"").trim();
-  const p=(z("loginPass")?.value||"").trim();
-  showErr("");
-  if(!u||!p){showErr("Identifiants requis");return false;}
-  if(u.toLowerCase()==="admin"&&p===adminPassword()){
-    const user={type:"admin",name:"admin"};
-    try{localStorage.setItem(USER_KEY_FIX,JSON.stringify(user));}catch(e){}
-    z("loginScreen")?.classList.add("hidden");
-    if(z("loginPass"))z("loginPass").value="";
-    try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
-    wakeZ();return false;
-  }
-  try{
-    const d=JSON.parse(localStorage.getItem("zarouali_caisse_v1")||"null");
-    const cs=Array.isArray(d?.cashiers)?d.cashiers:[];
-    const c=cs.find(x=>(String(x.name||"").toLowerCase()===u.toLowerCase()||String(x.id||"")===u)&&String(x.password||"")===p);
-    if(c){
-      localStorage.setItem(USER_KEY_FIX,JSON.stringify({type:"cashier",id:String(c.id),name:String(c.name||u)}));
-      z("loginScreen")?.classList.add("hidden");
-      if(z("loginPass"))z("loginPass").value="";
-      try{if(typeof updateUserLabels==="function")updateUserLabels();if(typeof renderAll==="function")renderAll();}catch(e){}
-      wakeZ();return false;
-    }
-  }catch(e){}
-  showErr("Identifiants incorrects");return false;
-}
+
 function installZ(){
   const original=window.doLogin;
+
   window.doLogin=function(){
     try{
       if(typeof original==="function"){
-        const before=z("loginScreen")?.classList.contains("hidden");
         const result=original();
-        const after=z("loginScreen")?.classList.contains("hidden");
-        if(after&&!before){wakeZ();return result;}
+        return result;
       }
-    }catch(e){console.warn("[login]",e);}
-    return fallbackLogin();
+    }catch(e){
+      console.warn("[login]",e);
+      const err=z("loginError");
+      if(err)err.textContent="Erreur d'authentification";
+    }
+
+    return false;
   };
-  // FIX #11: removed duplicate click listener — the button already uses onclick="doLogin()"
-  document.addEventListener("visibilitychange",()=>{if(document.hidden)clearTimeout(zarTimer);else{wakeZ();try{renderAll()}catch(e){}}});
+
+  document.addEventListener(
+    "visibilitychange",
+    ()=>{
+      if(document.hidden)clearTimeout(zarTimer);
+      else{
+        wakeZ();
+        try{renderAll()}catch(e){}
+      }
+    }
+  );
+
   window.addEventListener("pageshow",wakeZ);
   window.addEventListener("focus",wakeZ);
-  document.addEventListener("pointerdown",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},true);
-  document.addEventListener("touchstart",()=>{const s=z("screensaver");if(s?.classList.contains("show"))wakeZ()},{passive:true,capture:true});
-  z("loginPass")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();window.doLogin()}},true);
+
+  document.addEventListener(
+    "pointerdown",
+    ()=>{
+      const s=z("screensaver");
+      if(s?.classList.contains("show"))wakeZ();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "touchstart",
+    ()=>{
+      const s=z("screensaver");
+      if(s?.classList.contains("show"))wakeZ();
+    },
+    {passive:true,capture:true}
+  );
 }
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installZ,{once:true});else installZ();
+
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",installZ,{once:true});
+}else{
+  installZ();
+}
+
+window.__zaroualiRuntimeFix={wakeZ};
 })();
 </script>
 

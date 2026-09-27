@@ -42,30 +42,22 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ]
     },
     "linux": {
       "icon": "resources/icon.png",
-      "target": [
-        "AppImage"
-      ],
+      "target": ["AppImage"],
       "category": "Office"
     },
     "mac": {
       "icon": "resources/icon.png",
-      "target": [
-        "dmg"
-      ]
+      "target": ["dmg"]
     },
     "nsis": {
       "oneClick": false,

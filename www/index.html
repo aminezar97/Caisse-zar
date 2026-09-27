@@ -1150,6 +1150,132 @@ textarea:focus{
   }
 }
 
+
+/* =========================================================
+   WINDOWS FINAL UI — compact drawer + categories directly
+   under the search bar + full-width POS workspace
+   ========================================================= */
+@media (min-width:1201px){
+  html,body{
+    width:100vw!important;
+    height:100vh!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .app{
+    width:100vw!important;
+    height:100vh!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  /* Compact hamburger drawer */
+  .side-menu{
+    width:235px!important;
+    max-width:235px!important;
+  }
+  .menu-header{
+    padding:12px 12px 13px!important;
+  }
+  .menu-brand{
+    gap:8px!important;
+  }
+  .menu-brand-logo{
+    width:36px!important;
+    height:36px!important;
+    border-radius:10px!important;
+  }
+  .menu-brand-title{
+    font-size:13px!important;
+  }
+  .menu-brand-sub{
+    font-size:8px!important;
+    letter-spacing:.08em!important;
+  }
+  .menu-close{
+    width:32px!important;
+    height:32px!important;
+  }
+  .menu-items{
+    padding:8px 7px!important;
+  }
+  .menu-section-title{
+    padding:7px 8px 4px!important;
+    font-size:9px!important;
+  }
+  .menu-item{
+    min-height:38px!important;
+    padding:8px 9px!important;
+    border-radius:9px!important;
+    gap:9px!important;
+    font-size:11px!important;
+  }
+  .menu-item .menu-icon{
+    width:17px!important;
+    height:17px!important;
+    flex:0 0 17px!important;
+  }
+
+  /* Search -> categories -> products */
+  .products-panel{
+    display:flex!important;
+    flex-direction:column!important;
+    min-width:0!important;
+    min-height:0!important;
+  }
+  .search-area{
+    order:0!important;
+    flex:0 0 auto!important;
+  }
+  .categories{
+    order:1!important;
+    flex:0 0 auto!important;
+    display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    min-height:48px!important;
+    max-height:54px!important;
+    padding:6px 12px 8px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    border-top:0!important;
+    border-bottom:1px solid var(--border-subtle)!important;
+    background:var(--bg-surface)!important;
+  }
+  .category{
+    min-height:34px!important;
+    padding:7px 14px!important;
+    font-size:11px!important;
+  }
+  .products{
+    order:2!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+
+  /* Give the POS the whole available viewport */
+  .content{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:8px!important;
+    height:calc(100vh - 72px)!important;
+  }
+  .sale-layout{
+    height:100%!important;
+    min-height:0!important;
+    grid-template-columns:minmax(0,1fr) 390px!important;
+    gap:10px!important;
+    align-items:stretch!important;
+  }
+  .products-panel,.cart{
+    min-height:0!important;
+    height:100%!important;
+  }
+}
+
 </style>
 
 <style id="zarouali-catalog-layout">

@@ -74,6 +74,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 .eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
 
 #loginScreen{position:fixed;inset:0;z-index:9999;background:var(--bg-app);display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;transition:opacity var(--t-base),visibility var(--t-base)}
+.login-recovery{display:block;margin:10px auto 14px;border:0;background:transparent;color:var(--text-muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px 8px}.login-recovery:hover{color:var(--brand-600)}
 #loginScreen::before{content:'';position:absolute;inset:0;background:
   radial-gradient(ellipse 70% 55% at 20% 15%,rgba(20,184,166,.18),transparent 55%),
   radial-gradient(ellipse 65% 50% at 90% 85%,rgba(59,130,246,.12),transparent 55%);pointer-events:none}
@@ -1398,15 +1399,20 @@ textarea:focus{
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>Mot de passe</span>
       </label>
-      <input id="loginPass" type="password" placeholder="••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <div style="position:relative;display:flex;align-items:center">
+        <input id="loginPass" type="password" inputmode="numeric" minlength="6" maxlength="64" placeholder="••••••" autocomplete="off" oninput="updateLoginPassCount()" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:72px">
+        <button type="button" id="loginPassToggle" aria-label="Afficher le mot de passe" onclick="toggleLoginPass()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--text-muted);cursor:pointer;font-size:18px;padding:6px">👁</button>
+      </div>
+      <div id="loginPassCount" style="min-height:18px;margin-top:5px;text-align:right;color:var(--text-muted);font-size:11px"></div>
     </div>
     <div class="login-error" id="loginError"></div>
+    <button type="button" class="login-recovery" onclick="resetAdminAccess()">Mot de passe Admin oublié ?</button>
     <button class="login-btn" onclick="doLogin()" id="loginBtn">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       <span id="loginBtnText">Se connecter</span>
     </button>
     <div class="login-footer">
-      <span class="dot"></span>Système sécurisé · v15.1
+      <span class="dot"></span>Système sécurisé · V21.2 FAST AUTH + RELOGIN FIX
     </div>
   </div>
 </div>
@@ -1600,224 +1606,194 @@ textarea:focus{
 const DB_KEY="zarouali_caisse_v1",PASSWORD_KEY="zarouali_caisse_password",LOGIN_KEY="zarouali_caisse_login",AUTH_ADMIN_KEY="zarouali_caisse_admin_auth",STORE_KEY="zarouali_caisse_store",THEME_KEY="zarouali_caisse_theme",LANG_KEY="zarouali_lang",IMAGE_BASE_URL="./images/";
 
 const Security={
-  ITERATIONS:300000,
+  _initPromise:null,
+  ITERATIONS:1000,
+  // LOCAL POS profile: intentionally reduced PBKDF2 cost for offline/local use.
+  _sessionCache:new Map(),
+  _SESSION_MS:8*60*60*1000,
   admin:null,
+  ready:false,
 
   _b64(bytes){
     let s="";
     for(const b of bytes)s+=String.fromCharCode(b);
     return btoa(s);
   },
-
   _bytes(s){
     const b=atob(String(s||""));
     const out=new Uint8Array(b.length);
     for(let i=0;i<b.length;i++)out[i]=b.charCodeAt(i);
     return out;
   },
+  _utf8(s){
+    const str=String(s??"");
+    if(typeof TextEncoder!=="undefined")return new TextEncoder().encode(str);
+    const a=[];
+    for(let i=0;i<str.length;i++){
+      let c=str.charCodeAt(i);
+      if(c<128)a.push(c);
+      else if(c<2048)a.push(192|(c>>6),128|(c&63));
+      else if(c>=0xD800&&c<=0xDBFF&&i+1<str.length){
+        const d=str.charCodeAt(++i); const cp=0x10000+((c-0xD800)<<10)+(d-0xDC00);
+        a.push(240|(cp>>18),128|((cp>>12)&63),128|((cp>>6)&63),128|(cp&63));
+      }else a.push(224|(c>>12),128|((c>>6)&63),128|(c&63));
+    }
+    return new Uint8Array(a);
+  },
 
+  _rotr(x,n){return (x>>>n)|(x<<(32-n));},
+  _sha256(data){
+    const K=[
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+    ];
+    const bitLen=data.length*8, len=((data.length+9+63)>>6)<<6;
+    const m=new Uint8Array(len); m.set(data); m[data.length]=0x80;
+    const hi=Math.floor(bitLen/0x100000000), lo=bitLen>>>0;
+    m[len-8]=(hi>>>24)&255;m[len-7]=(hi>>>16)&255;m[len-6]=(hi>>>8)&255;m[len-5]=hi&255;
+    m[len-4]=(lo>>>24)&255;m[len-3]=(lo>>>16)&255;m[len-2]=(lo>>>8)&255;m[len-1]=lo&255;
+    let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const W=new Uint32Array(64);
+    for(let off=0;off<m.length;off+=64){
+      for(let i=0;i<16;i++){const j=off+i*4;W[i]=((m[j]<<24)|(m[j+1]<<16)|(m[j+2]<<8)|m[j+3])>>>0;}
+      for(let i=16;i<64;i++){
+        const x=W[i-15],y=W[i-2];
+        const s0=(this._rotr(x,7)^this._rotr(x,18)^(x>>>3))>>>0;
+        const s1=(this._rotr(y,17)^this._rotr(y,19)^(y>>>10))>>>0;
+        W[i]=(W[i-16]+s0+W[i-7]+s1)>>>0;
+      }
+      let [a,b,c,d,e,f,g,h]=H;
+      for(let i=0;i<64;i++){
+        const S1=(this._rotr(e,6)^this._rotr(e,11)^this._rotr(e,25))>>>0;
+        const ch=((e&f)^((~e)&g))>>>0;
+        const t1=(h+S1+ch+K[i]+W[i])>>>0;
+        const S0=(this._rotr(a,2)^this._rotr(a,13)^this._rotr(a,22))>>>0;
+        const maj=((a&b)^(a&c)^(b&c))>>>0;
+        const t2=(S0+maj)>>>0;
+        h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+      }
+      H[0]=(H[0]+a)>>>0;H[1]=(H[1]+b)>>>0;H[2]=(H[2]+c)>>>0;H[3]=(H[3]+d)>>>0;
+      H[4]=(H[4]+e)>>>0;H[5]=(H[5]+f)>>>0;H[6]=(H[6]+g)>>>0;H[7]=(H[7]+h)>>>0;
+    }
+    const out=new Uint8Array(32);for(let i=0;i<8;i++){const x=H[i];out[i*4]=x>>>24;out[i*4+1]=x>>>16&255;out[i*4+2]=x>>>8&255;out[i*4+3]=x&255;}return out;
+  },
+  _hmac(key,msg){
+    let k=key instanceof Uint8Array?key:new Uint8Array(key);
+    if(k.length>64)k=this._sha256(k);
+    const kb=new Uint8Array(64);kb.set(k);
+    const ipad=new Uint8Array(64),opad=new Uint8Array(64);
+    for(let i=0;i<64;i++){ipad[i]=kb[i]^0x36;opad[i]=kb[i]^0x5c;}
+    const inner=new Uint8Array(64+msg.length);inner.set(ipad);inner.set(msg,64);
+    const ih=this._sha256(inner);const outer=new Uint8Array(64+ih.length);outer.set(opad);outer.set(ih,64);return this._sha256(outer);
+  },
+  _concat(a,b){const out=new Uint8Array(a.length+b.length);out.set(a);out.set(b,a.length);return out;},
+  _pbkdf2(password,salt,iterations){
+    const key=this._utf8(password);let u=this._hmac(key,this._concat(salt,new Uint8Array([0,0,0,1])));const t=new Uint8Array(u); 
+    for(let i=1;i<iterations;i++){u=this._hmac(key,u);for(let j=0;j<32;j++)t[j]^=u[j];}
+    return t;
+  },
+  _randomSalt(){
+    const out=new Uint8Array(16);
+    try{if(globalThis.crypto?.getRandomValues){crypto.getRandomValues(out);return out;}}catch(e){}
+    const seed=Date.now().toString()+":"+Math.random()+":"+performance.now();
+    return this._sha256(this._utf8(seed)).slice(0,16);
+  },
   async _derive(password,salt,iterations=this.ITERATIONS){
-    if(!globalThis.crypto?.subtle)throw new Error("Web Crypto indisponible");
-
-    const key=await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(String(password)),
-      "PBKDF2",
-      false,
-      ["deriveBits"]
-    );
-
-    const bits=await crypto.subtle.deriveBits(
-      {
-        name:"PBKDF2",
-        salt,
-        iterations:Number(iterations)||this.ITERATIONS,
-        hash:"SHA-256"
-      },
-      key,
-      256
-    );
-
-    return new Uint8Array(bits);
+    const n=Number(iterations)||this.ITERATIONS;
+    if(globalThis.crypto?.subtle){
+      const key=await crypto.subtle.importKey("raw",this._utf8(String(password??"")),"PBKDF2",false,["deriveBits"]);
+      const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:n,hash:"SHA-256"},key,256);
+      return new Uint8Array(bits);
+    }
+    return this._pbkdf2(String(password??""),salt,n);
   },
-
-  _equal(a,b){
-    if(!a||!b||a.length!==b.length)return false;
-
-    let v=0;
-    for(let i=0;i<a.length;i++)v|=a[i]^b[i];
-
-    return v===0;
-  },
-
+  _equal(a,b){if(!a||!b||a.length!==b.length)return false;let v=0;for(let i=0;i<a.length;i++)v|=a[i]^b[i];return v===0;},
   async makeRecord(password,mustChange=false){
-    const salt=crypto.getRandomValues(new Uint8Array(16));
-    const hash=await this._derive(password,salt,this.ITERATIONS);
-
-    return {
-      passwordHash:this._b64(hash),
-      passwordSalt:this._b64(salt),
-      passwordIterations:this.ITERATIONS,
-      mustChangePassword:!!mustChange
-    };
+    const value=String(password??"").trim();if(!value)throw new Error("Mot de passe requis");
+    const salt=this._randomSalt();const hash=await this._derive(value,salt,this.ITERATIONS);
+    return {passwordHash:this._b64(hash),passwordSalt:this._b64(salt),passwordIterations:this.ITERATIONS,mustChangePassword:!!mustChange};
   },
-
   async verify(password,record){
     if(!record?.passwordHash||!record?.passwordSalt)return false;
-
+    const p=String(password??"").trim();
+    if(!p)return false;
     try{
-      const hash=await this._derive(
-        password,
-        this._bytes(record.passwordSalt),
-        Number(record.passwordIterations)||this.ITERATIONS
-      );
-
-      return this._equal(
-        hash,
-        this._bytes(record.passwordHash)
-      );
-    }catch(e){
-      console.error("[Security.verify]",e);
-      return false;
-    }
+      const fp=this._b64(this._sha256(this._utf8(p)));
+      const key=String(record.passwordHash)+":"+fp;
+      const hit=this._sessionCache.get(key);
+      if(hit && Date.now()-hit<this._SESSION_MS)return true;
+      const ok=this._equal(await this._derive(p,this._bytes(record.passwordSalt),Number(record.passwordIterations)||this.ITERATIONS),this._bytes(record.passwordHash));
+      if(ok)this._sessionCache.set(key,Date.now());
+      return ok;
+    }catch(e){console.error("[Security.verify]",e);return false;}
   },
-
   async init(){
-    let admin=null;
-
-    try{
-      admin=JSON.parse(
-        localStorage.getItem(AUTH_ADMIN_KEY)||"null"
-      );
-    }catch(e){
-      admin=null;
-    }
-
-    if(!admin?.passwordHash){
-      let legacy="";
-
-      try{
-        legacy=(localStorage.getItem(PASSWORD_KEY)||"").trim();
-      }catch(e){}
-
-      if(!legacy){
-        try{
-          const x=JSON.parse(
-            localStorage.getItem(LOGIN_KEY)||"null"
-          );
-          legacy=String(x?.password||"").trim();
-        }catch(e){}
+    if(this._initPromise)return this._initPromise;
+    this._initPromise=(async()=>{
+      this.ready=false;
+      let admin=null;
+      try{admin=JSON.parse(localStorage.getItem(AUTH_ADMIN_KEY)||"null");}catch(e){admin=null;}
+      if(!admin?.passwordHash||!admin?.passwordSalt){
+        let legacy="";
+        try{legacy=(localStorage.getItem(PASSWORD_KEY)||"").trim();}catch(e){}
+        if(!legacy){try{const x=JSON.parse(localStorage.getItem(LOGIN_KEY)||"null");legacy=String(x?.password||"").trim();}catch(e){}}
+        if(!legacy)legacy="123456";
+        admin=await this.makeRecord(legacy,legacy==="123456");
+        try{localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(admin));}catch(e){}
+        try{localStorage.removeItem(PASSWORD_KEY);localStorage.removeItem(LOGIN_KEY);}catch(e){}
       }
-
-      if(!legacy)legacy="123456";
-
-      admin=await this.makeRecord(
-        legacy,
-        legacy==="123456"
-      );
-
-      localStorage.setItem(
-        AUTH_ADMIN_KEY,
-        JSON.stringify(admin)
-      );
-
-      try{localStorage.removeItem(PASSWORD_KEY);}catch(e){}
-      try{localStorage.removeItem(LOGIN_KEY);}catch(e){}
-    }else{
-      try{localStorage.removeItem(PASSWORD_KEY);}catch(e){}
-      try{localStorage.removeItem(LOGIN_KEY);}catch(e){}
-    }
-
-    this.admin=admin;
-
-    for(const c of (db.cashiers||[])){
-      c.id=String(c.id??"").trim();
-      c.name=String(c.name??"").trim();
-
-      if(!c.role)c.role="cashier";
-      if(c.active===undefined)c.active=true;
-
-      if(!c.passwordHash){
-        const legacy=String(c.password??"");
-
-        if(legacy){
-          const rec=await this.makeRecord(
-            legacy,
-            false
-          );
-
-          Object.assign(c,rec);
-        }else{
-          c.passwordHash=null;
-          c.passwordSalt=null;
-          c.passwordIterations=0;
-          c.mustChangePassword=true;
+      this.admin=admin;
+      this.ready=true;
+      // Migrate legacy cashier passwords in the background; do not block Admin login.
+      this._cashierMigration=(async()=>{
+        let changed=false;
+        for(const c of (db.cashiers||[])){
+          c.id=String(c.id??"").trim(); c.name=String(c.name??"").trim();
+          if(!c.role)c.role="cashier"; if(c.active===undefined)c.active=true;
+          if(!c.passwordHash||!c.passwordSalt){
+            const legacy=String(c.password??"").trim();
+            if(legacy){const rec=await this.makeRecord(legacy,!!c.mustChangePassword);Object.assign(c,rec);delete c.password;changed=true;}
+            else {c.passwordHash=null;c.passwordSalt=null;c.passwordIterations=0;c.mustChangePassword=true;}
+          }else if(c.password!==undefined){delete c.password;changed=true;}
         }
-
-        delete c.password;
-      }else{
-        if(c.mustChangePassword===undefined)
-          c.mustChangePassword=false;
-
-        delete c.password;
+        if(changed){try{saveDB();}catch(e){console.warn("[Security] cashier migration save",e);}}
+      })();
+      return true;
+    })();
+    return this._initPromise;
+  },
+  async verifyAdminPassword(password){
+    if(!this.ready)await this.init();
+    const ok=await this.verify(password,this.admin);
+    if(ok){
+      const oldIter=Number(this.admin?.passwordIterations)||0;
+      // Automatic one-time migration: after a successful verification with
+      // an old/missing iteration count, recreate the record using the current
+      // local-POS cost (ITERATIONS=1000). The password itself is never stored.
+      if(oldIter!==this.ITERATIONS){
+        try{
+          const migrated=await this.makeRecord(password,!!this.admin?.mustChangePassword);
+          this.admin=migrated;
+          localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(migrated));
+          console.info(`[Zarouali Security] Admin record migrated ${oldIter||"legacy"} -> ${this.ITERATIONS} iterations`);
+        }catch(e){
+          console.warn("[Zarouali Security] Admin migration failed; keeping verified legacy record",e);
+        }
       }
     }
+    return ok;
   },
-
-  async verifyAdminPassword(password){
-    return this.verify(password,this.admin);
-  },
-
-  async setAdminPassword(password){
-    this.admin=await this.makeRecord(password,false);
-
-    localStorage.setItem(
-      AUTH_ADMIN_KEY,
-      JSON.stringify(this.admin)
-    );
-  },
-
-  async verifyCashierPassword(cashier,password){
-    return this.verify(password,cashier);
-  },
-
-  async setCashierPassword(cashier,password){
-    const rec=await this.makeRecord(password,false);
-
-    Object.assign(cashier,rec);
-    delete cashier.password;
-  },
-
-  async verifyCurrentPassword(user,password){
-    if(user?.type==="admin"){
-      return this.verifyAdminPassword(password);
-    }
-
-    const cashier=(db.cashiers||[]).find(
-      c=>String(c.id)===String(user?.id)
-    );
-
-    return cashier
-      ? this.verifyCashierPassword(cashier,password)
-      : false;
-  },
-
-  async setCurrentPassword(user,password){
-    if(user?.type==="admin"){
-      await this.setAdminPassword(password);
-      return;
-    }
-
-    const cashier=(db.cashiers||[]).find(
-      c=>String(c.id)===String(user?.id)
-    );
-
-    if(!cashier)
-      throw new Error("Caissier introuvable");
-
-    await this.setCashierPassword(cashier,password);
-    saveDB();
-  }
+  async setAdminPassword(password){this.admin=await this.makeRecord(password,false);try{localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(this.admin));}catch(e){}},
+  async verifyCashierPassword(cashier,password){if(!this.ready)await this.init();return this.verify(password,cashier);},
+  async setCashierPassword(cashier,password){const rec=await this.makeRecord(password,false);Object.assign(cashier,rec);delete cashier.password;},
+  async verifyCurrentPassword(user,password){if(user?.type==="admin")return this.verifyAdminPassword(password);const cashier=(db.cashiers||[]).find(c=>String(c.id)===String(user?.id));return cashier?this.verifyCashierPassword(cashier,password):false;},
+  async setCurrentPassword(user,password){if(user?.type==="admin"){await this.setAdminPassword(password);return;}const cashier=(db.cashiers||[]).find(c=>String(c.id)===String(user?.id));if(cashier){await this.setCashierPassword(cashier,password);saveDB();}}
 };
 
 
@@ -2532,6 +2508,21 @@ function toggleMenu(){const m=document.getElementById("sideMenu");const o=docume
 function closeMenu(){document.getElementById("sideMenu").classList.remove("show");document.getElementById("menuOverlay").classList.remove("show");document.body.classList.remove("menu-open");}
 function showKeyboardHelp(){document.getElementById("kbdHelpModal").classList.add("show");}
 
+function updateLoginPassCount(){
+  const el=document.getElementById("loginPass");
+  const out=document.getElementById("loginPassCount");
+  if(!el||!out)return;
+  out.textContent=String(el.value||"").length+" caractère(s)";
+}
+function toggleLoginPass(){
+  const el=document.getElementById("loginPass");
+  const b=document.getElementById("loginPassToggle");
+  if(!el)return;
+  const show=el.type==="password";
+  el.type=show?"text":"password";
+  if(b)b.textContent=show?"🙈":"👁";
+}
+
 async function doLogin(){
   const u=(document.getElementById("loginUser")?.value||"").trim();
   const p=(document.getElementById("loginPass")?.value||"").trim();
@@ -2545,46 +2536,135 @@ async function doLogin(){
   }
 
   if(u.toLowerCase()==="admin"){
-    if(await Security.verifyAdminPassword(p)){
-      return loginAs({
+    try{
+      const rawAdmin=localStorage.getItem(AUTH_ADMIN_KEY);
+      const storedAdmin=rawAdmin?JSON.parse(rawAdmin):null;
+
+      if(!storedAdmin?.passwordHash||!storedAdmin?.passwordSalt){
+        throw new Error("AUTH_ADMIN_KEY absent/incomplet");
+      }
+
+      const adminOK=await Security.verify(p,storedAdmin);
+      if(!adminOK){
+        throw new Error(
+          "PBKDF2 verification failed (stored record does not match entered password)"
+        );
+      }
+
+      Security.admin=storedAdmin;
+      isLoggedIn=true;
+      currentUser={
         type:"admin",
         name:"admin",
         role:"admin",
-        mustChangePassword:!!Security.admin?.mustChangePassword
-      });
-    }
-  }else{
-    for(const cashier of (db.cashiers||[])){
-      if(cashier.active===false)continue;
+        mustChangePassword:!!storedAdmin.mustChangePassword
+      };
 
-      const matchName=
-        String(cashier.name||"").toLowerCase()===u.toLowerCase();
+      try{
+        localStorage.setItem(USER_KEY,JSON.stringify(currentUser));
+      }catch(e){}
 
-      const matchId=
-        String(cashier.id||"")===u;
+      const login=document.getElementById("loginScreen");
+      if(login)login.classList.add("hidden");
 
-      if((matchName||matchId) &&
-         await Security.verifyCashierPassword(cashier,p)){
-        return loginAs({
-          type:"cashier",
-          id:String(cashier.id),
-          name:cashier.name,
-          role:cashier.role||"cashier",
-          mustChangePassword:!!cashier.mustChangePassword
-        });
+      const pe=document.getElementById("loginPass");
+      if(pe)pe.value="";
+
+      updateUserLabels();
+      resetInactivityTimer();
+
+      try{toast(t("welcome")+" admin !","success");}catch(e){}
+      try{renderAll();}catch(e){
+        console.error("[V20.7 render after login]",e);
       }
+
+      console.info("[V20.7] Admin login verified successfully");
+      return false;
+
+    }catch(e){
+      console.error("[V20.7 admin login]",e);
+      if(err){
+        err.textContent=
+          "Échec Admin : "+
+          String(e?.message||e);
+      }
+      return false;
+    }
+  }
+
+  for(const cashier of (db.cashiers||[])){
+    if(cashier.active===false)continue;
+
+    const matchName=
+      String(cashier.name||"").toLowerCase()===u.toLowerCase();
+
+    const matchId=
+      String(cashier.id||"")===u;
+
+    if((matchName||matchId) &&
+       await Security.verifyCashierPassword(cashier,p)){
+      return loginAs({
+        type:"cashier",
+        id:String(cashier.id),
+        name:cashier.name,
+        role:cashier.role||"cashier",
+        mustChangePassword:!!cashier.mustChangePassword
+      });
     }
   }
 
   if(err)err.textContent=t("loginError");
   return false;
 }
+async function resetAdminAccess(){
+  const code=window.prompt("Code de récupération Admin requis :");
+  if(code!=="ZAR-RESET-2026"){
+    const err=document.getElementById("loginError");
+    if(err)err.textContent="Code de récupération incorrect";
+    return false;
+  }
+
+  if(!window.confirm(
+    "Réinitialiser uniquement l’accès Admin vers 111111 ?\n"+
+    "Les produits, ventes, clients et paramètres seront conservés."
+  ))return false;
+
+  try{
+    /*
+      V20.7 FIX:
+      Do NOT use PASSWORD_KEY + reload.
+      Create the PBKDF2 record directly in the current page, write it to
+      AUTH_ADMIN_KEY, update Security.admin, and verify it immediately.
+      This removes the old-version/in-memory/reload race completely.
+    */
+    const fresh=await Security.makeRecord("111111",false);
+    localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(fresh));
+
+    const check=await Security.verify("111111",fresh);
+    if(!check)throw new Error("PBKDF2 self-test failed");
+
+    Security.admin=fresh;
+
+    const err=document.getElementById("loginError");
+    if(err)err.textContent="Accès Admin réinitialisé — mot de passe : 111111";
+
+    console.info("[V20.7 AdminRecovery] PBKDF2 reset OK; DB preserved");
+
+    return true;
+  }catch(e){
+    console.error("[V20.7 AdminRecovery]",e);
+    const err=document.getElementById("loginError");
+    if(err)err.textContent="Échec de la réinitialisation";
+    return false;
+  }
+}
+
 function loginAs(user){
   isLoggedIn=true;
   currentUser=user;
   try{localStorage.setItem(USER_KEY,JSON.stringify(user));}catch(e){}
   const login=document.getElementById("loginScreen");
-  if(login)login.classList.add("hidden");
+  if(login){login.classList.add("hidden");login.setAttribute("aria-hidden","true");}
   const pe=document.getElementById("loginPass");
   if(pe)pe.value="";
   updateUserLabels();
@@ -2603,12 +2683,43 @@ function doLogout(){
   if(!confirm("Se déconnecter ?"))return;
   currentUser=null;
   isLoggedIn=false;
+  clearTimeout(inactivityTimer);
   try{localStorage.removeItem(USER_KEY);}catch(e){}
+
   const login=document.getElementById("loginScreen");
-  if(login)login.classList.remove("hidden");
+  if(login){
+    login.classList.remove("hidden");
+    login.setAttribute("aria-hidden","false");
+  }
+
+  const btn=document.getElementById("loginBtn");
+  if(btn){
+    btn.disabled=false;
+    if(typeof window.zaroualiDirectLogin==='function') btn.onclick=window.zaroualiDirectLogin;
+    else if(typeof window.doLogin==='function') btn.onclick=window.doLogin;
+  }
+
+  const pass=document.getElementById("loginPass");
+  if(pass){
+    pass.value="";
+    pass.disabled=false;
+  }
+  const err=document.getElementById("loginError");
+  if(err)err.textContent="";
+  try{updateLoginPassCount();}catch(e){}
   updateUserLabels();
   cart=[];
   renderAll();
+
+  // V21.2: guarantee that a second login starts from a clean UI state.
+  requestAnimationFrame(()=>{
+    const u=document.getElementById("loginUser");
+    if(u){u.value="admin";u.disabled=false;}
+    const b=document.getElementById("loginBtn");
+    if(b)b.disabled=false;
+    try{document.getElementById("loginPass")?.focus();}catch(e){}
+    try{window.__ZAROUALI_V21_REBIND_LOGIN__?.();}catch(e){console.warn("[V21.2 rebind]",e);}
+  });
 }
 function updateUserLabels(){
   const hl=document.getElementById("headerUserLabel");
@@ -4698,6 +4809,8 @@ tick();
 <\/script>
 
 
+
+
 </body>
 </html>`;
 
@@ -5366,7 +5479,9 @@ document.addEventListener("DOMContentLoaded",init);
 
   /* Existing file defines its modules/functions in classic scripts.
      Run after DOM load and again shortly after to catch scripts located
-     after </body> in the legacy file. */
+     after 
+
+</body> in the legacy file. */
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',()=>{
       installAll();
@@ -5636,7 +5751,150 @@ window.__zaroualiRuntimeFix={wakeZ};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
   window.__zaroualiV18={setCloudStatus,markCloud};
   console.log("[Zarouali V18] fixes 1-3 applied");
+console.log("[Zarouali V20.1] direct admin recovery enabled; DB preserved");
 })();
 </script>
+<script>
+console.log("[Zarouali V20.7] login auth sync fix loaded");
+updateLoginPassCount();
+</script>
+
+<script>
+window.__ZAROUALI_V20_7__=true;
+console.info("[Zarouali V20.7] authoritative Admin PBKDF2 login + direct recovery enabled");
+</script>
+
+
+
+<script>
+/* ZAROUALI V21.2 — SINGLE FAST AUTH PATH + RELOGIN FIX */
+(function(){
+  "use strict";
+  let busy=false;
+
+  async function fastLogin(){
+    if(busy)return false;
+
+    const u=String(document.getElementById("loginUser")?.value||"").trim();
+    const p=String(document.getElementById("loginPass")?.value||"").trim();
+    const err=document.getElementById("loginError");
+    const btn=document.getElementById("loginBtn");
+    const show=m=>{if(err)err.textContent=String(m||"");};
+
+    show("");
+    if(!u||!p){show("Identifiants requis");return false;}
+
+    busy=true;
+    if(btn)btn.disabled=true;
+
+    try{
+      await Security.init();
+
+      if(u.toLowerCase()==="admin"){
+        const ok=await Security.verifyAdminPassword(p);
+        if(!ok){
+          show("Mot de passe Admin incorrect");
+          return false;
+        }
+
+        const user={
+          type:"admin",
+          name:"admin",
+          role:"admin",
+          mustChangePassword:!!Security.admin?.mustChangePassword
+        };
+
+        isLoggedIn=true;
+        currentUser=user;
+        try{localStorage.setItem(USER_KEY,JSON.stringify(user));}catch(e){}
+
+        const screen=document.getElementById("loginScreen");
+        if(screen){
+          screen.classList.add("hidden");
+          screen.setAttribute("aria-hidden","true");
+        }
+
+        const pe=document.getElementById("loginPass");
+        if(pe)pe.value="";
+
+        updateUserLabels();
+        resetInactivityTimer();
+
+        requestAnimationFrame(()=>{
+          try{renderAll();}catch(e){console.error("[V21 render]",e);}
+          try{toast(t("welcome")+" admin !","success");}catch(e){}
+        });
+
+        return true;
+      }
+
+      for(const c of (db.cashiers||[])){
+        if(c.active===false)continue;
+
+        const name=String(c.name||"").toLowerCase();
+        const id=String(c.id||"");
+
+        if((name===u.toLowerCase()||id===u) &&
+           await Security.verifyCashierPassword(c,p)){
+          return loginAs({
+            type:"cashier",
+            id:String(c.id),
+            name:c.name,
+            role:c.role||"cashier",
+            mustChangePassword:!!c.mustChangePassword
+          });
+        }
+      }
+
+      show(t("loginError"));
+      return false;
+
+    }catch(e){
+      console.error("[V21 auth]",e);
+      show("Erreur authentification : "+String(e?.message||e));
+      return false;
+    }finally{
+      busy=false;
+      if(btn)btn.disabled=false;
+    }
+  }
+
+  window.doLogin=fastLogin;
+  window.zaroualiDirectLogin=fastLogin;
+  window.__ZAROUALI_V21_REBIND_LOGIN__=function(){
+    const b=document.getElementById("loginBtn");
+    if(b){b.disabled=false;b.onclick=fastLogin;}
+    const p=document.getElementById("loginPass");
+    if(p)p.disabled=false;
+  };
+
+  function bind(){
+    const b=document.getElementById("loginBtn");
+    if(b){
+      b.removeAttribute("onclick");
+      b.onclick=fastLogin;
+    }
+
+    const p=document.getElementById("loginPass");
+    if(p){
+      p.onkeydown=function(e){
+        if(e.key==="Enter"){
+          e.preventDefault();
+          fastLogin();
+        }
+      };
+    }
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",bind,{once:true});
+  }else{
+    bind();
+  }
+
+  console.info("[ZAROUALI V21.2] single auth path + relogin ready");
+})();
+</script>
+
 </body>
 </html>

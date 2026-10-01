@@ -1,3 +1,4 @@
+<!-- // Zarouali POS v22 — Performance + Instant Print -->
 <!DOCTYPE html>
 <html lang="fr" dir="ltr">
 <head>
@@ -14,6 +15,7 @@
 <script src="./vendor/jszip.min.js"></script>
 <script src="./vendor/sql-wasm.js"></script>
 <script src="./vendor/xlsx.full.min.js"></script>
+<script src="https://cdn.qz.io/qz-tray.js"></script>
 <style>
 :root{
   --bg-app:#f8fafc;--bg-surface:#ffffff;--bg-surface-2:#f1f5f9;--bg-elevated:#ffffff;
@@ -169,6 +171,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-50
 #hidIndicator.active{display:inline-flex;background:var(--brand-50);color:var(--brand-700);border-color:color-mix(in srgb,var(--brand-500) 30%,transparent)}
 [data-theme="dark"] #hidIndicator.active{color:var(--brand-400)}
 #hidIndicator.pulse{animation:hidPulse 700ms}
+#qzIndicator{display:none}
+#qzIndicator.active{display:inline-flex;background:var(--brand-50);color:var(--brand-700)}
+@media (min-width:1201px){ #qzIndicator{display:inline-flex} }
 @keyframes hidPulse{0%{transform:scale(1)}30%{transform:scale(1.14);box-shadow:0 0 0 10px rgba(20,184,166,.18)}100%{transform:scale(1)}}
 .scanner-flash{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(ellipse at center,transparent 35%,rgba(20,184,166,.16));animation:scannerFlash 600ms forwards}
 @keyframes scannerFlash{0%{opacity:1}100%{opacity:0}}
@@ -298,6 +303,8 @@ body.menu-open .app{overflow:hidden}
 .products{padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px;max-height:calc(100vh - 340px);overflow-y:auto}
 .product{background:var(--bg-surface);border:1.5px solid var(--border-subtle);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:all var(--t-base) var(--ease);position:relative;box-shadow:var(--shadow-xs)}
 .product{content-visibility:auto;contain:layout style;contain-intrinsic-size:220px 260px}
+@media (min-width:1201px){.product{contain-intrinsic-size:160px 240px}}
+@media (max-width:420px){.product{contain-intrinsic-size:140px 190px}}
 .product:hover{border-color:var(--brand-500);box-shadow:var(--shadow-lg);transform:translateY(-4px)}
 .product:active{transform:none}
 .product-img{width:100%;aspect-ratio:1/1;background:linear-gradient(160deg,var(--bg-surface-2),color-mix(in srgb,var(--bg-surface-2) 70%,transparent));display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;position:relative}
@@ -680,6 +687,12 @@ tbody tr:last-child td{border-bottom:none}
 #bleStatus.connected .status-dot{background:var(--success-500);animation:dotPulse 2s ease-in-out infinite}
 #bleStatus.connecting .status-dot{background:var(--warn-500);animation:dotPulse .8s ease-in-out infinite}
 
+td, .mono, .audit-title, .client-badge, .cart-name, .product-name,
+#loginUser, #loginPass{
+  user-select:text;
+  -webkit-user-select:text;
+}
+
 input[type="range"]{-webkit-appearance:none;height:6px;background:var(--border-default);border-radius:var(--r-full);outline:none}
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:var(--brand-500);border-radius:50%;cursor:pointer;box-shadow:0 2px 8px rgba(20,184,166,.4),0 0 0 4px var(--bg-surface)}
 /* FIX #5: replaced undefined --bg-input with --bg-surface */
@@ -802,243 +815,6 @@ input::placeholder,textarea::placeholder{color:var(--text-muted)!important;-webk
 input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabular-nums;}
 .login-box .form-group input{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;background:var(--bg-surface-2)!important;}
 .login-box .form-group input::placeholder{color:var(--text-muted)!important;-webkit-text-fill-color:var(--text-muted)!important;}
-
-/* =========================================================
-   ZAROUALI WINDOWS POS V2 — approved desktop POS layout
-   Fixed left navigation + fixed right cart + 5-column grid
-   Mobile/Android layout intentionally untouched.
-   ========================================================= */
-@media (min-width:1201px){
-  html,body{height:100%;overflow:hidden}
-  .app{height:100vh;min-height:0;overflow:hidden}
-  .menu-btn{display:none!important}
-  .menu-overlay{display:none!important}
-  .side-menu{
-    inset-inline-start:0!important;top:0!important;width:94px!important;
-    max-width:none!important;height:100vh!important;
-    border-inline-end:1px solid var(--border-subtle);
-    box-shadow:4px 0 18px rgba(13,18,8,.06);z-index:300!important;
-  }
-  .menu-header{padding:14px 8px 12px;height:74px;background:var(--bg-elevated);
-    color:var(--text-primary);border-bottom:1px solid var(--border-subtle)}
-  .menu-header-row,.menu-brand{justify-content:center}
-  .menu-brand-logo{width:42px;height:42px;background:var(--brand-50);
-    border:1px solid var(--border-subtle);box-shadow:none}
-  .menu-brand-text,.menu-close{display:none}
-  .menu-items{padding:10px 7px;overflow-y:auto;scrollbar-width:none}
-  .menu-items::-webkit-scrollbar{display:none}
-  .menu-section-title{display:none!important}
-  /* was fully hidden before — kept visible but restyled to fit the 94px rail so language stays reachable without opening Settings */
-  #zarLanguageMenu{display:block!important;margin:6px 6px 4px;padding:0;border:none;background:transparent}
-  #zarLanguageMenu .zar-language-title{display:none}
-  #zarLanguageMenu .zar-language-buttons{flex-direction:column;gap:4px}
-  #zarLanguageMenu .zar-language-buttons button{min-height:26px;padding:3px 2px;font-size:9px;border-radius:7px}
-  .menu-item{
-    min-height:68px!important;width:100%;margin:2px 0 6px;padding:8px 4px!important;
-    border-radius:12px;flex-direction:column;justify-content:center;
-    align-items:center;gap:5px;text-align:center;font-size:10px;font-weight:700;line-height:1.15;
-  }
-  .menu-item .menu-icon{width:24px;height:24px;opacity:.9}
-  .menu-item .menu-icon svg{width:22px;height:22px}
-  .menu-item .menu-lock{display:none}
-  .menu-item.active{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
-    color:#fff;border-color:transparent;box-shadow:0 6px 14px rgba(20,184,166,.25)}
-  .menu-item.active::before{display:none}
-  .menu-item.active .menu-icon{color:#fff}
-
-  .header{margin-inline-start:94px;padding:10px 14px;height:72px;min-height:72px;
-    position:relative;z-index:200}
-  /* FIX #3: when .menu-btn is hidden, header has only 2 columns */
-  .header-row{max-width:none;width:100%;height:100%;min-height:0;
-    grid-template-columns:1fr auto;gap:14px}
-  .logo-area{justify-content:flex-start;padding:0 4px;gap:10px}
-  .logo-badge{width:42px;height:42px;border-radius:12px}
-  .logo-text{font-size:20px}
-  .header-right{gap:7px}
-  .header-right .secondary-action{display:inline-flex}
-  .header-clock{font-size:12px;padding:8px 11px}
-  .status-pill{padding:8px 12px}
-  .icon-btn-sm{width:40px;height:40px}
-
-  /* FIX #2: .content scrolls for admin pages, .sale page keeps its inner layout */
-  .content{margin:0!important;margin-inline-start:94px!important;max-width:none!important;
-    width:auto!important;height:calc(100vh - 72px);min-height:0;overflow-y:auto;overflow-x:hidden;
-    padding:12px 12px 14px!important}
-  #sale.page.active{height:100%;min-height:0;overflow:hidden}
-  .sale-layout{height:100%;min-height:0!important;
-    grid-template-columns:minmax(0,1fr) 390px!important;gap:12px!important;
-    align-items:stretch!important}
-  .products-panel{min-width:0;min-height:0!important;height:100%;overflow:hidden;border-radius:14px}
-
-  .categories{order:-1;padding:12px 12px 8px!important;gap:8px;
-    border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
-  .category{padding:8px 16px;min-height:38px;font-size:12px}
-  .search-area{padding:10px 12px!important;gap:10px;
-    border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)}
-  .search{min-height:44px;padding:11px 16px;padding-inline-start:42px;font-size:13px;
-    background:var(--bg-surface);border-color:var(--border-default)}
-  .search-wrapper .icon{inset-inline-start:14px;width:17px;height:17px}
-  .scan-btn{min-height:44px;padding:10px 18px;border-radius:11px;font-size:12px}
-
-  .products{flex:1 1 auto;min-height:0!important;max-height:none!important;
-    overflow-y:auto;overflow-x:hidden;padding:12px!important;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
-    grid-auto-rows:max-content;gap:10px!important;align-content:start}
-  .product{border-radius:12px;min-width:0;box-shadow:var(--shadow-xs)}
-  .product:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-  .product-img{aspect-ratio:1.05/1;background:#fff}
-  .product-img img{padding:8px}
-  .product-body{padding:10px 11px 11px;gap:5px}
-  .product-name{font-size:12px;line-height:1.3;min-height:2.6em}
-  .product-price{font-size:16px}
-  .product-stock{font-size:10px}
-  .product-add{width:34px;height:34px;bottom:9px;inset-inline-end:9px;
-    opacity:1;transform:scale(1);pointer-events:none}
-  .product-badge{top:8px;inset-inline-start:8px;font-size:9px;padding:3px 7px}
-
-  .cart{position:relative!important;top:auto!important;height:100%!important;max-height:none!important;
-    min-width:0;overflow:hidden!important;border-radius:14px;box-shadow:var(--shadow-md);
-    display:flex;flex-direction:column}
-  .cart-header{padding:14px 16px!important;min-height:54px}
-  .cart-selectors{padding:9px 12px 5px!important;gap:8px}
-  .selector-group{gap:4px}
-  .selector-group label{font-size:9px}
-  .selector-group select{min-height:36px;padding:8px 10px;font-size:11px}
-  .client-badges{padding:5px 12px 8px}
-  .client-badge{font-size:9px;padding:4px 8px}
-  .credit-bar-container{padding:7px 12px 9px}
-  .cart-items{flex:1 1 auto!important;min-height:70px!important;overflow-y:auto!important;overflow-x:hidden!important}
-  .cart-item{padding:10px 12px;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}
-  .cart-item:has(.cart-thumb){grid-template-columns:38px minmax(0,1fr) auto}
-  .cart-thumb{width:38px;height:38px}
-  .cart-name{font-size:11px;line-height:1.25}
-  .cart-price{font-size:10px;margin-top:2px}
-  .qty-controls{margin-top:5px;padding:2px;border-radius:8px}
-  .qty-btn{width:26px;height:26px;min-height:26px}
-  .qty-input{width:30px;height:26px;min-height:26px;font-size:11px}
-  .cart-line-total{font-size:12px}
-  .remove-btn{padding:5px;min-height:26px;margin-top:0}
-  .cart-summary{padding:12px!important}
-  .summary-line{margin:5px 0;font-size:11px}
-  .summary-line strong{font-size:12px}
-  .summary-line input{width:72px;padding:6px 8px;min-height:30px;font-size:11px}
-  .summary-total{padding-top:9px;margin-top:8px;font-size:11px}
-  .summary-total strong{font-size:25px}
-  .payment-grid{margin-top:9px;gap:6px}
-  .payment-btn{min-height:45px;padding:5px 3px;font-size:10px;border-radius:9px;gap:2px}
-  .payment-btn svg{width:14px;height:14px}
-  .quick-cash{margin-top:7px;gap:5px}
-  .quick-cash button{min-height:31px;padding:5px 2px;font-size:10px}
-  .cash-input{margin-top:7px}
-  .cash-input input{min-height:35px;padding:7px 10px;font-size:13px}
-  .change{padding-top:4px;font-size:9px}
-  .change #change{font-size:13px}
-  .sell-btn{min-height:45px;padding:10px;font-size:12px;margin-top:8px;border-radius:10px}
-  .clear-btn{min-height:32px;padding:6px;font-size:9px;margin-top:5px;border-radius:9px}
-  .kbd-help-btn{display:none!important}
-}
-@media (min-width:1201px) and (max-width:1450px){
-  .sale-layout{grid-template-columns:minmax(0,1fr) 370px!important}
-  .products{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-  .logo-text{font-size:18px}
-  .header-right .secondary-action:nth-child(2){display:none}
-}
-@media (min-width:1201px) and (max-height:780px){
-  .header{height:64px;min-height:64px}
-  .content{height:calc(100vh - 64px)}
-  .menu-header{height:64px}
-  .menu-item{min-height:61px!important;margin-bottom:3px}
-  .cart-header{padding:10px 14px!important;min-height:46px}
-  .cart-selectors{padding-top:6px!important}
-  .client-badges{display:none}
-  .cart-item{padding:8px 10px}
-  .cart-summary{padding:9px!important}
-  .summary-total strong{font-size:22px}
-  .payment-btn{min-height:40px}
-  .sell-btn{min-height:40px;padding:8px;font-size:11px}
-}
-
-
-/* TEAL POLISH: final neutral/teal visual hierarchy */
-:root{
-  --brand-500:#14b8a6;
-  --brand-600:#0f766e;
-  --brand-700:#0d5f59;
-  --brand-800:#115e59;
-  --brand-50:#f0fdfa;
-  --brand-100:#ccfbf1;
-  --brand-300:#5eead4;
-  --brand-400:#2dd4bf;
-  --shadow-brand:0 10px 24px rgba(20,184,166,.28);
-  --shadow-focus:0 0 0 3px rgba(20,184,166,.18);
-}
-
-/* Primary actions */
-.btn-primary,
-.login-btn,
-.scan-btn,
-.sell-btn,
-.product-add{
-  background:linear-gradient(135deg,var(--brand-500),var(--brand-600));
-}
-.btn-primary:hover,
-.login-btn:hover,
-.scan-btn:hover,
-.sell-btn:hover{
-  filter:brightness(1.04);
-}
-
-/* Active/selected elements */
-.category.active,
-.payment-btn.active,
-.menu-item.active{
-  background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
-  border-color:transparent;
-  color:#fff;
-}
-
-/* Orange should signal interaction, not every decoration */
-.product:hover{
-  border-color:color-mix(in srgb,var(--brand-500) 55%,var(--border-subtle));
-}
-.product-price,
-.summary-total strong{
-  color:var(--brand-700);
-}
-[data-theme="dark"] .product-price,
-[data-theme="dark"] .summary-total strong{
-  color:var(--brand-400);
-}
-
-/* Focus/selection */
-input:focus,
-select:focus,
-textarea:focus{
-  border-color:var(--brand-500);
-  box-shadow:var(--shadow-focus);
-}
-::selection{
-  background:var(--brand-100);
-  color:var(--brand-800);
-}
-
-/* Cart thumbnail remains neutral so product images stand out */
-.cart-thumb{
-  width:64px!important;
-  height:64px!important;
-  max-width:64px!important;
-  max-height:64px!important;
-  object-fit:contain!important;
-  padding:3px!important;
-  border-radius:8px;
-  background:var(--bg-surface);
-  border:1px solid var(--border-subtle);
-}
-
-/* No product zoom */
-.product:active{transform:none!important}
-.product:hover .product-img img{transform:none!important}
-
 
 /* =========================================================
    WINDOWS POS UI — final desktop adjustments
@@ -1412,7 +1188,7 @@ textarea:focus{
       <span id="loginBtnText">Se connecter</span>
     </button>
     <div class="login-footer">
-      <span class="dot"></span>Système sécurisé · V21.2 FAST AUTH + RELOGIN FIX
+      <span class="dot"></span>Système sécurisé · V10.1
     </div>
   </div>
 </div>
@@ -1469,6 +1245,7 @@ textarea:focus{
           <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/></svg>
           <span>Scanner</span>
         </div>
+        <span id="qzIndicator" class="status-pill" title="QZ Tray"></span>
         <div class="header-clock">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span id="digitalClock">--:--:--</span>
@@ -1895,6 +1672,7 @@ function num(v){
    ZAROUALI V18 — PERFORMANCE INDEXES
    ========================================================= */
 let _zarIndexes={products:new Map(),barcodes:new Map(),cashiers:new Map(),clients:new Map(),suppliers:new Map()};
+let _zarIndexesReady=false,_zarIndexesDirty=true;
 function rebuildZarIndexes(){
   const p=new Map(), b=new Map(), c=new Map(), cl=new Map(), sp=new Map();
   for(const x of (db.products||[])){const id=String(x?.id??"").trim();if(id)p.set(id,x);const bc=String(x?.barcode??"").trim();if(bc&&!b.has(bc))b.set(bc,x);}
@@ -1902,12 +1680,21 @@ function rebuildZarIndexes(){
   for(const x of (db.clients||[])){const id=String(x?.id??"").trim();if(id)cl.set(id,x);}
   for(const x of (db.suppliers||[])){const id=String(x?.id??"").trim();if(id)sp.set(id,x);}
   _zarIndexes={products:p,barcodes:b,cashiers:c,clients:cl,suppliers:sp};
+  _zarIndexesReady=true;_zarIndexesDirty=false;
 }
-function zarProduct(id){return _zarIndexes.products.get(String(id??"").trim())||null;}
-function zarProductByBarcode(code){return _zarIndexes.barcodes.get(String(code??"").trim())||null;}
-function zarCashier(id){return _zarIndexes.cashiers.get(String(id??"").trim())||null;}
-function zarClient(id){return _zarIndexes.clients.get(String(id??"").trim())||null;}
-function zarSupplier(id){return _zarIndexes.suppliers.get(String(id??"").trim())||null;}
+function ensureIndexes(){if(!_zarIndexesReady||_zarIndexesDirty)rebuildZarIndexes();return _zarIndexes;}
+function zarProductAdd(p){
+  ensureIndexes();if(!p)return;
+  const id=String(p.id??"").trim(),bc=String(p.barcode??"").trim(),old=_zarIndexes.products.get(id);
+  if(old){const ob=String(old.barcode||"").trim();if(ob&&ob!==bc)_zarIndexes.barcodes.delete(ob);}
+  if(id)_zarIndexes.products.set(id,p);if(bc)_zarIndexes.barcodes.set(bc,p);
+}
+function zarProductRemove(id){ensureIndexes();const key=String(id??"").trim(),p=_zarIndexes.products.get(key);if(p&&String(p.barcode||"").trim())_zarIndexes.barcodes.delete(String(p.barcode).trim());_zarIndexes.products.delete(key);}
+function zarProduct(id){return ensureIndexes().products.get(String(id??"").trim())||null;}
+function zarProductByBarcode(code){return ensureIndexes().barcodes.get(String(code??"").trim())||null;}
+function zarCashier(id){return ensureIndexes().cashiers.get(String(id??"").trim())||null;}
+function zarClient(id){return ensureIndexes().clients.get(String(id??"").trim())||null;}
+function zarSupplier(id){return ensureIndexes().suppliers.get(String(id??"").trim())||null;}
 
 let cart=[],paymentMethod="Espèces",activeCategory="Tous",protectedTarget=null,protectedButton=null;
 let currentImage="",scannerInstance=null,scannerRunning=false,scannerLocked=false,inactivityTimer=null,isLoggedIn=false;
@@ -2004,7 +1791,7 @@ function zarCloudPush(){
       zarCloudWriting=true;
       const fb=window.__zarFirebase;
       if(!fb?.fs||!fb?.ref)throw new Error("Firebase non initialisé");
-      const payload=JSON.parse(JSON.stringify(db));
+      const payload=typeof structuredClone==="function"?structuredClone(db):JSON.parse(JSON.stringify(db));
       const deviceId=(localStorage.getItem("zarouali_device_id")||(()=>{const x=crypto.randomUUID();localStorage.setItem("zarouali_device_id",x);return x;})());
       payload._deviceId=deviceId;
       payload._updatedAtMs=Number(db._updatedAt||Date.now());
@@ -2024,42 +1811,33 @@ function zarCloudPush(){
       console.warn("[Firebase] écriture:",e);
       try{window.__zaroualiV18?.setCloudStatus("offline","Échec de synchronisation — données locales conservées");}catch(_){}
     }finally{zarCloudWriting=false;}
-  },700);
+  },2500);
 }
 
-function saveDB(){
+function _normalizeDBBeforeSave(){
   zarCloudRevision++;
   (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
-  (db.cashiers||[]).forEach(c=>{
-    c.id=String(c.id??"").trim();
-    c.name=String(c.name??"").trim();
-    if(!c.role)c.role="cashier";
-    if(c.active===undefined)c.active=true;
-    delete c.password;
-  });
+  (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();c.name=String(c.name??"").trim();if(!c.role)c.role="cashier";if(c.active===undefined)c.active=true;delete c.password;});
   (db.clients||[]).forEach(c=>{c.id=String(c.id??"").trim();});
   (db.suppliers||[]).forEach(s=>{s.id=String(s.id??"").trim();});
-  (db.sales||[]).forEach(s=>{
-    s.id=String(s.id??"").trim();
-    if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();
-    if(s.clientId!=null)s.clientId=String(s.clientId).trim();
-    (s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});
-  });
-  db._updatedAt=Date.now();
-  zarDashboardCache=null;
-  rebuildZarIndexes();
-  try{
-    localStorage.setItem(DB_KEY,JSON.stringify(db));
-    window.__zarLocalStorageWarningShown=false;
-  }catch(e){
-    console.warn("[local save]",e);
-    if(!window.__zarLocalStorageWarningShown){
-      window.__zarLocalStorageWarningShown=true;
-      setTimeout(()=>{try{toast("Stockage local presque plein — exportez une sauvegarde","warn",5200);}catch(_){}} ,0);
-    }
-  }
-  try{zarCloudPush();}catch(e){}
+  (db.sales||[]).forEach(s=>{s.id=String(s.id??"").trim();if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();if(s.clientId!=null)s.clientId=String(s.clientId).trim();(s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});});
+  db._updatedAt=Date.now();zarDashboardCache=null;_dashSig="";_zarIndexesDirty=true;
+  try{localStorage.setItem(DB_KEY,JSON.stringify(db));window.__zarLocalStorageWarningShown=false;}catch(e){console.warn("[local save]",e);if(!window.__zarLocalStorageWarningShown){window.__zarLocalStorageWarningShown=true;setTimeout(()=>{try{toast("Stockage local presque plein — exportez une sauvegarde","warn",5200);}catch(_){}} ,0);}}
 }
+function _saveDBNow(){_normalizeDBBeforeSave();try{zarCloudPush();}catch(e){}}
+let _saveDBTimer=null,_saveDBDirty=false;
+function saveDB(immediate){
+  _saveDBDirty=true;clearTimeout(_saveDBTimer);
+  if(immediate===true){_saveDBDirty=false;_saveDBNow();return true;}
+  _saveDBTimer=setTimeout(()=>{_saveDBDirty=false;_saveDBNow();},250);return true;
+}
+window.addEventListener("beforeunload", () => {
+  try { saveDB(true); } catch(e){}
+});
+window.addEventListener("pagehide", () => {
+  try { saveDB(true); } catch(e){}
+});
+
 function createDefaultDB(){db.products=[];db.cashiers=[{id:"C1",name:"Caissière 1",password:"123456",role:"cashier",active:true,mustChangePassword:true},{id:"C2",name:"Caissière 2",password:"123456",role:"cashier",active:true,mustChangePassword:true}];db.clients=[];db.sales=[];db.suppliers=[];db.purchases=[];db.returns=[];db.settings={storeName:"Zarouali POS",currency:"DH"};}
 
 function loadTheme(){const s=localStorage.getItem(THEME_KEY);const h=document.documentElement;const tg=document.getElementById("themeToggle");if(s==='dark'){h.setAttribute('data-theme','dark');if(tg)tg.checked=false;}else{h.removeAttribute('data-theme');if(tg)tg.checked=true;}}
@@ -2135,17 +1913,29 @@ const CatalogImages={
   async clear(){
     const db=await this.open();
     await new Promise((resolve,reject)=>{
-      const tx=db.transaction(this.STORE,"readwrite");
-      tx.objectStore(this.STORE).clear();
-      tx.oncomplete=resolve;
-      tx.onerror=()=>reject(tx.error);
+      const tx=db.transaction(this.STORE,"readwrite"),store=tx.objectStore(this.STORE);
+      const req=store.openCursor();
+      req.onsuccess=()=>{const c=req.result;if(!c)return resolve();if(String(c.key)!==String(StoreLogo.KEY))c.delete();c.continue();};
+      req.onerror=()=>reject(req.error);tx.onerror=()=>reject(tx.error);
     });
-    for(const u of this.urls.values())URL.revokeObjectURL(u);
-    this.urls.clear();
+    for(const [key,u] of this.urls.entries()){if(String(key)!==String(StoreLogo.KEY))URL.revokeObjectURL(u);}
+    for(const key of Array.from(this.urls.keys()))if(String(key)!==String(StoreLogo.KEY))this.urls.delete(key);
   },
   key(path){
     return String(path||"").replace(/\\/g,"/").split("/").pop().toLowerCase();
   }
+};
+
+const StoreLogo={
+  KEY:"zarouali_store_logo",_dataURL:"",
+  async load(){try{const b=await CatalogImages.get(this.KEY);this._dataURL=b?await this._blobToDataURL(b):"";this.render();return this._dataURL;}catch(e){console.warn("[StoreLogo] load failed",e);this._dataURL="";this.render();return "";}},
+  async _blobToDataURL(blob){return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});},
+  async onFile(e){const f=e?.target?.files?.[0];if(!f)return;try{if(!/^image\/(png|jpeg)$/i.test(f.type))throw new Error("Format non supporté");if(f.size>2*1024*1024)throw new Error("Logo trop volumineux (max 2MB)");const b=await this._compress(f,576);await CatalogImages.put(this.KEY,b);this._dataURL=await this._blobToDataURL(b);this.render();toast("Logo enregistré","success");}catch(err){toast(err.message||"Erreur logo","error");}finally{if(e?.target)e.target.value="";}},
+  async remove(){try{await CatalogImages.delete(this.KEY);this._dataURL="";this.render();toast("Logo supprimé","success");}catch(e){toast("Erreur suppression logo","error");}},
+  render(){const el=document.getElementById("storeLogoPreview");if(el)el.innerHTML=this._dataURL?'<img src="'+escapeAttr(this._dataURL)+'" alt="Logo magasin">':'<span>Aucun logo</span>';},
+  async getDataURL(){if(this._dataURL)return this._dataURL;try{const b=await CatalogImages.get(this.KEY);if(b)this._dataURL=await this._blobToDataURL(b);}catch(e){}return this._dataURL||"";},
+  async getBlob(){try{return await CatalogImages.get(this.KEY);}catch(e){return null;}},
+  async _compress(file,maxWidth=576){const data=await this._blobToDataURL(file);return await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,maxWidth/img.width),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const x=c.getContext("2d");x.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{if(!b)return reject(new Error("Compression impossible"));if(b.size>2*1024*1024)return reject(new Error("Logo compressé dépasse 2MB"));resolve(b);},"image/jpeg",.86);};img.onerror=()=>reject(new Error("Image invalide"));img.src=data;});}
 };
 
 const _imageCache=new Map();
@@ -2203,7 +1993,7 @@ function mergeLocalProductImages(remote){
 
 function parseCSVLine(line,sep){const r=[];let c="",ins=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(ins&&line[i+1]==='"'){c+='"';i++;}else ins=!ins;}else if(ch===sep&&!ins){r.push(c);c="";}else c+=ch;}r.push(c);return r;}
 
-function setLanguage(lang){if(!translations[lang])return;currentLanguage=lang;localStorage.setItem(LANG_KEY,lang);document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.documentElement.lang=lang;const f=document.getElementById('langFr'),a=document.getElementById('langAr');if(f)f.checked=(lang==='fr');if(a)a.checked=(lang==='ar');renderMenu();renderMainContent();renderAll();attachSearchListener();}
+function setLanguage(lang){if(!translations[lang])return;currentLanguage=lang;localStorage.setItem(LANG_KEY,lang);document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.documentElement.lang=lang;const f=document.getElementById('langFr'),a=document.getElementById('langAr');if(f)f.checked=(lang==='fr');if(a)a.checked=(lang==='ar');renderMenu();renderMainContent();StoreLogo.render();loadPrinterConfig();renderAll();attachSearchListener();}
 
 const MENU_SECTIONS=[
 {title:'Principal',items:[
@@ -2365,7 +2155,23 @@ function renderMainContent(){
       <div class="form-group"><label>Téléphone</label><input id="storePhone" onchange="saveStoreInfo()" placeholder="+212..."></div>
       <div class="form-group"><label>Email</label><input id="storeEmail" onchange="saveStoreInfo()" placeholder="contact@..."></div>
       <div class="form-group full"><label>ICE</label><input id="storeTaxId" onchange="saveStoreInfo()"></div>
-      <div class="form-group full"><div class="store-preview"><strong id="storePreviewName">Zarouali POS</strong><span id="previewAddress">—</span></div></div>
+      <div class="form-group full"><label>Logo du magasin</label><div id="storeLogoPreview" class="image-preview" style="height:140px"><span>Aucun logo</span></div><div class="image-buttons"><button type="button" class="image-button" onclick="document.getElementById('storeLogoInput').click()">Choisir logo</button><button type="button" class="image-button" onclick="StoreLogo.remove()">Supprimer</button></div><input id="storeLogoInput" type="file" accept="image/png,image/jpeg" hidden onchange="StoreLogo.onFile(event)"></div>
+       <div class="form-group full"><div class="store-preview"><strong id="storePreviewName">Zarouali POS</strong><span id="previewAddress">—</span></div></div>
+       <div class="form-group"><label>Largeur imprimante</label><select id="printerWidth" onchange="savePrinterConfig()"><option value="384">58mm — 384px</option><option value="576">80mm — 576px</option></select></div>
+       <div class="form-group">
+        <label>Imprimante Windows</label>
+        <div style="display:flex;gap:8px">
+          <select id="printerName" onchange="savePrinterConfig()" style="flex:1">
+            <option value="">— Charger la liste —</option>
+          </select>
+          <button type="button" class="btn btn-secondary" onclick="loadQZPrinters()">🔄</button>
+        </div>
+       </div>
+       <div class="form-group full">
+        <button type="button" class="btn btn-secondary btn-full" onclick="zaroualiTestPrint()">
+          🖨️ Test d'impression
+        </button>
+       </div>
     </div></div>
   </section>
   <section id="settingsPage" class="page ${currentPage==='settingsPage'?'active':''}">
@@ -2414,7 +2220,24 @@ function renderMainContent(){
   </section>`;
 }
 
-function goPage(id,btn){currentPage=id;closeMenu();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(id);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");setTimeout(()=>{renderAll();if(id==='sale'){const s=document.getElementById('search');if(s)s.focus();}},50);resetInactivityTimer();}
+async function loadQZPrinters(){
+  try{
+    if(!window.qz?.websocket) throw new Error("QZ Tray non chargé");
+    if(!qz.websocket.isActive()) await qz.websocket.connect();
+    const printers = await qz.printers.find();
+    const sel = document.getElementById("printerName");
+    const saved = localStorage.getItem("zarouali_printer_name") || "";
+    if(!sel) return;
+    sel.innerHTML = '<option value="">— Sélectionner —</option>' +
+      printers.map(p => '<option value="'+escapeAttr(p)+'" '+(p===saved?'selected':'')+'>'+escapeHTML(p)+'</option>').join("");
+    toast(printers.length + " imprimante(s) détectée(s)", "success");
+  }catch(e){
+    console.warn("[QZ printers]", e);
+    toast("QZ Tray indisponible — démarrez l'application", "warn");
+  }
+}
+
+function goPage(id,btn){currentPage=id;closeMenu();document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));const p=document.getElementById(id);if(p)p.classList.add("active");document.querySelectorAll(".menu-item").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");setTimeout(()=>{renderAll();if(id==='sale'){const s=document.getElementById('search');if(s)s.focus();}if(id==='storePage')loadQZPrinters();},50);resetInactivityTimer();}
 function protectedPage(id,btn){protectedTarget=id;protectedButton=btn;closeMenu();document.getElementById("passwordInput").value="";document.getElementById("passwordError").textContent="";document.getElementById("passwordModal").classList.add("show");setTimeout(()=>document.getElementById("passwordInput").focus(),150);}
 async function checkPassword(){
   const e=document.getElementById("passwordInput")?.value||"";
@@ -2737,6 +2560,8 @@ function wakeFromScreensaver(){
 }
 
 function saveStoreInfo(){const info={name:document.getElementById("storeName").value.trim(),address:document.getElementById("storeAddress").value.trim(),phone:document.getElementById("storePhone").value.trim(),email:document.getElementById("storeEmail").value.trim(),taxId:document.getElementById("storeTaxId").value.trim()};localStorage.setItem(STORE_KEY,JSON.stringify(info));db.settings.storeName=info.name||"Zarouali POS";updateStorePreview();toast('Enregistré','success');}
+function savePrinterConfig(){localStorage.setItem("zarouali_printer_width",document.getElementById("printerWidth")?.value||"384");localStorage.setItem("zarouali_printer_name",document.getElementById("printerName")?.value||"");}
+function loadPrinterConfig(){const w=localStorage.getItem("zarouali_printer_width")||"384",n=localStorage.getItem("zarouali_printer_name")||"";const a=document.getElementById("printerWidth"),b=document.getElementById("printerName");if(a)a.value=w;if(b){b.value=n;if(n&&!b.querySelector('option[value="'+escapeAttr(n)+'"]'))b.insertAdjacentHTML("beforeend",'<option value="'+escapeAttr(n)+'" selected>'+escapeHTML(n)+'</option>');}}
 function updateStorePreview(){const g=id=>(document.getElementById(id)?.value||"").trim();const el=document.getElementById('storePreviewName');if(el)el.textContent=g("storeName")||"Zarouali POS";const a=document.getElementById('previewAddress');if(a)a.textContent=g("storeAddress")||"—";}
 function getStoreInfo(){const s=localStorage.getItem(STORE_KEY);if(s){try{return JSON.parse(s);}catch(e){}}return{name:"Zarouali POS",address:"",phone:"",email:"",taxId:""};}
 
@@ -2744,6 +2569,9 @@ function renderCategories(){const box=document.getElementById("categories");if(!
 function selectCategory(c){activeCategory=c;try{localStorage.setItem("zarouali_last_category",String(c));}catch(e){}renderCategories();renderProducts();}
 
 const zarProductHTMLCache=new Map();
+let _searchIndex=[],_searchIndexDirty=true,_searchTimer=null;
+function buildSearchIndex(){_searchIndex=(db.products||[]).map(p=>({p,name:String(p.name||"").toLowerCase(),barcode:String(p.barcode||"").toLowerCase()}));_searchIndexDirty=false;return _searchIndex;}
+function ensureSearchIndex(){if(_searchIndexDirty)buildSearchIndex();return _searchIndex;}
 function clearZarProductHTMLCache(){zarProductHTMLCache.clear();}
 function zarProductCardHTML(p){
   const id=String(p?.id??"");
@@ -2756,7 +2584,7 @@ function zarProductCardHTML(p){
     const src=normalizeProductImage(image);
     const ph='<div class="product-placeholder">'+icon('camera',48)+'</div>';
     const phEsc=ph.replace(/"/g,'&quot;');
-    imgHtml='<img src="'+escapeAttr(src)+'" alt="'+escapeHTML(p?.name||'')+'" loading="lazy" decoding="async" onerror="this.outerHTML=\''+phEsc+'\'">';
+    imgHtml='<img width="160" height="160" src="'+escapeAttr(src)+'" alt="'+escapeHTML(p?.name||'')+'" loading="lazy" decoding="async" onerror="this.outerHTML=\''+phEsc+'\'">';
   }
   const isLow=Number(p?.stock||0)<=Number(p?.minStock||0);
   const isOut=Number(p?.stock||0)<=0;
@@ -2768,15 +2596,9 @@ function zarProductCardHTML(p){
   return html;
 }
 function renderProducts(){
-  const box=document.getElementById("products");
-  if(!box)return;
+  const box=document.getElementById("products");if(!box)return;
   const q=(document.getElementById("search")?.value||"").toLowerCase().trim();
-  const list=db.products.filter(p=>{
-    const cOk=activeCategory==="Tous"||p.category===activeCategory;
-    const name=String(p.name||"").toLowerCase();
-    const sOk=!q||name.includes(q)||String(p.barcode||"").includes(q);
-    return cOk&&sOk;
-  });
+  const list=ensureSearchIndex().filter(x=>(activeCategory==="Tous"||x.p.category===activeCategory)&&(!q||x.name.includes(q)||x.barcode.includes(q))).map(x=>x.p);
   if(!list.length){box.innerHTML='<div class="empty-state">'+icon('package',72)+'<div class="empty-state-title">'+t('noProducts')+'</div><div class="empty-state-text">Ajoutez des produits pour commencer</div></div>';return;}
   box.innerHTML=list.map(zarProductCardHTML).join('');
 }
@@ -2791,36 +2613,84 @@ function addToCart(id){
   const it=cart.find(i=>String(i.id)===key);
   if(it){if(it.qty>=p.stock){toast('Stock insuffisant','warn');return;}it.qty++;}
   else cart.push({id:String(p.id),name:p.name,barcode:p.barcode,price:tierPrice,purchasePrice:Number(p.purchasePrice||0),qty:1,saleType:p.saleType||'unit',basePrice:p.price});
-  renderCart();resetInactivityTimer();
+  renderCartLine(key);updateCartTotals();updateCartCount();resetInactivityTimer();
 }
-function changeQty(id,d){const key=String(id??"").trim();const it=cart.find(i=>String(i.id)===key);if(!it)return;const p=zarProduct(key);it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>String(i.id)!==key);else if(p&&it.qty>p.stock){it.qty=p.stock;toast('Stock insuffisant','warn');}renderCart();}
-function setQtyFromInput(id,v){const key=String(id??"").trim();const it=cart.find(i=>String(i.id)===key);if(!it)return;const p=zarProduct(key);let q=parseInt(v)||0;if(q<0)q=0;if(p&&q>p.stock){q=p.stock;toast('Stock insuffisant','warn');}if(q===0)cart=cart.filter(i=>String(i.id)!==key);else it.qty=q;renderCart();}
-function removeFromCart(id){const key=String(id??"").trim();cart=cart.filter(i=>String(i.id)!==key);renderCart();}
+function changeQty(id,d){
+  const key=String(id??"").trim(),it=cart.find(i=>String(i.id)===key);if(!it)return;
+  const p=zarProduct(key);it.qty+=d;
+  if(it.qty<=0)cart=cart.filter(i=>String(i.id)!==key);
+  else if(p&&it.qty>p.stock){it.qty=p.stock;toast('Stock insuffisant','warn');}
+  renderCartLine(key);updateCartTotals();updateCartCount();
+}
+function setQtyFromInput(id,v){
+  const key=String(id??"").trim(),it=cart.find(i=>String(i.id)===key);if(!it)return;
+  const p=zarProduct(key);let q=parseInt(v)||0;if(q<0)q=0;
+  if(p&&q>p.stock){q=p.stock;toast('Stock insuffisant','warn');}
+  if(q===0)cart=cart.filter(i=>String(i.id)!==key);else it.qty=q;
+  renderCartLine(key);updateCartTotals();updateCartCount();
+}
+function removeFromCart(id){
+  const key=String(id??"").trim();cart=cart.filter(i=>String(i.id)!==key);
+  renderCartLine(key);updateCartTotals();updateCartCount();
+}
 function clearCart(){if(!cart.length)return;if(confirm('Vider le panier ?')){cart=[];renderCart();}}
 function getSubtotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
 function getTotal(){const s=getSubtotal();const d=Math.max(0,Number(document.getElementById("discount")?.value||0));return Math.max(0,s-d);}
 function getTotalCost(){return cart.reduce((s,i)=>s+(i.purchasePrice||0)*i.qty,0);}
-function renderCart(){
-  const box=document.getElementById("cartItems");
-  if(!box)return;
-  if(!cart.length){
-    box.innerHTML='<div class="empty-state" style="padding:40px 20px">'+icon('cart',48)+'<div class="empty-state-text">'+t('cartEmpty')+'</div></div>';
-  }else{
-    const cartQuery=String(window.__zarCartSearch||"").trim().toLowerCase();
-    const visibleCart=cartQuery?cart.filter(i=>String(i.name||"").toLowerCase().includes(cartQuery)||String(i.barcode||"").includes(cartQuery)):cart;
-    box.innerHTML=visibleCart.map(i=>{
-      const p=zarProduct(i.id);
-      const img=p&&p.image?normalizeProductImage(p.image):'';
-      // FIX #1: only render the thumb when an image exists so the grid stays 2-column when not needed
-      const thumb=img?'<img class="cart-thumb" src="'+escapeAttr(img)+'" alt="" onerror="this.remove()">':'';
-      return'<div class="cart-item">'+thumb+'<div><div class="cart-name">'+escapeHTML(i.name)+'</div><div class="cart-price">'+money(i.price)+'</div><div class="qty-controls"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',-1)">'+icon('minus',14)+'</button><input class="qty-input" type="number" min="0" value="'+i.qty+'" onchange="setQtyFromInput(\''+escapeAttr(String(i.id))+'\',this.value)"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',1)">'+icon('plus',14)+'</button></div></div><div style="text-align:end"><div class="cart-line-total">'+money(i.price*i.qty)+'</div><button class="remove-btn" onclick="removeFromCart(\''+escapeAttr(String(i.id))+'\')">'+icon('trash',14)+'</button></div></div>';
-    }).join('');
+function _cartLineHTML(i){
+  const p=zarProduct(i.id),img=p&&p.image?normalizeProductImage(p.image):'';
+  const thumb=img?'<img class="cart-thumb" src="'+escapeAttr(img)+'" alt="" onerror="this.remove()">':'';
+  return '<div class="cart-item" data-id="'+escapeAttr(String(i.id))+'">'+thumb+'<div><div class="cart-name">'+escapeHTML(i.name)+'</div><div class="cart-price">'+money(i.price)+'</div><div class="qty-controls"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',-1)">'+icon('minus',14)+'</button><input class="qty-input" type="number" min="0" value="'+i.qty+'" onchange="setQtyFromInput(\''+escapeAttr(String(i.id))+'\',this.value)"><button class="qty-btn" onclick="changeQty(\''+escapeAttr(String(i.id))+'\',1)">'+icon('plus',14)+'</button></div></div><div style="text-align:end"><div class="cart-line-total">'+money(i.price*i.qty)+'</div><button class="remove-btn" onclick="removeFromCart(\''+escapeAttr(String(i.id))+'\')">'+icon('trash',14)+'</button></div></div>';
+}
+function renderCartLine(itemId){
+  const box = document.getElementById("cartItems");
+  if(!box) return;
+  const key = String(itemId ?? "").trim();
+  const it  = cart.find(i => String(i.id) === key);
+  const items = box.querySelectorAll(".cart-item");
+  let existing = null;
+  for(const el of items){
+    if(String(el.dataset.id) === key){ existing = el; break; }
   }
-  updateCartCount();
+
+  if(it){
+    if(existing){
+      existing.outerHTML = _cartLineHTML(it);
+    }else{
+      const idx = cart.indexOf(it);
+      const html = _cartLineHTML(it);
+      const empty = box.querySelector(".empty-state");
+      if(empty) empty.remove();
+      if(idx <= 0){
+        box.insertAdjacentHTML("afterbegin", html);
+      }else{
+        const prev = cart[idx - 1];
+        const prevEl = box.querySelector('.cart-item[data-id="' + CSS.escape(String(prev.id)) + '"]');
+        if(prevEl) prevEl.insertAdjacentHTML("afterend", html);
+        else       box.insertAdjacentHTML("beforeend", html);
+      }
+    }
+    return;
+  }
+
+  if(existing) existing.remove();
+  if(!cart.length) renderCart();
+}
+function updateCartTotals(){
   const s=document.getElementById("subtotal");if(s)s.textContent=money(getSubtotal());
   const tt=document.getElementById("total");if(tt)tt.textContent=money(getTotal());
   calculateChange();updateClientBadge();
   if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:'update',payload:{items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()}});}catch(e){}}
+}
+function renderCart(){
+  const box=document.getElementById("cartItems");if(!box)return;
+  if(!cart.length){box.innerHTML='<div class="empty-state" style="padding:40px 20px">'+icon('cart',48)+'<div class="empty-state-text">'+t('cartEmpty')+'</div></div>';}
+  else{
+    const cartQuery=String(window.__zarCartSearch||"").trim().toLowerCase();
+    const visibleCart=cartQuery?cart.filter(i=>String(i.name||"").toLowerCase().includes(cartQuery)||String(i.barcode||"").includes(cartQuery)):cart;
+    box.innerHTML=visibleCart.map(_cartLineHTML).join('');
+  }
+  updateCartCount();updateCartTotals();
 }
 function updateCartCount(){const c=cart.reduce((s,i)=>s+i.qty,0);const el=document.getElementById("cartCount");if(el)el.textContent=c;}
 
@@ -2875,14 +2745,126 @@ function completeSale(){
   AuditLog.log('sale.create','Ticket '+sale.id,money(sale.total));
   cart=[];renderAll();
   toast(t('saleRecorded')+' — '+sale.id,'success');
-  printReceipt(sale);
+  smartPrint(sale);
   resetInactivityTimer();
 }
+const ESCPOS={
+  init(){return Uint8Array.from([0x1b,0x40]);},
+  align(n){return Uint8Array.from([0x1b,0x61,Math.max(0,Math.min(2,Number(n)||0))]);},
+  bold(on){return Uint8Array.from([0x1b,0x45,on?1:0]);},
+  size(w=1,h=1){return Uint8Array.from([0x1d,0x21,((Math.max(1,Math.min(8,w))-1)<<4)|(Math.max(1,Math.min(8,h))-1)]);},
+  feed(n=1){return Uint8Array.from([0x1b,0x64,Math.max(0,Math.min(255,Number(n)||0))]);},
+  cut(){return Uint8Array.from([0x1d,0x56,0x41,0x00]);},
+  text(s){const a=[];for(const ch of String(s??"")){const c=ch.charCodeAt(0);a.push(c<=255?c:63);}return Uint8Array.from(a);},
+  concat(parts){let n=0;for(const p of parts)n+=p.length;const o=new Uint8Array(n);let x=0;for(const p of parts){o.set(p,x);x+=p.length;}return o;},
+  async imageToRaster(dataURL,targetWidth=384){
+    if(!dataURL)return new Uint8Array();
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Logo image invalide"));i.src=dataURL;});
+    const width=Math.max(8,Math.floor((Number(targetWidth)||384)/8)*8),scale=width/img.width,height=Math.max(1,Math.round(img.height*scale));
+    const c=document.createElement("canvas");c.width=width;c.height=height;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);ctx.drawImage(img,0,0,width,height);
+    const d=ctx.getImageData(0,0,width,height).data,bpr=width/8,r=new Uint8Array(bpr*height);
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){const k=(y*width+x)*4,lum=.299*d[k]+.587*d[k+1]+.114*d[k+2];if(lum<128)r[y*bpr+(x>>3)]|=0x80>>(x&7);}
+    return this.concat([Uint8Array.from([0x1d,0x76,0x30,0x00,bpr&255,(bpr>>8)&255,height&255,(height>>8)&255]),r]);
+  },
+  async buildFullReceipt(sale,opts={}){
+    const parts=[this.init(),this.align(1)],width=Number(opts.printerWidth||384),logo=await StoreLogo.getDataURL();
+    if(logo)parts.push(await this.imageToRaster(logo,width),this.feed(1));
+    const store=getStoreInfo(),cashier=zarCashier(sale.cashierId),client=zarClient(sale.clientId),line=(l,r)=>String(l??"").slice(0,32).padEnd(32," ")+String(r??"").slice(0,10).padStart(10," ")+"\\n";
+    parts.push(this.bold(true),this.size(2,2),this.text((store.name||"Zarouali POS")+"\n"),this.size(1,1),this.bold(false));
+    if(store.address)parts.push(this.text(store.address+"\n"));if(store.phone)parts.push(this.text("Tél: "+store.phone+"\n"));if(store.email)parts.push(this.text("Email: "+store.email+"\n"));if(store.taxId)parts.push(this.text("ICE: "+store.taxId+"\n"));
+    parts.push(this.text("------------------------------------------\n"),this.text(line("Ticket",sale.id)),this.text(line("Date",new Date(sale.date).toLocaleString("fr-FR"))),this.text(line("Caissier",cashier?.name||"—")),this.text(line("Client",client?.name||"—")),this.text("------------------------------------------\n"));
+    for(const it of sale.items||[])parts.push(this.text(line(String(it.name||"")+" x"+it.qty,money(it.price*it.qty))));
+    parts.push(this.text("------------------------------------------\n"),this.text(line("Sous-total",money(sale.subtotal))),this.text(line("Remise",money(sale.discount))),this.bold(true),this.size(2,2),this.text(line("TOTAL",money(sale.total))),this.size(1,1),this.bold(false));
+    if(Array.isArray(sale.payments)&&sale.payments.length){for(const p of sale.payments)parts.push(this.text(line(p.method,money(p.amount))));}else parts.push(this.text(line("Paiement",sale.payment||"—")));
+    if(sale.payment==="Crédit"&&client)parts.push(this.text(line("Dette",money(client.debt||0))));
+    parts.push(this.text("\nMerci de votre visite\n"),this.feed(3),this.cut());return this.concat(parts);
+  }
+};
+const AndroidPrinter={
+  _bytesToBase64(bytes){let s="";for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(s);},
+  async printReceipt(sale){const bytes=await ESCPOS.buildFullReceipt(sale,{printerWidth:Number(localStorage.getItem("zarouali_printer_width")||384)});location.href="intent:base64,"+this._bytesToBase64(bytes)+"#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";},
+  async printReceiptHTML(sale){const html=await WindowsPrinter._buildHTML(sale),b64=btoa(unescape(encodeURIComponent(html)));location.href="rawbt:data:text/html;base64,"+b64;}
+};
+const WindowsPrinter={
+  async connect(){
+    if(!window.qz?.websocket) return false;
+    try{
+      if(typeof qz.security?.generateCertificatePromise === "function"){
+        const cert = await qz.security.generateCertificatePromise();
+        if(cert) qz.security.setCertificatePromise(resolve => resolve(cert));
+        else toast("Utilisez QZ Tray avec un certificat auto-signé pour éviter la confirmation.", "warn");
+      }else{
+        toast("Utilisez QZ Tray avec un certificat auto-signé pour éviter la confirmation.", "warn");
+      }
+    }catch(e){
+      console.warn("[QZ cert]", e);
+      toast("Utilisez QZ Tray avec un certificat auto-signé pour éviter la confirmation.", "warn");
+    }
+    if(!qz.websocket.isActive()) await qz.websocket.connect();
+    return true;
+  },
+  async printReceipt(sale,printerName){
+    await this.connect();
+    if(!window.qz?.print) throw new Error("QZ Tray indisponible");
+    const name = printerName || localStorage.getItem("zarouali_printer_name");
+    if(!name) throw new Error("Nom imprimante QZ manquant");
+
+    // إذا كان محتوى الإيصال بلا عربية → استخدم ESC/POS للحصول على جودة أعلى
+    const store = getStoreInfo();
+    const hasArabic = /[\u0600-\u06FF]/.test(
+      (store.name||"") + (store.address||"") + (sale.items||[]).map(i=>i.name).join("")
+    );
+
+    const config = qz.configs.create(name);
+    if(!hasArabic){
+      const escposBytes = await ESCPOS.buildFullReceipt(sale, {
+        printerWidth: Number(localStorage.getItem("zarouali_printer_width") || 384)
+      });
+      return qz.print(config, [{ type:"raw", format:"command", data: Array.from(escposBytes) }]);
+    }
+
+    // Fallback HTML→Bitmap للعربية
+    const htmlConfig = qz.configs.create(name, { rasterize:true, density:200 });
+    return qz.print(htmlConfig, [{
+      type:"pixel", format:"html", flavor:"plain", data: await this._buildHTML(sale)
+    }]);
+  },
+  async _buildHTML(sale){
+    const store=getStoreInfo(),cashier=zarCashier(sale.cashierId),client=zarClient(sale.clientId),logo=await StoreLogo.getDataURL();let h='<div style="width:72mm;font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:3mm;box-sizing:border-box;">';
+    if(logo)h+='<div style="text-align:center;margin-bottom:2mm"><img src="'+escapeAttr(logo)+'" style="max-width:100%;max-height:28mm;object-fit:contain"></div>';
+    h+='<div style="text-align:center;font-size:18px;font-weight:bold">'+escapeHTML(store.name||"Zarouali POS")+'</div>';
+    if(store.address)h+='<div style="text-align:center">'+escapeHTML(store.address)+'</div>';if(store.phone)h+='<div style="text-align:center">Tél: '+escapeHTML(store.phone)+'</div>';if(store.email)h+='<div style="text-align:center">Email: '+escapeHTML(store.email)+'</div>';if(store.taxId)h+='<div style="text-align:center">ICE: '+escapeHTML(store.taxId)+'</div>';
+    h+='<hr style="border:0;border-top:1px dashed #000">'+escapeHTML("Ticket: "+sale.id+"    "+new Date(sale.date).toLocaleString("fr-FR"))+'<br>Caissier: '+escapeHTML(cashier?.name||"—")+'<br>Client: '+escapeHTML(client?.name||"—")+'<hr style="border:0;border-top:1px dashed #000">';
+    for(const it of sale.items||[])h+='<div style="display:flex;justify-content:space-between;gap:3mm"><span style="max-width:58mm">'+escapeHTML(String(it.name||"")+" × "+it.qty)+'</span><span>'+money(it.price*it.qty)+'</span></div>';
+    h+='<hr style="border:0;border-top:1px dashed #000"><div style="display:flex;justify-content:space-between"><span>Sous-total</span><span>'+money(sale.subtotal)+'</span></div><div style="display:flex;justify-content:space-between"><span>Remise</span><span>'+money(sale.discount)+'</span></div><div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold"><span>TOTAL</span><span>'+money(sale.total)+'</span></div>';
+    if(Array.isArray(sale.payments)&&sale.payments.length)for(const p of sale.payments)h+='<div style="display:flex;justify-content:space-between"><span>'+escapeHTML(p.method)+'</span><span>'+money(p.amount)+'</span></div>';else h+='<div style="display:flex;justify-content:space-between"><span>Paiement</span><span>'+escapeHTML(sale.payment||"—")+'</span></div>';
+    if(sale.payment==="Crédit"&&client)h+='<div>Dette: '+money(client.debt||0)+'</div>';return h+'<hr style="border:0;border-top:1px dashed #000"><div style="text-align:center">Merci de votre visite</div></div>';
+  }
+};
+async function smartPrint(sale){
+  const store = getStoreInfo();
+  const hasArabic = /[\u0600-\u06FF]/.test(
+    (store.name||"") + (store.address||"") + (sale.items||[]).map(i=>i.name).join("")
+  );
+  try{
+    if(/android/i.test(navigator.userAgent)){
+      if(hasArabic) await AndroidPrinter.printReceiptHTML(sale);
+      else          await AndroidPrinter.printReceipt(sale);
+      return;
+    }
+    if(/windows/i.test(navigator.userAgent) && window.qz){
+      await WindowsPrinter.printReceipt(sale, localStorage.getItem("zarouali_printer_name")||"");
+      return;
+    }
+  }catch(e){ console.warn("[smartPrint]", e); }
+  printReceipt(sale);
+}
+
 function printReceipt(sale){
   const store=getStoreInfo();
   const cashier=zarCashier(sale.cashierId);
   const client=zarClient(sale.clientId);
-  let h='<div style="font-family:\'Courier New\',monospace;font-size:12px;padding:4mm;max-width:80mm;margin:auto;background:white;color:black;"><div style="text-align:center;font-weight:bold;font-size:16px;">'+escapeHTML(store.name||"Zarouali POS")+'</div><div style="text-align:center;font-size:11px;color:#555;">'+escapeHTML(store.address||"")+'</div><div style="text-align:center;font-size:11px;color:#555;">Tél: '+escapeHTML(store.phone||"")+'</div><hr style="border-top:1px dashed #999;"><div style="display:flex;justify-content:space-between;"><span>Ticket: '+sale.id+'</span><span>'+new Date(sale.date).toLocaleString('fr-FR')+'</span></div><div>Caissier: '+(cashier?escapeHTML(cashier.name):"—")+'</div><div>Client: '+(client?escapeHTML(client.name):"—")+'</div><hr style="border-top:1px dashed #999;">';
+  let h='<div style="font-family:\'Courier New\',monospace;font-size:12px;padding:4mm;max-width:80mm;margin:auto;background:white;color:black;"><div style="text-align:center;">'+(StoreLogo._dataURL?'<img src="'+escapeAttr(StoreLogo._dataURL)+'" style="max-width:100%;max-height:30mm;object-fit:contain">':'')+'</div><div style="text-align:center;font-weight:bold;font-size:16px;">'+escapeHTML(store.name||"Zarouali POS")+'</div><div style="text-align:center;font-size:11px;color:#555;">'+escapeHTML(store.address||"")+'</div><div style="text-align:center;font-size:11px;color:#555;">Tél: '+escapeHTML(store.phone||"")+'</div><hr style="border-top:1px dashed #999;"><div style="display:flex;justify-content:space-between;"><span>Ticket: '+sale.id+'</span><span>'+new Date(sale.date).toLocaleString('fr-FR')+'</span></div><div>Caissier: '+(cashier?escapeHTML(cashier.name):"—")+'</div><div>Client: '+(client?escapeHTML(client.name):"—")+'</div><hr style="border-top:1px dashed #999;">';
   for(const it of sale.items){h+='<div style="display:flex;justify-content:space-between;"><span>'+escapeHTML(it.name)+' × '+it.qty+'</span><span>'+money(it.price*it.qty)+'</span></div>';}
   h+='<hr style="border-top:1px dashed #999;"><div style="display:flex;justify-content:space-between;"><span>Sous-total</span><span>'+money(sale.subtotal)+'</span></div><div style="display:flex;justify-content:space-between;"><span>Remise</span><span>'+money(sale.discount)+'</span></div><div style="display:flex;justify-content:space-between;font-weight:bold;font-size:14px;"><span>TOTAL</span><span>'+money(sale.total)+'</span></div>';
   if(Array.isArray(sale.payments) && sale.payments.length>1){
@@ -2965,8 +2947,14 @@ async function saveProduct(){
   if(id){
     const p=zarProduct(id);
     if(!p){toast("Produit introuvable","error");return;}
+    const oldBarcode=String(p.barcode||"").trim();
     Object.assign(p,{name,category,barcode,price,purchasePrice,stock,minStock,expirationDate,supplierId,saleType,variantGroup,updatedAt:Date.now()});
     if(currentImage)p.image=currentImage;
+    ensureIndexes();
+    const idKey=String(p.id);
+    if(oldBarcode && oldBarcode !== barcode) _zarIndexes.barcodes.delete(oldBarcode);
+    _zarIndexes.products.set(idKey,p);
+    if(barcode) _zarIndexes.barcodes.set(barcode,p);
     AuditLog.log("product.update",name,"");
   }else{
     // FIX #13: robust unique id generation against pre-existing IDs
@@ -2988,9 +2976,11 @@ async function saveProduct(){
     await persistProductImageCanonical(savedProduct.id);
   }
   db._updatedAt=Date.now();
+  _searchIndexDirty=true;
   saveDB();
   closeModal("productModal");
-  renderAll();
+  renderAll({only:"productsAdmin"});
+  if(currentPage === "sale") renderAll({only:"products"});
   toast(t("productSaved"),"success");
 }
 function deleteProduct(id){
@@ -2998,9 +2988,9 @@ function deleteProduct(id){
   const key=String(id).trim();
   const p=zarProduct(key);
   db.products=db.products.filter(x=>String(x.id)!==key);
-  clearZarProductHTMLCache();
+  zarProductRemove(key);_searchIndexDirty=true;clearZarProductHTMLCache();
   saveDB();
-  renderAll();
+  renderAll({only:"productsAdmin"});
   if(p)AuditLog.log("product.delete",p.name,"");
   toast("Produit supprimé","success");
 }
@@ -3149,7 +3139,7 @@ function populateHistoryFilters(){const cs=document.getElementById("historyCashi
 function renderHistory(){const box=document.getElementById("history");if(!box)return;const d=document.getElementById("historyDate")?.value||"";const ci=document.getElementById("historyCashier")?.value||"";const cli=document.getElementById("historyClient")?.value||"";let list=[...db.sales];if(d)list=list.filter(s=>s.date.startsWith(d));if(ci)list=list.filter(s=>String(s.cashierId)===String(ci));if(cli)list=list.filter(s=>String(s.clientId)===String(cli));list.sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=list.map(s=>{const c=db.cashiers.find(x=>String(x.id)===String(s.cashierId));const cl=db.clients.find(x=>String(x.id)===String(s.clientId));const n=(s.items||[]).reduce((sm,i)=>sm+i.qty,0);return'<tr><td><strong class="mono">'+escapeHTML(s.id)+'</strong></td><td>'+new Date(s.date).toLocaleString('fr-FR')+'</td><td>'+(c?escapeHTML(c.name):"—")+'</td><td>'+(cl?escapeHTML(cl.name):"—")+'</td><td class="mono">'+n+'</td><td class="mono"><strong>'+money(s.total)+'</strong></td><td>'+escapeHTML(s.payment)+'</td><td><div class="row-actions"><button onclick="printReceipt(db.sales.find(x=>x.id===\''+s.id+'\'))">'+icon('print',14)+'</button><button onclick="Returns.open(\''+s.id+'\')" style="color:var(--danger-500)">↩</button></div></td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">Aucune vente</td></tr>';}
 function resetHistoryFilters(){const d=document.getElementById("historyDate");if(d)d.value=localDateISO();const c=document.getElementById("historyCashier");if(c)c.value="";const cl=document.getElementById("historyClient");if(cl)cl.value="";renderHistory();}
 
-let zarDashboardCache=null;
+let zarDashboardCache=null,_dashSig="";
 function buildZarDashboardCache(){
   const today=localDateISO();
   const ts=db.sales.filter(s=>String(s.date||'').startsWith(today));
@@ -3163,7 +3153,7 @@ function buildZarDashboardCache(){
 }
 function renderDashboard(){
   const today=localDateISO();
-  if(!zarDashboardCache||zarDashboardCache.today!==today)zarDashboardCache=buildZarDashboardCache();
+  const sig=today+"|"+db.sales.length;if(!zarDashboardCache||_dashSig!==sig){zarDashboardCache=buildZarDashboardCache();_dashSig=sig;}
   const d=zarDashboardCache;
   const avg=d.count?d.ca/d.count:0;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
@@ -3173,48 +3163,32 @@ function renderDashboard(){
   const sorted=Object.keys(d.ps).sort((a,b)=>d.ps[b].qty-d.ps[a].qty).slice(0,6);const maxQ=sorted.length?d.ps[sorted[0]].qty:1;const tp=document.getElementById("topProducts");
   if(tp)tp.innerHTML=sorted.length?sorted.map(id=>{const p=zarProduct(id);const pct=(d.ps[id].qty/maxQ)*100;return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="font-weight:600">'+escapeHTML(p?p.name:id)+'</span><span class="mono" style="color:var(--text-muted)">'+d.ps[id].qty+' ×</span></div><div class="credit-bar-track"><div class="credit-bar-fill" style="width:'+pct+'%"></div></div></div>';}).join(''):'<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px">Aucune vente</div>';
 }
-function renderAll(){
-  const page=String(currentPage||"sale");
-  // V18: render only the visible/affected area instead of rebuilding every admin table.
-  if(page==="sale"){
-    renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();updateCreditBar();updateCartCount();
-  }else if(page==="productsPage"){renderProductAdmin();}
-  else if(page==="clientsPage"){renderClientsAdmin();}
-  else if(page==="cashiersPage"){renderCashiersAdmin();}
-  else if(page==="historyPage"){populateHistoryFilters();renderHistory();}
-  else if(page==="dashboard"){renderDashboard();}
-  else if(page==="suppliersPage"){Suppliers.render();}
-  else if(page==="purchasesPage"){Purchases.render();}
-  else if(page==="priceListsPage"){try{PriceLists.init();}catch(e){}}
+function renderAll(opts){
+  const only=opts&&opts.only?opts.only:null,page=String(currentPage||"sale");
+  if(only==="cart"){renderCart();return;}if(only==="products"){renderCategories();renderProducts();return;}
+  if(only==="productsAdmin"){renderProductAdmin();return;}if(only==="clients"){renderClientsAdmin();return;}if(only==="dashboard"){renderDashboard();return;}
+  if(page==="sale"){renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();updateCreditBar();updateCartCount();}
+  else if(page==="productsPage"){renderProductAdmin();}else if(page==="clientsPage"){renderClientsAdmin();}else if(page==="cashiersPage"){renderCashiersAdmin();}
+  else if(page==="historyPage"){populateHistoryFilters();renderHistory();}else if(page==="dashboard"){renderDashboard();}else if(page==="suppliersPage"){Suppliers.render();}
+  else if(page==="purchasesPage"){Purchases.render();}else if(page==="priceListsPage"){try{PriceLists.init();}catch(e){}}
   else{renderCategories();renderProducts();renderClientSelect();renderCart();renderCashierSelect();updateCreditBar();updateCartCount();}
   updateUserLabels();
 }
 
-function attachSearchListener(){
-  const si=document.getElementById("search");
-  if(!si)return;
-  if(si.dataset.zarListener)return;
-  si.dataset.zarListener="1";
-  let timer=null;
-  si.addEventListener("input",function(){
-    clearTimeout(timer);
-    const v=this.value.trim();
-    if(v.length>=4){
-      const p=zarProductByBarcode(v);
-      if(p){addToCart(p.id);playBeep();this.value="";renderProducts();toast('✓ '+p.name+' ajouté','success');return;}
-    }
-    timer=setTimeout(()=>{
-      const vv=this.value.trim();
-      if(!vv){renderProducts();timer=null;return;}
-      if(/^\d{8,}$/.test(vv)){
-        const pp=zarProductByBarcode(vv);
-        if(!pp){playErrorBeep();openProductModal(null,vv);this.value="";toast('Code inconnu: '+vv,'warn');timer=null;return;}
-      }
-      renderProducts();timer=null;
-    },150);
-  });
+function onSearchInput(){
+  clearTimeout(_searchTimer);
+  _searchTimer=setTimeout(()=>{
+    const si=document.getElementById("search"),v=String(si?.value||"").trim();
+    if(v.length>=4){const p=zarProductByBarcode(v);if(p){addToCart(p.id);playBeep();si.value="";renderProducts();toast('✓ '+p.name+' ajouté','success');return;}}
+    if(/^\d{8,}$/.test(v)){const pp=zarProductByBarcode(v);if(!pp){playErrorBeep();openProductModal(null,v);si.value="";toast('Code inconnu: '+v,'warn');return;}}
+    renderProducts();
+  },120);
 }
-
+function attachSearchListener(){
+  const si=document.getElementById("search");if(!si)return;
+  if(si.dataset.zarListener)return;
+  si.dataset.zarListener="1";si.addEventListener("input",onSearchInput);
+}
 let zarProductBarcodeScanTarget=false;
 function openScanner(target){zarProductBarcodeScanTarget=(target==="productBarcode");const m=document.getElementById("scannerModal");const s=document.getElementById("scannerStatus");const r=document.getElementById("retryScanBtn");if(!m)return;m.classList.add("show");scannerLocked=false;if(s){s.textContent="Prêt à scanner...";s.className="scanner-status";}if(r)r.style.display="none";setTimeout(()=>startScanner(),400);}
 async function closeScanner(){scannerLocked=true;const inst=scannerInstance;scannerInstance=null;scannerRunning=false;if(inst){try{await inst.stop();}catch(e){}try{inst.clear();}catch(e){}}const c=document.getElementById("scannerContainer");if(c)c.innerHTML='<div class="scanner-overlay"></div>';const m=document.getElementById("scannerModal");if(m)m.classList.remove("show");}
@@ -3487,6 +3461,7 @@ async function catalogReadStoredImages(){
     imageDB.close();
 
     for(const [key,value] of stored){
+      if(String(key) === String(StoreLogo.KEY)) continue;
       out.set(key,value);
     }
   }catch(err){
@@ -4509,7 +4484,7 @@ function clearAllProducts(){if(!confirm('Supprimer tous les produits ?'))return;
 
 function startDigitalClock(){const u=()=>{const n=new Date();const h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');const el=document.getElementById('digitalClock');if(el)el.textContent=h+':'+m+':'+s;};u();setInterval(u,1000);}
 
-const ScannerHID={enabled:true,soundEnabled:true,autoAddToCart:true,threshold:50,minLength:4,maxLength:64,suffix:'Enter',timeout:180,buffer:'',keyTimes:[],lastKeyTime:0,timeoutId:null,STORAGE_KEY:'zarouali_hid_scanner',init(){try{const s=JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'{}');Object.assign(this,s);}catch(e){}document.addEventListener('keydown',this.handleKeyDown.bind(this),true);this.syncUI();this.updateIndicator();},handleKeyDown(e){if(!this.enabled)return;
+const ScannerHID={enabled:true,soundEnabled:true,autoAddToCart:true,threshold:50,minLength:4,maxLength:64,suffix:'Enter',timeout:180,buffer:'',keyTimes:[],lastKeyTime:0,timeoutId:null,STORAGE_KEY:'zarouali_hid_scanner',init(){try{const s=JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'{}');Object.assign(this,s);}catch(e){}document.addEventListener('keydown',this.handleKeyDown.bind(this),true);this.syncUI();this.updateIndicator();},handleKeyDown(e){if(!this.enabled)return;if(document.querySelector('.modal.show'))return;
   const tag=(e.target&&e.target.tagName)||"";
   if((tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")&&e.target.id!=="hidTestInput")return;
   if(['Shift','Control','Alt','Meta','CapsLock','OS'].includes(e.key))return;if(e.ctrlKey||e.altKey||e.metaKey){this.reset();return;}const now=performance.now();const dt=now-this.lastKeyTime;this.lastKeyTime=now;if(dt>this.threshold*3&&this.buffer.length>0)this.reset();if(e.key==='Enter'||e.key==='Tab'){const ws=this.isLikelyScanner();const cap=this.buffer;this.reset();if(cap.length>=this.minLength&&ws){e.preventDefault();e.stopPropagation();this.process(cap,'suffix');}return;}if(e.key.length!==1)return;this.buffer+=e.key;this.keyTimes.push(now);if(this.buffer.length>this.maxLength){this.buffer=this.buffer.slice(-this.maxLength);this.keyTimes=this.keyTimes.slice(-this.maxLength);}clearTimeout(this.timeoutId);this.timeoutId=setTimeout(()=>{if(this.suffix==='none'&&this.buffer.length>=this.minLength&&this.isLikelyScanner()){const c=this.buffer;this.reset();this.process(c,'timeout');}else this.reset();},this.timeout);},isLikelyScanner(){const n=this.keyTimes.length;if(n<this.minLength)return false;let total=0,count=0;for(let i=1;i<n;i++){const d=this.keyTimes[i]-this.keyTimes[i-1];if(d>=0&&d<500){total+=d;count++;}}if(count===0)return false;return(total/count)<=this.threshold;},reset(){this.buffer='';this.keyTimes=[];clearTimeout(this.timeoutId);},process(code,source){const bc=String(code).trim();if(!bc)return;if(this.soundEnabled)try{playBeep();}catch(e){}this.flashIndicator();document.dispatchEvent(new CustomEvent('scanner:scan',{detail:{code:bc,source,timestamp:Date.now()}}));if(this.autoAddToCart)this.handleAutoAdd(bc);},handleAutoAdd(bc){if(document.querySelector('.modal.show,.scanner-modal.show'))return;const p=zarProductByBarcode(bc);if(p){if(p.stock<=0){toast('Rupture: '+p.name,'warn');return;}try{addToCart(p.id);toast('✓ '+p.name,'success');}catch(e){}}else{try{playErrorBeep();}catch(e){}try{openProductModal(null,bc);toast('Nouveau: '+bc,'info');}catch(e){}}},flashIndicator(){const el=document.getElementById('hidIndicator');if(!el)return;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');setTimeout(()=>el.classList.remove('pulse'),700);},updateIndicator(){const el=document.getElementById('hidIndicator');if(!el)return;el.style.display=this.enabled?'inline-flex':'none';el.classList.toggle('active',this.enabled);},syncUI(){const sc=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=v;};sc('hidEnabled',this.enabled);sc('hidSound',this.soundEnabled);sc('hidAutoAdd',this.autoAddToCart);const th=document.getElementById('hidThreshold');if(th)th.value=this.threshold;},setEnabled(v){this.enabled=!!v;this.save();this.updateIndicator();},setSound(v){this.soundEnabled=!!v;this.save();},setAutoAdd(v){this.autoAddToCart=!!v;this.save();},setThreshold(v){this.threshold=Math.max(10,Math.min(300,parseInt(v)||50));this.save();},save(){try{localStorage.setItem(this.STORAGE_KEY,JSON.stringify({enabled:this.enabled,soundEnabled:this.soundEnabled,autoAddToCart:this.autoAddToCart,threshold:this.threshold}));}catch(e){}}};
@@ -4913,7 +4888,7 @@ async function init(){
   document.documentElement.lang=currentLanguage;
   loadTheme();
   renderMenu();
-  renderMainContent();
+  renderMainContent();StoreLogo.render();loadPrinterConfig();
   startDigitalClock();
 
   ScannerHID.init();
@@ -4975,6 +4950,8 @@ async function init(){
     if(c.points===undefined)c.points=0;
   });
   (db.suppliers||[]).forEach(s=>{s.id=String(s.id??"").trim();});
+  buildSearchIndex();
+  ensureIndexes();
   (db.sales||[]).forEach(s=>{
     s.id=String(s.id??"").trim();
     if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();
@@ -4983,6 +4960,7 @@ async function init(){
   });
 
   await CatalogImages.load().catch(e=>console.warn("CatalogImages.load failed",e));
+  await StoreLogo.load().catch(e=>console.warn("StoreLogo.load failed",e));
   clearImageCache();
 
   try{
@@ -5067,6 +5045,15 @@ async function init(){
   }
 
   console.log("[Zarouali POS v15.1] ready · "+db.products.length+" produits · "+db.cashiers.length+" caissiers");
+  setInterval(async () => {
+    const el = document.getElementById("qzIndicator");
+    if(!el) return;
+    try{
+      const active = window.qz?.websocket?.isActive?.() === true;
+      el.classList.toggle("active", active);
+      el.title = active ? "QZ Tray connecté" : "QZ Tray déconnecté";
+    }catch(e){}
+  }, 4000);
   zarInitCloudSync();
 }
 

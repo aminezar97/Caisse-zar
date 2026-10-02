@@ -8850,6 +8850,13 @@ console.log(TAG+' — modules:',Object.keys(window.ZaroualiV22_1).join(', '));
         const html=await r.text();
         if(html.length<10000 || html.indexOf(CFG.marker)===-1 || html.indexOf('<html')===-1)throw new Error('الملف البعيد غير صالح');
         const hash=await this.hash(html);
+        const expectedHash=String((m&&m.sha256)||'').toLowerCase().trim();
+        if(!expectedHash || !/^[0-9a-f]{64}$/.test(expectedHash)){
+          throw new Error('SHA-256 manifest invalide');
+        }
+        if(hash!==expectedHash){
+          throw new Error('SHA-256 mismatch');
+        }
         const localMeta=this.meta();
         const same=!!(localMeta&&localMeta.hash===hash);
         const remoteVersion=String((m&&m.version)||'');

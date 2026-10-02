@@ -3,7 +3,7 @@
   "url": "https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/updates/Zarouali_POS_LIVE.html",
   "minVersion": "22.4.11",
   "channel": "stable",
-  "sha256": "d095cc8aed1644b5916d37c0c6d6939b487eca76d64ca9e47380905c2f65a862",
+  "sha256": "817a9be428dbb8f478c8902527ca3fc6fbef5f86cda371ff33ff4468762456af",
   "updateMode": "offline-cache",
   "notes": [
     "RBAC Admin/Caissier",

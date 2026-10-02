@@ -2819,17 +2819,67 @@ const ESCPOS={
     return this.concat([Uint8Array.from([0x1d,0x76,0x30,0x00,bpr&255,(bpr>>8)&255,height&255,(height>>8)&255]),r]);
   },
   async buildFullReceipt(sale,opts={}){
-    const parts=[this.init(),this.align(1)],width=Number(opts.printerWidth||384),logo=await StoreLogo.getDataURL();
-    if(logo)parts.push(await this.imageToRaster(logo,width),this.feed(1));
-    const store=getStoreInfo(),cashier=zarCashier(sale.cashierId),client=zarClient(sale.clientId),line=(l,r)=>String(l??"").slice(0,32).padEnd(32," ")+String(r??"").slice(0,10).padStart(10," ")+"\\n";
-    parts.push(this.bold(true),this.size(2,2),this.text((store.name||"Zarouali POS")+"\n"),this.size(1,1),this.bold(false));
-    if(store.address)parts.push(this.text(store.address+"\n"));if(store.phone)parts.push(this.text("Tél: "+store.phone+"\n"));if(store.email)parts.push(this.text("Email: "+store.email+"\n"));if(store.taxId)parts.push(this.text("ICE: "+store.taxId+"\n"));
-    parts.push(this.text("------------------------------------------\n"),this.text(line("Ticket",sale.id)),this.text(line("Date",new Date(sale.date).toLocaleString("fr-FR"))),this.text(line("Caissier",cashier?.name||"—")),this.text(line("Client",client?.name||"—")),this.text("------------------------------------------\n"));
-    for(const it of sale.items||[])parts.push(this.text(line(String(it.name||"")+" x"+it.qty,money(it.price*it.qty))));
-    parts.push(this.text("------------------------------------------\n"),this.text(line("Sous-total",money(sale.subtotal))),this.text(line("Remise",money(sale.discount))),this.bold(true),this.size(2,2),this.text(line("TOTAL",money(sale.total))),this.size(1,1),this.bold(false));
-    if(Array.isArray(sale.payments)&&sale.payments.length){for(const p of sale.payments)parts.push(this.text(line(p.method,money(p.amount))));}else parts.push(this.text(line("Paiement",sale.payment||"—")));
+    const parts=[this.init(),this.align(1)];
+    const width=Number(opts.printerWidth||384);
+    const cols=width>=576?48:32;
+    const right=10;
+    const left=cols-right;
+    const logo=await StoreLogo.getDataURL();
+    // Logo smaller than the paper width so the ticket keeps the classic cash-register layout.
+    if(logo)parts.push(await this.imageToRaster(logo,Math.min(width,240)),this.feed(1));
+    const store=getStoreInfo(),cashier=zarCashier(sale.cashierId),client=zarClient(sale.clientId);
+    const clean=v=>String(v??"").replace(/[\r\n]+/g," ").trim();
+    const line=(l,r)=>{
+      const L=clean(l).slice(0,left);
+      const R=clean(r).slice(0,right);
+      return L.padEnd(left," ")+R.padStart(right," ")+"\n";
+    };
+    const sep="-".repeat(cols)+"\n";
+    const center=s=>{const v=clean(s).slice(0,cols);return v.padStart(Math.floor((cols+v.length)/2)," ").padEnd(cols," ")+"\n";};
+    parts.push(this.bold(true),this.size(1,1),this.text(center(store.name||"Zarouali POS")),this.bold(false));
+    if(store.address)parts.push(this.text(center(store.address)));
+    if(store.phone)parts.push(this.text(center("Tél: "+store.phone)));
+    if(store.email)parts.push(this.text(center("Email: "+store.email)));
+    if(store.taxId)parts.push(this.text(center("ICE: "+store.taxId)));
+    parts.push(this.text(sep));
+    const dt=new Date(sale.date);
+    const dateText=dt.toLocaleDateString("fr-FR");
+    const timeText=dt.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    parts.push(this.text(line("Vendeur : "+(cashier?.name||"—"),dateText+" "+timeText)));
+    parts.push(this.text(line("Ticket  : "+sale.id,"")));
+    parts.push(this.text(line("Client  : "+(client?.name||"—"),"")));
+    parts.push(this.text(sep));
+    for(const it of sale.items||[]){
+      const name=clean(it.name||"");
+      const qty=Number(it.qty||0);
+      const amount=money(Number(it.price||0)*qty);
+      const firstLine=(name+" x"+qty);
+      if(firstLine.length<=left){
+        parts.push(this.text(line(firstLine,amount)));
+      }else{
+        parts.push(this.text(line(firstLine.slice(0,left),amount)));
+        let rest=firstLine.slice(left);
+        while(rest.length) { parts.push(this.text((rest.slice(0,left)).padEnd(cols," ")+"\n")); rest=rest.slice(left); }
+      }
+    }
+    parts.push(this.text(sep));
+    parts.push(this.text(line("Sous-total",money(sale.subtotal))));
+    parts.push(this.text(line("Remise",money(sale.discount))));
+    parts.push(this.text(sep));
+    parts.push(this.bold(true),this.size(2,1),this.text(line("TOTAL",money(sale.total))),this.size(1,1),this.bold(false));
+    parts.push(this.text("\n"));
+    if(Array.isArray(sale.payments)&&sale.payments.length){
+      parts.push(this.text(line("Payé",money(sale.total))));
+      for(const p of sale.payments)parts.push(this.text(line(clean(p.method||"Paiement"),money(p.amount))));
+    }else{
+      parts.push(this.text(line("Payé",money(sale.total))));
+      parts.push(this.text(center(sale.payment||"—")));
+    }
     if(sale.payment==="Crédit"&&client)parts.push(this.text(line("Dette",money(client.debt||0))));
-    parts.push(this.text("\nMerci de votre visite\n"),this.feed(3),this.cut());return this.concat(parts);
+    parts.push(this.text(sep));
+    parts.push(this.text(center("Merci de votre visite")));
+    parts.push(this.feed(4),this.cut());
+    return this.concat(parts);
   }
 };
 const AndroidPrinter={

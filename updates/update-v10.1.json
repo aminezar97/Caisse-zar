@@ -1,0 +1,13 @@
+{
+  "version": "10.1.1",
+  "url": "https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/updates/Zarouali_POS_v10.1_LIVE.html",
+  "minVersion": "10.1",
+  "channel": "stable",
+  "sha256": "928a175f1ba86373bf49d4f8a7fad03e0e9251297aa7a6aa1576d5f960f08fe6",
+  "updateMode": "offline-cache",
+  "notes": [
+    "Mise à jour depuis GitHub sans rebuild APK",
+    "Conservation des données locales",
+    "Vérification SHA-256"
+  ]
+}

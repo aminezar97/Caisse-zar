@@ -1,5 +1,23 @@
 <!-- // Zarouali POS v22 — Performance + Instant Print -->
 <!DOCTYPE html>
+<script>
+/* Zarouali POS Live Update bootstrap — V10.1 */
+(function(){
+  const HTML_KEY='zarouali_live_update_html_v10_1';
+  const VER_KEY='zarouali_live_update_version_v10_1';
+  const BOOT_KEY='zarouali_live_update_booting_v10_1';
+  try{
+    if(sessionStorage.getItem(BOOT_KEY)==='1'){ sessionStorage.removeItem(BOOT_KEY); return; }
+    const cached=localStorage.getItem(HTML_KEY);
+    const ver=localStorage.getItem(VER_KEY);
+    if(cached && cached.length>10000 && ver){
+      sessionStorage.setItem(BOOT_KEY,'1');
+      document.open(); document.write(cached); document.close();
+    }
+  }catch(e){console.warn('[LiveUpdate bootstrap]',e);}
+})();
+</script>
+
 <html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
@@ -1223,6 +1241,10 @@ input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabul
         </div>
       </div>
       <div class="header-right">
+        <button id="zarLiveUpdateBtn" class="icon-btn-sm secondary-action" onclick="ZarLiveUpdate.check(true)" title="Vérifier les mises à jour" aria-label="Vérifier les mises à jour" style="position:relative">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 0 0-14.8-4.2L3 9"/><path d="M3 4v5h5"/><path d="M4 13a8 8 0 0 0 14.8 4.2L21 15"/><path d="M21 20v-5h-5"/></svg>
+          <span id="zarLiveUpdateBadge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:7px;height:7px;border-radius:50%;background:#ef4444;border:2px solid var(--bg-surface)"></span>
+        </button>
         <button class="icon-btn-sm secondary-action" onclick="CommandPalette.open()" title="Palette (Ctrl+K)">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
@@ -6009,5 +6031,22 @@ console.info("[Zarouali V20.7] authoritative Admin PBKDF2 login + direct recover
 })();
 </script>
 
+<script>
+/* Zarouali POS Live Update engine — V10.1 */
+(function(){
+  'use strict';
+  const CFG={manifest:'https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/updates/update-v10.1.json',htmlKey:'zarouali_live_update_html_v10_1',verKey:'zarouali_live_update_version_v10_1',hashKey:'zarouali_live_update_hash_v10_1',lastCheckKey:'zarouali_live_update_last_check_v10_1',interval:6*60*60*1000};
+  const CURRENT='10.1';
+  function norm(v){return String(v||'').trim();}
+  function newer(remote,local){const a=norm(local).replace(/[^0-9.].*$/,'').split('.').map(x=>parseInt(x)||0),b=norm(remote).replace(/[^0-9.].*$/,'').split('.').map(x=>parseInt(x)||0);for(let i=0;i<Math.max(a.length,b.length);i++){if((b[i]||0)>(a[i]||0))return true;if((b[i]||0)<(a[i]||0))return false;}return norm(remote)!==norm(local);}
+  async function sha256(text){if(!window.crypto?.subtle)return '';const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+  function notify(msg,type){try{if(typeof toast==='function'){toast(msg,type||'info',5000);return;}}catch(e){}try{alert(msg);}catch(e){}}
+  function badge(show){const b=document.getElementById('zarLiveUpdateBadge');if(b)b.style.display=show?'block':'none';}
+  async function check(force){try{const last=Number(localStorage.getItem(CFG.lastCheckKey)||0);if(!force&&Date.now()-last<CFG.interval)return null;localStorage.setItem(CFG.lastCheckKey,String(Date.now()));const r=await fetch(CFG.manifest,{cache:'no-store'});if(!r.ok)throw new Error('Manifest HTTP '+r.status);const m=await r.json(),remoteVer=norm(m.version);if(!remoteVer||!m.url)throw new Error('Manifest invalide');const installed=localStorage.getItem(CFG.verKey)||CURRENT;if(!newer(remoteVer,installed)){badge(false);if(force)notify('✓ Zarouali POS est déjà à jour.','success');return {available:false,version:installed};}badge(true);if(force&&confirm('Une mise à jour Zarouali POS '+remoteVer+' est disponible.\n\nTélécharger et installer maintenant ?'))return await install(m);return {available:true,version:remoteVer,manifest:m};}catch(e){console.warn('[LiveUpdate check]',e);if(force)notify('Mise à jour indisponible : '+(e.message||e),'warn');return null;}}
+  async function install(m){try{notify('Téléchargement de la mise à jour…','info');const r=await fetch(m.url,{cache:'no-store'});if(!r.ok)throw new Error('Update HTTP '+r.status);const html=await r.text();if(html.length<10000)throw new Error('Fichier de mise à jour invalide');if(m.sha256){const h=await sha256(html);if(h&&h.toLowerCase()!==String(m.sha256).toLowerCase())throw new Error('SHA-256 incorrect');}localStorage.setItem(CFG.htmlKey,html);localStorage.setItem(CFG.verKey,String(m.version));if(m.sha256)localStorage.setItem(CFG.hashKey,String(m.sha256));badge(false);notify('Mise à jour installée. Redémarrage…','success');setTimeout(()=>location.reload(),700);return {installed:true,version:m.version};}catch(e){console.error('[LiveUpdate install]',e);notify('Échec de la mise à jour : '+(e.message||e),'error');return {installed:false,error:e};}}
+  window.ZarLiveUpdate={check,install,config:CFG,current:CURRENT};
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>check(false),2500),{once:true});
+})();
+</script>
 </body>
 </html>

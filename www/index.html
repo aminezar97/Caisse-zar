@@ -3,12 +3,43 @@
 <html lang="fr" dir="ltr">
 <head>
 <script>
-/* ZAROUALI LIVE UPDATE BOOTSTRAP — V10.1 base */
+/* ZAROUALI LIVE UPDATE BOOTSTRAP — V10.1 safe rollback */
+// FIX #19: safe cached-update activation with persistent rollback protection; never lose the last known-good HTML.
 (function(){
 "use strict";
-var CURRENT="10.1",HTML_KEY="zarouali_live_update_html_v10_1",VER_KEY="zarouali_live_update_version_v10_1";
+var CURRENT="10.1",HTML_KEY="zarouali_live_update_html_v10_1",VER_KEY="zarouali_live_update_version_v10_1",HASH_KEY="zarouali_live_update_hash_v10_1",PREV_HTML_KEY="zarouali_live_update_prev_html_v10_1",PREV_VER_KEY="zarouali_live_update_prev_version_v10_1",PENDING_KEY="zarouali_live_update_pending_v10_1",ATTEMPT_KEY="zarouali_live_update_attempt_v10_1",BOOT_KEY="zarouali_live_update_bootstrap_v2";
 function newer(a,b){var A=String(a||"").split(".").map(Number),B=String(b||"").split(".").map(Number);for(var i=0;i<Math.max(A.length,B.length);i++){var x=Number.isFinite(A[i])?A[i]:0,y=Number.isFinite(B[i])?B[i]:0;if(x!==y)return x>y}return false}
-try{var v=localStorage.getItem(VER_KEY),html=localStorage.getItem(HTML_KEY);if(v&&html&&newer(v,CURRENT)&&html.indexOf("<html")>=0&&html.indexOf("</html>")>=0){if(html.indexOf("__ZAR_LIVE_CACHED_VERSION__=")<0){var m='<script>window.__ZAR_LIVE_CACHED_VERSION__='+JSON.stringify(v)+';<\/script>',p=html.indexOf("<head>");html=p>=0?html.slice(0,p+6)+m+html.slice(p+6):m+html}document.open();document.write(html);document.close()}}catch(e){console.warn("[ZarLiveBootstrap]",e)}
+function valid(html){return typeof html==="string"&&html.indexOf("<html")>=0&&html.indexOf("</html>")>=0}
+try{
+  var pending=localStorage.getItem(PENDING_KEY)==="1";
+  var attempted=localStorage.getItem(ATTEMPT_KEY)==="1";
+  var v=localStorage.getItem(VER_KEY),html=localStorage.getItem(HTML_KEY);
+  var prev=localStorage.getItem(PREV_HTML_KEY),prevVer=localStorage.getItem(PREV_VER_KEY)||CURRENT;
+  var booted=false;try{booted=sessionStorage.getItem(BOOT_KEY)==="1"}catch(e){}
+  /* FIX #19: only roll back when a previous launch already attempted activation and never reached the new document. */
+  if(pending&&attempted){
+    if(valid(prev)){
+      localStorage.setItem(HTML_KEY,prev);
+      localStorage.setItem(VER_KEY,prevVer);
+      localStorage.removeItem(PENDING_KEY);
+      localStorage.removeItem(ATTEMPT_KEY);
+      html=prev;v=prevVer;
+      console.warn("[ZarLiveBootstrap] Update failed to start; rolled back to "+prevVer);
+    }else{
+      localStorage.removeItem(PENDING_KEY);
+      localStorage.removeItem(ATTEMPT_KEY);
+    }
+  }
+  /* FIX #19: arm the attempt before document replacement so a WebView crash still has a persistent rollback marker. */
+  if(!booted&&v&&valid(html)&&newer(v,CURRENT)){
+    if(pending&&!attempted)localStorage.setItem(ATTEMPT_KEY,"1");
+    try{sessionStorage.setItem(BOOT_KEY,"1")}catch(e){}
+    if(html.indexOf("__ZAR_LIVE_CACHED_VERSION__=")<0){var m='<script>window.__ZAR_LIVE_CACHED_VERSION__='+JSON.stringify(v)+';<\/script>',p=html.indexOf("<head>");html=p>=0?html.slice(0,p+6)+m+html.slice(p+6):m+html}
+    var clearBoot='<script>try{sessionStorage.removeItem("'+BOOT_KEY+'")}catch(e){};<\/script>';
+    var bp=html.indexOf("<body");html=bp>=0?html.slice(0,bp)+clearBoot+html.slice(bp):html+clearBoot;
+    document.open();document.write(html);document.close();
+  }
+}catch(e){console.warn("[ZarLiveBootstrap] "+(e&&e.message?e.message:e))}
 })();
 </script>
 <meta charset="UTF-8">
@@ -816,7 +847,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;hei
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 /* FIX #4: removed stray literal \n */
-#screensaver,#screensaver.show{display:none!important;pointer-events:none!important;}
+/* FIX #11: screensaver JS controls visibility; do not force-hide it with !important. */
 
 /* ===== Input visibility fix (single consolidated block) ===== */
 input,select,textarea{color:var(--text-primary)!important;-webkit-text-fill-color:var(--text-primary)!important;opacity:1!important;}
@@ -1193,7 +1224,7 @@ input[type="number"],input[inputmode="numeric"],.mono{font-variant-numeric:tabul
       <div id="loginPassCount" style="min-height:18px;margin-top:5px;text-align:right;color:var(--text-muted);font-size:11px"></div>
     </div>
     <div class="login-error" id="loginError"></div>
-    <button type="button" class="login-recovery" onclick="resetAdminAccess()">Mot de passe Admin oublié ?</button>
+    <!-- FIX #1: Admin recovery by hard-coded secret removed. Use an external/local documented recovery procedure. -->
     <button class="login-btn" onclick="doLogin()" id="loginBtn">
       <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       <span id="loginBtnText">Se connecter</span>
@@ -1399,6 +1430,8 @@ const Security={
   // LOCAL POS profile: intentionally reduced PBKDF2 cost for offline/local use.
   _sessionCache:new Map(),
   _SESSION_MS:8*60*60*1000,
+  // FIX #4: invalidate the authentication session cache immediately after credential changes.
+  invalidateSessionCache(){this._sessionCache.clear();},
   admin:null,
   ready:false,
 
@@ -1567,6 +1600,7 @@ const Security={
       if(oldIter!==this.ITERATIONS){
         try{
           const migrated=await this.makeRecord(password,!!this.admin?.mustChangePassword);
+          this.invalidateSessionCache();
           this.admin=migrated;
           localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(migrated));
           console.info(`[Zarouali Security] Admin record migrated ${oldIter||"legacy"} -> ${this.ITERATIONS} iterations`);
@@ -1577,9 +1611,9 @@ const Security={
     }
     return ok;
   },
-  async setAdminPassword(password){this.admin=await this.makeRecord(password,false);try{localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(this.admin));}catch(e){}},
+  async setAdminPassword(password){this.invalidateSessionCache();this.admin=await this.makeRecord(password,false);try{localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(this.admin));}catch(e){}},
   async verifyCashierPassword(cashier,password){if(!this.ready)await this.init();return this.verify(password,cashier);},
-  async setCashierPassword(cashier,password){const rec=await this.makeRecord(password,false);Object.assign(cashier,rec);delete cashier.password;},
+  async setCashierPassword(cashier,password){this.invalidateSessionCache();const rec=await this.makeRecord(password,false);Object.assign(cashier,rec);delete cashier.password;},
   async verifyCurrentPassword(user,password){if(user?.type==="admin")return this.verifyAdminPassword(password);const cashier=(db.cashiers||[]).find(c=>String(c.id)===String(user?.id));return cashier?this.verifyCashierPassword(cashier,password):false;},
   async setCurrentPassword(user,password){if(user?.type==="admin"){await this.setAdminPassword(password);return;}const cashier=(db.cashiers||[]).find(c=>String(c.id)===String(user?.id));if(cashier){await this.setCashierPassword(cashier,password);saveDB();}}
 };
@@ -1694,6 +1728,15 @@ function rebuildZarIndexes(){
   _zarIndexesReady=true;_zarIndexesDirty=false;
 }
 function ensureIndexes(){if(!_zarIndexesReady||_zarIndexesDirty)rebuildZarIndexes();return _zarIndexes;}
+// FIX #5: all bulk product mutations use this helper; save normalization also invalidates indexes.
+function mutateProducts(mutator){
+  if(typeof mutator!=="function")return;
+  const result=mutator(db.products);
+  _zarIndexesDirty=true;
+  _searchIndexDirty=true;
+  clearZarProductHTMLCache();
+  return result;
+}
 function zarProductAdd(p){
   ensureIndexes();if(!p)return;
   const id=String(p.id??"").trim(),bc=String(p.barcode??"").trim(),old=_zarIndexes.products.get(id);
@@ -1712,7 +1755,9 @@ let currentImage="",scannerInstance=null,scannerRunning=false,scannerLocked=fals
 let currentPage='sale';
 let currentUser=null;
 
-const USER_KEY="zarouali_current_user";
+// FIX #18: preserve the existing current-user localStorage key while allowing a safe global override.
+window.USER_KEY=window.USER_KEY||"zarouali_current_user";
+const USER_KEY=window.USER_KEY;
 
 function t(k){
   if(!k) return "";
@@ -1730,6 +1775,8 @@ function icon(name,size){size=size||18;const I={plus:'<line x1="12" y1="5" x2="1
 function toast(msg,type,duration){type=type||'info';duration=Math.max(800,Number(duration)||2800);const s=document.getElementById("toastStack");if(!s)return;const el=document.createElement("div");el.className="toast "+type;const i=type==='success'?'check':type==='error'?'alert':type==='warn'?'alert':'info';el.innerHTML='<div class="toast-icon">'+icon(i,16)+'</div><div>'+escapeHTML(msg)+'</div>';s.appendChild(el);setTimeout(()=>{el.classList.add("leaving");setTimeout(()=>el.remove(),200);},duration);}
 
 /* ===== ZAROUALI_FIRESTORE_SYNC_V1 ===== */
+// FIX #2: Firestore sync intentionally excludes image Blobs. CatalogImages stores binary data in IndexedDB;
+// Firestore carries only _imageSync metadata. Export/import ZIP remains the portable image backup mechanism.
 let zarCloudReady=false;
 let zarCloudUnsub=null;
 let zarCloudTimer=null;
@@ -1773,7 +1820,9 @@ async function zarInitCloudSync(){
       const cloudStamp=Number(cloud._updatedAtMs||0);
       const localStamp=Number(db?._updatedAt||0);
       if(cloudStamp>localStamp){
-        db={products:Array.isArray(cloud.products)?cloud.products:[],cashiers:Array.isArray(cloud.cashiers)?cloud.cashiers:[],clients:Array.isArray(cloud.clients)?cloud.clients:[],sales:Array.isArray(cloud.sales)?cloud.sales:[],suppliers:Array.isArray(cloud.suppliers)?cloud.suppliers:[],purchases:Array.isArray(cloud.purchases)?cloud.purchases:[],returns:Array.isArray(cloud.returns)?cloud.returns:[],settings:cloud.settings||{},_updatedAt:cloudStamp};
+        const deletedProducts=new Set(Object.keys(cloud._deletedIds?.products||{}));
+        const products=(Array.isArray(cloud.products)?cloud.products:[]).filter(p=>!deletedProducts.has(String(p?.id||"")));
+        db={products,cashiers:Array.isArray(cloud.cashiers)?cloud.cashiers:[],clients:Array.isArray(cloud.clients)?cloud.clients:[],sales:Array.isArray(cloud.sales)?cloud.sales:[],suppliers:Array.isArray(cloud.suppliers)?cloud.suppliers:[],purchases:Array.isArray(cloud.purchases)?cloud.purchases:[],returns:Array.isArray(cloud.returns)?cloud.returns:[],settings:cloud.settings||{},_deletedIds:cloud._deletedIds||{products:{}},_imageSync:cloud._imageSync||{mode:"local-indexeddb",version:1,keys:[]},_updatedAt:cloudStamp};
         clearZarProductHTMLCache();
         rebuildZarIndexes();
         zarDashboardCache=null;
@@ -1803,6 +1852,11 @@ function zarCloudPush(){
       const fb=window.__zarFirebase;
       if(!fb?.fs||!fb?.ref)throw new Error("Firebase non initialisé");
       const payload=typeof structuredClone==="function"?structuredClone(db):JSON.parse(JSON.stringify(db));
+      // FIX #3: deleted product IDs are retained as tombstones so stale devices cannot resurrect them.
+      payload._deletedIds={products:{...(db._deletedIds?.products||{})}};
+      // FIX #2: product image Blobs live in IndexedDB, not Firestore. We sync only their keys/metadata;
+      // binary image content is intentionally not serialized into the Firestore document.
+      payload._imageSync={mode:"local-indexeddb",version:1,keys:Object.keys(db._imageKeys||{})};
       const deviceId=(localStorage.getItem("zarouali_device_id")||(()=>{const x=crypto.randomUUID();localStorage.setItem("zarouali_device_id",x);return x;})());
       payload._deviceId=deviceId;
       payload._updatedAtMs=Number(db._updatedAt||Date.now());
@@ -1812,6 +1866,10 @@ function zarCloudPush(){
         const cloud=snap.exists()?snap.data()||{}:{};
         const cloudMs=Number(cloud._updatedAtMs||0);
         if(cloudMs>Number(db._updatedAt||0))return;
+        const tomb={products:{...(cloud._deletedIds?.products||{}),...(payload._deletedIds?.products||{})}};
+        payload._deletedIds=tomb;
+        const deleted=new Set(Object.keys(tomb.products));
+        payload.products=(payload.products||[]).filter(p=>!deleted.has(String(p?.id||"")));
         tx.set(fb.ref,payload,{merge:true});
       });
       zarCloudLastHash=hash;
@@ -1826,13 +1884,17 @@ function zarCloudPush(){
 }
 
 function _normalizeDBBeforeSave(){
+  // FIX #15: bounded local history prevents unbounded localStorage growth.
+  if(Array.isArray(db.sales)&&db.sales.length>5000)db.sales=db.sales.slice(-5000);
+  if(Array.isArray(db.scanHistory)&&db.scanHistory.length>200)db.scanHistory=db.scanHistory.slice(-200);
   zarCloudRevision++;
   (db.products||[]).forEach(p=>{p.id=String(p.id??"").trim();p.barcode=String(p.barcode??"").trim();});
   (db.cashiers||[]).forEach(c=>{c.id=String(c.id??"").trim();c.name=String(c.name??"").trim();if(!c.role)c.role="cashier";if(c.active===undefined)c.active=true;delete c.password;});
   (db.clients||[]).forEach(c=>{c.id=String(c.id??"").trim();});
   (db.suppliers||[]).forEach(s=>{s.id=String(s.id??"").trim();});
   (db.sales||[]).forEach(s=>{s.id=String(s.id??"").trim();if(s.cashierId!=null)s.cashierId=String(s.cashierId).trim();if(s.clientId!=null)s.clientId=String(s.clientId).trim();(s.items||[]).forEach(it=>{it.id=String(it.id??"").trim();});});
-  db._updatedAt=Date.now();zarDashboardCache=null;_dashSig="";_zarIndexesDirty=true;
+  // FIX #12: any persisted product mutation invalidates all derived product indexes.
+  db._updatedAt=Date.now();zarDashboardCache=null;_dashSig="";_zarIndexesDirty=true;_searchIndexDirty=true;
   try{localStorage.setItem(DB_KEY,JSON.stringify(db));window.__zarLocalStorageWarningShown=false;}catch(e){console.warn("[local save]",e);if(!window.__zarLocalStorageWarningShown){window.__zarLocalStorageWarningShown=true;setTimeout(()=>{try{toast("Stockage local presque plein — exportez une sauvegarde","warn",5200);}catch(_){}} ,0);}}
 }
 function _saveDBNow(){_normalizeDBBeforeSave();try{zarCloudPush();}catch(e){}}
@@ -2409,6 +2471,7 @@ function toggleLoginPass(){
   if(b)b.textContent=show?"🙈":"👁";
 }
 
+// FIX #7: single authoritative login implementation; legacy duplicate wrappers are removed.
 async function doLogin(){
   const u=(document.getElementById("loginUser")?.value||"").trim();
   const p=(document.getElementById("loginPass")?.value||"").trim();
@@ -2503,46 +2566,11 @@ async function doLogin(){
   return false;
 }
 async function resetAdminAccess(){
-  const code=window.prompt("Code de récupération Admin requis :");
-  if(code!=="ZAR-RESET-2026"){
-    const err=document.getElementById("loginError");
-    if(err)err.textContent="Code de récupération incorrect";
-    return false;
-  }
-
-  if(!window.confirm(
-    "Réinitialiser uniquement l’accès Admin vers 111111 ?\n"+
-    "Les produits, ventes, clients et paramètres seront conservés."
-  ))return false;
-
-  try{
-    /*
-      V20.7 FIX:
-      Do NOT use PASSWORD_KEY + reload.
-      Create the PBKDF2 record directly in the current page, write it to
-      AUTH_ADMIN_KEY, update Security.admin, and verify it immediately.
-      This removes the old-version/in-memory/reload race completely.
-    */
-    const fresh=await Security.makeRecord("111111",false);
-    localStorage.setItem(AUTH_ADMIN_KEY,JSON.stringify(fresh));
-
-    const check=await Security.verify("111111",fresh);
-    if(!check)throw new Error("PBKDF2 self-test failed");
-
-    Security.admin=fresh;
-
-    const err=document.getElementById("loginError");
-    if(err)err.textContent="Accès Admin réinitialisé — mot de passe : 111111";
-
-    console.info("[V20.7 AdminRecovery] PBKDF2 reset OK; DB preserved");
-
-    return true;
-  }catch(e){
-    console.error("[V20.7 AdminRecovery]",e);
-    const err=document.getElementById("loginError");
-    if(err)err.textContent="Échec de la réinitialisation";
-    return false;
-  }
+  // FIX #1: no recovery secret is embedded in the client.
+  // Intentionally disabled: recovery must be performed by an operator-controlled
+  // procedure outside the application bundle. Existing POS data is untouched.
+  try{toast("Récupération Admin désactivée pour des raisons de sécurité","warn");}catch(e){}
+  return false;
 }
 
 function loginAs(user){
@@ -2614,6 +2642,7 @@ function updateUserLabels(){
   if(ml)ml.textContent=currentUser?(currentUser.type==="admin"?"Admin":"Caissier")+": "+currentUser.name:"Terminal de caisse";
 }
 
+// FIX #11: screensaver visibility is controlled by JS; no global CSS !important rule may suppress it.
 function resetInactivityTimer(){inactivityTimer=null;const ss=document.getElementById("screensaver");if(ss)ss.classList.remove("show");}
 function wakeFromScreensaver(){
   const ss=document.getElementById("screensaver");
@@ -2645,9 +2674,7 @@ function zarProductCardHTML(p){
   let imgHtml='<div class="product-placeholder">'+icon('camera',48)+'</div>';
   if(image){
     const src=normalizeProductImage(image);
-    const ph='<div class="product-placeholder">'+icon('camera',48)+'</div>';
-    const phEsc=ph.replace(/"/g,'&quot;');
-    imgHtml='<img width="160" height="160" src="'+escapeAttr(src)+'" alt="'+escapeHTML(p?.name||'')+'" loading="lazy" decoding="async" onerror="this.outerHTML=\''+phEsc+'\'">';
+    imgHtml='<img width="160" height="160" src="'+escapeAttr(src)+'" alt="'+escapeHTML(p?.name||'')+'" loading="lazy" decoding="async" data-zar-image-fallback="1">';
   }
   const isLow=Number(p?.stock||0)<=Number(p?.minStock||0);
   const isOut=Number(p?.stock||0)<=0;
@@ -2664,6 +2691,13 @@ function renderProducts(){
   const list=ensureSearchIndex().filter(x=>(activeCategory==="Tous"||x.p.category===activeCategory)&&(!q||x.name.includes(q)||x.barcode.includes(q))).map(x=>x.p);
   if(!list.length){box.innerHTML='<div class="empty-state">'+icon('package',72)+'<div class="empty-state-title">'+t('noProducts')+'</div><div class="empty-state-text">Ajoutez des produits pour commencer</div></div>';return;}
   box.innerHTML=list.map(zarProductCardHTML).join('');
+  // FIX #6: safe image fallback without inline HTML event handlers.
+  box.querySelectorAll('img[data-zar-image-fallback="1"]').forEach(img=>{
+    img.addEventListener('error',()=>{
+      const ph=document.createElement('div');ph.className='product-placeholder';ph.innerHTML=icon('camera',48);
+      img.replaceWith(ph);
+    },{once:true});
+  });
 }
 function addToCart(id){
   const key=String(id??"").trim();
@@ -2743,7 +2777,10 @@ function updateCartTotals(){
   const s=document.getElementById("subtotal");if(s)s.textContent=money(getSubtotal());
   const tt=document.getElementById("total");if(tt)tt.textContent=money(getTotal());
   calculateChange();updateClientBadge();
-  if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:'update',payload:{items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()}});}catch(e){}}
+  // FIX #16: BroadcastChannel + localStorage fallback for older Safari/WebViews.
+  const payload={items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),total:getTotal()};
+  if(CustomerDisplay.channel){try{CustomerDisplay.channel.postMessage({type:"update",payload});}catch(e){}}
+  try{localStorage.setItem("zarouali_customer_display_payload",JSON.stringify(payload));}catch(e){}
 }
 function renderCart(){
   const box=document.getElementById("cartItems");if(!box)return;
@@ -2785,31 +2822,39 @@ function setPayment(m){paymentMethod=m;document.querySelectorAll(".payment-btn")
 function setCashAmount(a){const i=document.getElementById("cashReceived");if(i){i.value=a;calculateChange();}}
 function calculateChange(){const total=getTotal();const rec=parseFloat(document.getElementById("cashReceived")?.value||0);const el=document.getElementById("change");if(el)el.textContent=money(Math.max(0,rec-total));}
 
-function completeSale(){
-  if(!cart.length){toast(t('cartEmpty'),'warn');return;}
+async function processSale({payments=null,creditAmount=null,clientId=null}={}){
+  // FIX #9: one authoritative sale transaction path.
+  if(!cart.length){toast(t('cartEmpty'),'warn');return false;}
   const total=getTotal();
-  if(total<=0){toast('Total invalide','error');return;}
-  const clientId=document.getElementById("saleClient")?.value||null;
+  if(total<=0){toast('Total invalide','error');return false;}
+  clientId=clientId||document.getElementById("saleClient")?.value||null;
   const cashierId=document.getElementById("saleCashier")?.value||null;
   const discount=Number(document.getElementById("discount")?.value||0);
-  for(const it of cart){
-    const key=String(it.id);
-    const p=zarProduct(key);
-    if(!p){toast('Produit introuvable','error');return;}
-    if(p.stock<it.qty){toast('Stock insuffisant '+it.name,'error');return;}
+  for(const it of cart){const p=zarProduct(it.id);if(!p){toast('Produit introuvable','error');return false;}if(Number(p.stock)<Number(it.qty)){toast('Stock insuffisant '+it.name,'error');return false;}}
+  const normalized=Array.isArray(payments)&&payments.length
+    ?payments.map(p=>({method:String(p.method||''),amount:Math.max(0,Number(p.amount)||0)})).filter(p=>p.amount>0)
+    :[{method:String(paymentMethod||'Espèces'),amount:total}];
+  const paid=normalized.reduce((sum,p)=>sum+p.amount,0);
+  if(Math.abs(paid-total)>0.01){toast('Le total des paiements doit égaler '+money(total),'error');return false;}
+  const credit=creditAmount==null?normalized.filter(p=>p.method==='Crédit').reduce((s,p)=>s+p.amount,0):Math.max(0,Number(creditAmount)||0);
+  const client=clientId?zarClient(clientId):null;
+  if(credit>0&&!client){toast('Sélectionnez un client pour une vente à crédit','warn');return false;}
+  const sale={id:"T"+Date.now().toString(36).toUpperCase(),date:new Date().toISOString(),cashierId:cashierId?String(cashierId):null,clientId:clientId?String(clientId):null,items:cart.map(i=>({...i,id:String(i.id)})),subtotal:getSubtotal(),discount,total,payment:normalized.length>1?'Mixte':normalized[0].method,payments:normalized,creditAmount:credit,cost:getTotalCost()};
+  for(const it of cart){const p=zarProduct(it.id);if(p)p.stock-=it.qty;}
+  if(client){client.totalPurchases=(client.totalPurchases||0)+total;
+    // FIX #10: only the actual credit component changes customer debt.
+    if(credit>0)client.debt=(client.debt||0)+credit;
+    const earned=Loyalty.award(clientId,total);if(earned>0)toast('+'+earned+' points','success');
   }
-  // FIX #12: preserve split payment breakdown if provided
-  const payments = window._zarSplitPayments || null;
-  window._zarSplitPayments = null;
-  const sale={id:"T"+Date.now().toString(36).toUpperCase(),date:new Date().toISOString(),cashierId:cashierId?String(cashierId):null,clientId:clientId?String(clientId):null,items:cart.map(i=>({...i,id:String(i.id)})),subtotal:getSubtotal(),discount,total,payment:paymentMethod,payments,cost:getTotalCost()};
-  for(const it of cart){const key=String(it.id);const p=zarProduct(key);if(p)p.stock-=it.qty;}
-  if(clientId){const c=db.clients.find(x=>String(x.id)===String(clientId));if(c){c.totalPurchases=(c.totalPurchases||0)+total;if(paymentMethod==="Crédit")c.debt=(c.debt||0)+total;const earned=Loyalty.award(clientId,total);if(earned>0)toast('+'+earned+' points','success');}}
   db.sales.push(sale);window.__zarLastSale=sale;saveDB();
   AuditLog.log('sale.create','Ticket '+sale.id,money(sale.total));
-  cart=[];renderAll();
-  toast(t('saleRecorded')+' — '+sale.id,'success');
-  smartPrint(sale);
-  resetInactivityTimer();
+  cart=[];renderAll();toast(t('saleRecorded')+' — '+sale.id,'success');smartPrint(sale);resetInactivityTimer();
+  return true;
+}
+function completeSale(){
+  const payments=Array.isArray(window._zarSplitPayments)?window._zarSplitPayments.slice():null;
+  window._zarSplitPayments=null;
+  return processSale({payments});
 }
 const ESCPOS={
   init(){return Uint8Array.from([0x1b,0x40]);},
@@ -2973,6 +3018,7 @@ async function smartPrint(sale){
   printReceipt(sale);
 }
 
+// FIX #17: retain the print area until afterprint, with a WebView timeout fallback.
 function printReceipt(sale){
   const store=getStoreInfo();
   const cashier=zarCashier(sale.cashierId);
@@ -2998,10 +3044,12 @@ function printReceipt(sale){
   };
 
   window.addEventListener("afterprint",cleanupPrintArea,{once:true});
-
-  setTimeout(()=>{
-    try{window.print();}catch(e){cleanupPrintArea();}
-  },500);
+  const printFallback=setTimeout(cleanupPrintArea,30000);
+  const originalCleanup=cleanupPrintArea;
+  const safeCleanup=()=>{clearTimeout(printFallback);originalCleanup();};
+  window.removeEventListener("afterprint",cleanupPrintArea);
+  window.addEventListener("afterprint",safeCleanup,{once:true});
+  setTimeout(()=>{try{window.print();}catch(e){safeCleanup();}},500);
 }
 
 function openRepaymentModal(id){const c=zarClient(id);if(!c){toast('Client introuvable','error');return;}document.getElementById("repaymentClientId").value=String(c.id);document.getElementById("repaymentClientName").textContent=c.name;document.getElementById("repaymentCurrentDebt").textContent=money(c.debt||0);document.getElementById("repaymentAmount").value="";document.getElementById("repaymentModal").classList.add("show");}
@@ -3086,7 +3134,7 @@ async function saveProduct(){
       max++;
       newId="P"+String(max+1).padStart(4,"0");
     }
-    db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup,updatedAt:Date.now()});
+    mutateProducts(()=>db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup,updatedAt:Date.now()}));
     AuditLog.log("product.create",name,money(price));
   }
   const savedProduct = zarProduct(id) || db.products[db.products.length-1];
@@ -3111,7 +3159,8 @@ function deleteProduct(id){
   if(!confirm("Supprimer ce produit ?"))return;
   const key=String(id).trim();
   const p=zarProduct(key);
-  db.products=db.products.filter(x=>String(x.id)!==key);
+  db._deletedIds=db._deletedIds||{products:{}};db._deletedIds.products=db._deletedIds.products||{};db._deletedIds.products[key]=Date.now();
+  mutateProducts(()=>{db.products=db.products.filter(x=>String(x.id)!==key);});
   zarProductRemove(key);_searchIndexDirty=true;clearZarProductHTMLCache();
   saveDB();
   renderAll({only:"productsAdmin"});
@@ -3306,7 +3355,7 @@ function onSearchInput(){
     if(v.length>=4){const p=zarProductByBarcode(v);if(p){addToCart(p.id);playBeep();si.value="";renderProducts();toast('✓ '+p.name+' ajouté','success');return;}}
     if(/^\d{8,}$/.test(v)){const pp=zarProductByBarcode(v);if(!pp){playErrorBeep();openProductModal(null,v);si.value="";toast('Code inconnu: '+v,'warn');return;}}
     renderProducts();
-  },120);
+  },150);
 }
 function attachSearchListener(){
   const si=document.getElementById("search");if(!si)return;
@@ -4405,7 +4454,7 @@ const UniversalImporter = {
         finalProducts=oldProducts;
       }
 
-      db.products=finalProducts.map(p=>{
+      mutateProducts(()=>{db.products=finalProducts.map(p=>{
         const clean={...p};
         delete clean._embeddedImage;
         delete clean._embeddedImageName;
@@ -4420,7 +4469,7 @@ const UniversalImporter = {
         stock:this.number(p.stock),
         minStock:this.number(clean.minStock,5)
         };
-      });
+      });});
 
       let imageCount=0;
       for(const row of rows){
@@ -4603,8 +4652,18 @@ async function importBackup(e){
   r.readAsText(f);
 }
 function downloadDailyReport(){const today=localDateISO();const sales=db.sales.filter(s=>s.date.startsWith(today));let r="Rapport du "+today+"\n"+"=".repeat(40)+"\n";const ca=sales.reduce((s,x)=>s+x.total,0);const cost=sales.reduce((s,x)=>s+(x.cost||0),0);r+="CA: "+money(ca)+"\nBénéfice: "+money(ca-cost)+"\nTickets: "+sales.length+"\n\n";for(const s of sales){r+="Ticket: "+s.id+" | "+new Date(s.date).toLocaleTimeString('fr-FR')+" | "+s.payment+" | "+money(s.total)+"\n";}downloadFile("rapport_"+today+".txt",r,"text/plain");toast('Rapport téléchargé','success');}
-function resetDatabase(){if(!confirm('Réinitialiser TOUT ?'))return;if(!confirm('Confirmer ?'))return;localStorage.removeItem(DB_KEY);createDefaultDB();clearZarProductHTMLCache();saveDB();renderAll();toast('Base réinitialisée','success');}
-function clearAllProducts(){if(!confirm('Supprimer tous les produits ?'))return;db.products=[];clearZarProductHTMLCache();saveDB();renderAll();toast('Produits supprimés','success');}
+function resetDatabase(){
+  // FIX #12: invalidate product indexes and retain deletion tombstones before reset.
+  if(!confirm('Réinitialiser TOUT ?'))return;if(!confirm('Confirmer ?'))return;
+  const deleted={...(db._deletedIds?.products||{})};(db.products||[]).forEach(p=>{if(p?.id)deleted[String(p.id)]=Date.now();});
+  localStorage.removeItem(DB_KEY);createDefaultDB();db._deletedIds={products:deleted};_zarIndexesDirty=true;_searchIndexDirty=true;clearZarProductHTMLCache();saveDB();renderAll();toast('Base réinitialisée','success');
+}
+function clearAllProducts(){
+  // FIX #3/#12: tombstone every deleted product and invalidate indexes.
+  if(!confirm('Supprimer tous les produits ?'))return;
+  const deleted={...(db._deletedIds?.products||{})};(db.products||[]).forEach(p=>{if(p?.id)deleted[String(p.id)]=Date.now();});
+  mutateProducts(()=>{db.products=[];});db._deletedIds={products:deleted};clearZarProductHTMLCache();saveDB();renderAll();toast('Produits supprimés','success');
+}
 
 function startDigitalClock(){const u=()=>{const n=new Date();const h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');const el=document.getElementById('digitalClock');if(el)el.textContent=h+':'+m+':'+s;};u();setInterval(u,1000);}
 
@@ -4831,9 +4890,11 @@ const CustomerDisplay={
   win:null,
   channel:null,
   init(){
-    try{
-      this.channel=new BroadcastChannel("zarouali_customer_display");
-    }catch(e){}
+    try{this.channel=new BroadcastChannel("zarouali_customer_display");}catch(e){this.channel=null;}
+    window.addEventListener("storage",e=>{
+      if(e.key!=="zarouali_customer_display_payload"||!e.newValue)return;
+      try{const d=JSON.parse(e.newValue);if(this.win&&!this.win.closed&&typeof this.win.__zarCustomerRender==="function")this.win.__zarCustomerRender(d);}catch(_){}
+    });
   },
   open(){
     if(this.win&&!this.win.closed){
@@ -4881,10 +4942,10 @@ body{font-family:Inter,sans-serif;background:linear-gradient(135deg,#0f172a,#1e2
 <div class="t" id="tot">0.00 DH</div>
 </div>
 <script>
-const ch=new BroadcastChannel("zarouali_customer_display");
-ch.onmessage=e=>{
-  if(e.data&&e.data.type==="update") r(e.data.payload);
-};
+let ch=null;try{ch=new BroadcastChannel("zarouali_customer_display");if(ch)ch.onmessage=e=>{if(e.data&&e.data.type==="update")r(e.data.payload);};}catch(e){}
+window.__zarCustomerRender=r;
+window.addEventListener("storage",e=>{if(e.key==="zarouali_customer_display_payload"&&e.newValue){try{r(JSON.parse(e.newValue));}catch(_){}}});
+try{const initial=localStorage.getItem("zarouali_customer_display_payload");if(initial)r(JSON.parse(initial));}catch(e){}
 function r(d){
   const i=document.getElementById("it");
   const t=document.getElementById("tot");
@@ -4941,70 +5002,7 @@ const PriceLists={enabled:true,discounts:{standard:0,wholesale:-10,vip:-20,resel
 
 const Variants={groups:{},refreshGroups(){const g={};(db.products||[]).forEach(p=>{if(p.variantGroup){if(!g[p.variantGroup])g[p.variantGroup]=[];g[p.variantGroup].push(p);}});this.groups=g;},open(name){this.refreshGroups();const variants=this.groups[name]||[];document.getElementById('variantGroupName').textContent=name;const list=document.getElementById('variantsList');if(!variants.length)list.innerHTML='<div style="padding:40px;text-align:center;color:var(--text-muted)">Aucune variante</div>';else list.innerHTML=variants.map(p=>{const img=p.image?normalizeProductImage(p.image):'';return'<div class="variant-card"><div class="variant-thumb">'+(img?'<img src="'+escapeAttr(img)+'">':icon('camera',24))+'</div><div class="variant-info"><div class="variant-name">'+escapeHTML(p.name)+'</div><div class="variant-meta">'+(p.barcode||'—')+'</div><div class="variant-stock" style="font-size:11px;color:var(--text-muted);margin-top:2px">Stock: '+p.stock+'</div></div><div style="text-align:end"><div class="variant-price">'+money(p.price)+'</div><button class="btn btn-secondary btn-sm" onclick="closeModal(\'variantsModal\');editProduct(\''+escapeAttr(String(p.id))+'\')" style="margin-top:6px">Modifier</button></div></div>';}).join('');document.getElementById('variantsModal').classList.add('show');}};
 
-async function loadImportedCatalog(file){
-  if(!file) return false;
-  if(typeof JSZip==="undefined") throw new Error("JSZip not loaded");
-  if(typeof initSqlJs==="undefined") throw new Error("sql.js not loaded");
-
-  const zip=await JSZip.loadAsync(file);
-  const dbFile=zip.file("catalog.db");
-  if(!dbFile) throw new Error("catalog.db introuvable dans le ZIP");
-
-  const bytes=await dbFile.async("uint8array");
-  const SQL=await initSqlJs({locateFile:()=> "./vendor/sql-wasm.wasm"});
-  const catalogDB=new SQL.Database(bytes);
-
-  const result=catalogDB.exec("SELECT id,name,category,barcode,price,purchasePrice,stock,minStock,image FROM products");
-  if(!result.length) throw new Error("Table products vide ou absente");
-
-  const cols=result[0].columns;
-  const rows=result[0].values;
-
-  clearZarProductHTMLCache();
-  db.products=rows.map(r=>{
-    const p={};
-    cols.forEach((c,i)=>p[c]=r[i]??"");
-    p.id=String(p.id??"").trim();
-    p.barcode=String(p.barcode??"").trim();
-    p.name=String(p.name??"").trim();
-    p.category=String(p.category??"Autre").trim();
-    p.image=String(p.image??"");
-    p.price=Number(p.price)||0;
-    p.purchasePrice=Number(p.purchasePrice)||p.price*0.65;
-    p.stock=Number(p.stock)||0;
-    p.minStock=Number(p.minStock)||5;
-    p.expirationDate="";
-    p.saleType="unit";
-    p.variantGroup="";
-    return p;
-  });
-
-  let imageCount=0;
-  for(const entry of Object.values(zip.files)){
-    if(entry.dir)continue;
-    const path=String(entry.name||"").replace(/\\/g,"/");
-    if(!/^images\//i.test(path))continue;
-    try{
-      const blob=await entry.async("blob");
-      const key=CatalogImages.key(path);
-      await CatalogImages.put(key,blob);
-      if(CatalogImages.urls.has(key))URL.revokeObjectURL(CatalogImages.urls.get(key));
-      CatalogImages.urls.set(key,URL.createObjectURL(blob));
-      imageCount++;
-    }catch(err){console.warn("Image import failed",path,err);}
-  }
-
-  mergeLocalProductImages(db);
-  clearImageCache();
-  saveDB();
-  renderAll();
-  updateStorePreview();
-
-  localStorage.setItem("zarouali_catalog_imported","1");
-  localStorage.setItem("zarouali_catalog_count",String(db.products.length));
-  console.log("[Catalog] "+db.products.length+" produits, "+imageCount+" images importées");
-  return true;
-}
+// FIX #8: legacy loadImportedCatalog removed; UniversalImporter/importCatalogFile is the single catalog import path.
 
 async function init(){
   currentLanguage=localStorage.getItem(LANG_KEY)||'fr';
@@ -5087,24 +5085,26 @@ async function init(){
   await StoreLogo.load().catch(e=>console.warn("StoreLogo.load failed",e));
   clearImageCache();
 
-  // إصلاح تلقائي للمفاتيح القديمة بأحرف كبيرة
+  // FIX #14: normalize image keys once; retain the existing CatalogImages storage.
   try {
-    const fixResult = await CatalogImages.normalizeKeysCase();
-    if(fixResult.fixed > 0){
-      console.log(`[CatalogImages] ${fixResult.fixed} clé(s) normalisée(s)`);
-      await CatalogImages.load();
-      clearImageCache();
-      if(typeof renderAll === "function") renderAll();
+    const flagKey="zarouali_catalog_images_normalized_v1";
+    if(localStorage.getItem(flagKey)!=="1"){
+      const fixResult=await CatalogImages.normalizeKeysCase();
+      localStorage.setItem(flagKey,"1");
+      if(fixResult.fixed>0){
+        console.log(`[CatalogImages] ${fixResult.fixed} clé(s) normalisée(s)`);
+        await CatalogImages.load();clearImageCache();
+        if(typeof renderAll==="function")renderAll();
+      }
     }
-  } catch(e){
-    console.warn("[CatalogImages] normalizeKeysCase failed", e);
-  }
+  }catch(e){console.warn("[CatalogImages] normalizeKeysCase failed",e);}
 
   try{
     const su=localStorage.getItem(USER_KEY);
     if(su){const u=JSON.parse(su);if(u&&u.name){const lu=document.getElementById("loginUser");if(lu)lu.value=u.name;}}
   }catch(e){}
 
+  db._imageSync=db._imageSync||{mode:"local-indexeddb",version:1,keys:[]};
   saveDB();renderAll();
   updateStorePreview();
 
@@ -5374,152 +5374,14 @@ document.addEventListener("DOMContentLoaded",init);
      4) MIXED PAYMENT + CREDIT — authoritative transaction fix
      --------------------------------------------------------- */
   function installCompleteSale(){
-    if(typeof window.completeSale!=='function'||window.completeSale.__zar17) return;
-    const original=window.completeSale;
-
-    async function completeSaleV17(){
-      if(saleBusy){
-        try{toast('Vente déjà en cours','warn');}catch(e){}
-        return;
-      }
-
-      const total=typeof getTotal==='function'?num(getTotal()):0;
-      if(total<=0){
-        return original();
-      }
-
-      const clientEl=document.getElementById('saleClient');
-      const clientId=str(clientEl&&clientEl.value)||null;
-      const client=clientId&&Array.isArray(db.clients)
-        ?db.clients.find(c=>str(c.id)===clientId):null;
-
-      const rawPayments=Array.isArray(window._zarSplitPayments)
-        ?window._zarSplitPayments.map(p=>({
-            method:str(p.method),
-            amount:Math.max(0,num(p.amount))
-          })).filter(p=>p.amount>0)
-        :null;
-
-      let payments=rawPayments;
-      if(!payments||!payments.length){
-        const method=str(paymentMethod||'Espèces');
-        payments=[{method,amount:total}];
-      }
-
-      const paid=payments.reduce((s,p)=>s+p.amount,0);
-      const delta=Math.abs(paid-total);
-      if(delta>0.01){
-        try{toast('Le total des paiements doit égaler '+moneySafe(total),'error');}catch(e){}
-        return;
-      }
-
-      const creditAmount=payments
-        .filter(p=>p.method==='Crédit')
-        .reduce((s,p)=>s+p.amount,0);
-
-      if(creditAmount>0&&!clientId){
-        try{toast('Sélectionnez un client pour une vente à crédit','warn');}catch(e){}
-        return;
-      }
-
-      if(creditAmount>0&&!client){
-        try{toast('Client introuvable','error');}catch(e){}
-        return;
-      }
-
-      const isMixed=payments.length>1;
-      const originalPayment=paymentMethod;
-      const originalSplit=window._zarSplitPayments;
-      const salesBefore=Array.isArray(db.sales)?db.sales.length:0;
-      const debtBefore=client?num(client.debt):0;
-
-      saleBusy=true;
-      window.__zar17DeferSave=true;
-      try{
-        /* The legacy completeSale already knows how to create the sale.
-           For a credit-containing mixed payment, temporarily expose
-           "Crédit" so the legacy path updates the customer debt. We then
-           correct it to the exact credit portion below. */
-        if(creditAmount>0){
-          paymentMethod='Crédit';
-        }else if(isMixed){
-          paymentMethod=payments[0].method;
-        }
-
-        window._zarSplitPayments=payments;
-
-        await original();
-
-        const created=Array.isArray(db.sales)&&db.sales.length>salesBefore
-          ?db.sales[db.sales.length-1]:null;
-
-        if(!created) return;
-
-        created.payments=payments.map(p=>({method:p.method,amount:p.amount}));
-        created.creditAmount=creditAmount;
-        created.payment=isMixed?'Mixte':payments[0].method;
-        created.paymentMethod=created.payment;
-
-        /* Legacy code may have added the whole sale total to debt when
-           temporary paymentMethod was Crédit. Replace that with the exact
-           credit component. */
-        if(client){
-          const expectedDebt=debtBefore+creditAmount;
-          client.debt=expectedDebt;
-        }
-
-        normalizeMainDB();
-        mirrorModulesToDB();
-        window.__zar17DeferSave=false;
-        if(typeof saveDB==='function')saveDB();
-
-      }catch(e){
-        console.error(TAG+' completeSale',e);
-        try{toast('Erreur lors de l’enregistrement de la vente','error');}catch(_e){}
-      }finally{
-        window.__zar17DeferSave=false;
-        paymentMethod=originalPayment;
-        window._zarSplitPayments=null;
-        saleBusy=false;
-      }
-    }
-
-    completeSaleV17.__zar17=true;
-    completeSaleV17.__original=original;
-    window.completeSale=completeSaleV17;
+    // FIX #9/#10: legacy completeSale wrapper disabled; processSale() is authoritative.
   }
 
   /* ---------------------------------------------------------
      5) SPLIT PAYMENT HARDENING
      --------------------------------------------------------- */
   function installSplitPayment(){
-    if(typeof SplitPayment==='undefined'||SplitPayment.__zar17) return;
-    const originalConfirm=SplitPayment.confirm;
-    SplitPayment.confirm=function(){
-      try{
-        const total=num(typeof getTotal==='function'?getTotal():0);
-        const rows=(Array.isArray(this.rows)?this.rows:[]).map(r=>({
-          method:str(r.method),amount:Math.max(0,num(r.amount))
-        })).filter(r=>r.amount>0);
-        const allocated=rows.reduce((s,r)=>s+r.amount,0);
-        if(Math.abs(allocated-total)>0.01){
-          toast('Répartition incorrecte · reste '+moneySafe(Math.abs(total-allocated)),'error');
-          return;
-        }
-        const credit=rows.filter(r=>r.method==='Crédit').reduce((s,r)=>s+r.amount,0);
-        if(credit>0){
-          const cid=str(document.getElementById('saleClient')?.value);
-          if(!cid){
-            toast('Sélectionnez un client pour la partie Crédit','warn');
-            return;
-          }
-        }
-      }catch(e){
-        console.warn(TAG+' split validation',e);
-      }
-      return originalConfirm.call(this);
-    };
-    SplitPayment.__zar17=true;
+    // FIX #9/#10: split payment validation is performed by processSale().
   }
 
   /* ---------------------------------------------------------
@@ -5630,89 +5492,7 @@ document.addEventListener("DOMContentLoaded",init);
 
 
 
-<!-- ZAROUALI_RUNTIME_FIX_V16 -->
-<script>
-(function(){
-"use strict";
-
-const USER_KEY_FIX="zarouali_current_user";
-let zarTimer=null;
-const z=id=>document.getElementById(id);
-
-function wakeZ(){
-  clearTimeout(zarTimer);
-  zarTimer=null;
-
-  const s=z("screensaver");
-
-  if(s){
-    s.classList.remove("show");
-    s.hidden=true;
-    s.style.display="none";
-  }
-}
-
-function installZ(){
-  const original=window.doLogin;
-
-  window.doLogin=function(){
-    try{
-      if(typeof original==="function"){
-        const result=original();
-        return result;
-      }
-    }catch(e){
-      console.warn("[login]",e);
-      const err=z("loginError");
-      if(err)err.textContent="Erreur d'authentification";
-    }
-
-    return false;
-  };
-
-  document.addEventListener(
-    "visibilitychange",
-    ()=>{
-      if(document.hidden)clearTimeout(zarTimer);
-      else{
-        wakeZ();
-        try{renderAll()}catch(e){}
-      }
-    }
-  );
-
-  window.addEventListener("pageshow",wakeZ);
-  window.addEventListener("focus",wakeZ);
-
-  document.addEventListener(
-    "pointerdown",
-    ()=>{
-      const s=z("screensaver");
-      if(s?.classList.contains("show"))wakeZ();
-    },
-    true
-  );
-
-  document.addEventListener(
-    "touchstart",
-    ()=>{
-      const s=z("screensaver");
-      if(s?.classList.contains("show"))wakeZ();
-    },
-    {passive:true,capture:true}
-  );
-}
-
-if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded",installZ,{once:true});
-}else{
-  installZ();
-}
-
-window.__zaroualiRuntimeFix={wakeZ};
-})();
-</script>
-
+<!-- FIX #7: duplicate V16 login wrapper removed; base doLogin is authoritative. -->
 <!-- ZAROUALI V18 — COMPREHENSIVE RUNTIME -->
 <script>
 (function(){
@@ -5890,147 +5670,61 @@ console.info("[Zarouali V20.7] authoritative Admin PBKDF2 login + direct recover
 
 
 
+<!-- FIX #7: duplicate V21.2 login path removed; base doLogin is authoritative. -->
 <script>
-/* ZAROUALI V21.2 — SINGLE FAST AUTH PATH + RELOGIN FIX */
-(function(){
-  "use strict";
-  let busy=false;
-
-  async function fastLogin(){
-    if(busy)return false;
-
-    const u=String(document.getElementById("loginUser")?.value||"").trim();
-    const p=String(document.getElementById("loginPass")?.value||"").trim();
-    const err=document.getElementById("loginError");
-    const btn=document.getElementById("loginBtn");
-    const show=m=>{if(err)err.textContent=String(m||"");};
-
-    show("");
-    if(!u||!p){show("Identifiants requis");return false;}
-
-    busy=true;
-    if(btn)btn.disabled=true;
-
-    try{
-      await Security.init();
-
-      if(u.toLowerCase()==="admin"){
-        const ok=await Security.verifyAdminPassword(p);
-        if(!ok){
-          show("Mot de passe Admin incorrect");
-          return false;
-        }
-
-        const user={
-          type:"admin",
-          name:"admin",
-          role:"admin",
-          mustChangePassword:!!Security.admin?.mustChangePassword
-        };
-
-        isLoggedIn=true;
-        currentUser=user;
-        try{localStorage.setItem(USER_KEY,JSON.stringify(user));}catch(e){}
-
-        const screen=document.getElementById("loginScreen");
-        if(screen){
-          screen.classList.add("hidden");
-          screen.setAttribute("aria-hidden","true");
-        }
-
-        const pe=document.getElementById("loginPass");
-        if(pe)pe.value="";
-
-        updateUserLabels();
-        resetInactivityTimer();
-
-        requestAnimationFrame(()=>{
-          try{renderAll();}catch(e){console.error("[V21 render]",e);}
-          try{toast(t("welcome")+" admin !","success");}catch(e){}
-        });
-
-        return true;
-      }
-
-      for(const c of (db.cashiers||[])){
-        if(c.active===false)continue;
-
-        const name=String(c.name||"").toLowerCase();
-        const id=String(c.id||"");
-
-        if((name===u.toLowerCase()||id===u) &&
-           await Security.verifyCashierPassword(c,p)){
-          return loginAs({
-            type:"cashier",
-            id:String(c.id),
-            name:c.name,
-            role:c.role||"cashier",
-            mustChangePassword:!!c.mustChangePassword
-          });
-        }
-      }
-
-      show(t("loginError"));
-      return false;
-
-    }catch(e){
-      console.error("[V21 auth]",e);
-      show("Erreur authentification : "+String(e?.message||e));
-      return false;
-    }finally{
-      busy=false;
-      if(btn)btn.disabled=false;
-    }
-  }
-
-  window.doLogin=fastLogin;
-  window.zaroualiDirectLogin=fastLogin;
-  window.__ZAROUALI_V21_REBIND_LOGIN__=function(){
-    const b=document.getElementById("loginBtn");
-    if(b){b.disabled=false;b.onclick=fastLogin;}
-    const p=document.getElementById("loginPass");
-    if(p)p.disabled=false;
-  };
-
-  function bind(){
-    const b=document.getElementById("loginBtn");
-    if(b){
-      b.removeAttribute("onclick");
-      b.onclick=fastLogin;
-    }
-
-    const p=document.getElementById("loginPass");
-    if(p){
-      p.onkeydown=function(e){
-        if(e.key==="Enter"){
-          e.preventDefault();
-          fastLogin();
-        }
-      };
-    }
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",bind,{once:true});
-  }else{
-    bind();
-  }
-
-  console.info("[ZAROUALI V21.2] single auth path + relogin ready");
-})();
-</script>
-
-<script>
-/* Zarouali POS Live Update engine — V10.1.2 */
+/* Zarouali POS Live Update engine — V10.1.3 SAFE */
 (function(){
 "use strict";
-var CURRENT="10.1",CFG={manifest:"https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/updates/update-v10.1.json",htmlKey:"zarouali_live_update_html_v10_1",verKey:"zarouali_live_update_version_v10_1",hashKey:"zarouali_live_update_hash_v10_1"};
+var CURRENT="10.1",CFG={manifest:"https://raw.githubusercontent.com/aminezar97/Caisse-zar/main/updates/update-v10.1.json",htmlKey:"zarouali_live_update_html_v10_1",verKey:"zarouali_live_update_version_v10_1",hashKey:"zarouali_live_update_hash_v10_1",prevHtmlKey:"zarouali_live_update_prev_html_v10_1",prevVerKey:"zarouali_live_update_prev_version_v10_1",pendingKey:"zarouali_live_update_pending_v10_1",attemptKey:"zarouali_live_update_attempt_v10_1"};
 function newer(a,b){var A=String(a||"").split(".").map(Number),B=String(b||"").split(".").map(Number);for(var i=0;i<Math.max(A.length,B.length);i++){var x=Number.isFinite(A[i])?A[i]:0,y=Number.isFinite(B[i])?B[i]:0;if(x!==y)return x>y}return false}
 async function digest(t){if(!window.crypto||!crypto.subtle)throw Error("SHA-256 indisponible");var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")}
-function note(s){try{if(typeof showToast==="function")showToast(s);else alert(s)}catch(e){alert(s)}}
-async function check(manual){try{var r=await fetch(CFG.manifest,{cache:"no-store"});if(!r.ok)throw Error("Manifest HTTP "+r.status);var m=await r.json();if(!m||!m.version||!m.url||!m.sha256)throw Error("Manifest invalide");if(!newer(m.version,CURRENT)){if(manual)note("Aucune mise à jour disponible.");return false}var h=await fetch(m.url,{cache:"no-store"});if(!h.ok)throw Error("Update HTTP "+h.status);var html=await h.text();if(html.indexOf("<html")<0||html.indexOf("</html>")<0)throw Error("Fichier HTML invalide");var actual=await digest(html);if(actual.toLowerCase()!==String(m.sha256).toLowerCase())throw Error("SHA-256 mismatch — mise à jour refusée");if(html.indexOf("__ZAR_LIVE_CACHED_VERSION__=")<0){var mark='<script>window.__ZAR_LIVE_CACHED_VERSION__='+JSON.stringify(m.version)+';<\/script>',p=html.indexOf("<head>");html=p>=0?html.slice(0,p+6)+mark+html.slice(p+6):mark+html}localStorage.setItem(CFG.htmlKey,html);localStorage.setItem(CFG.verKey,String(m.version));localStorage.setItem(CFG.hashKey,actual);note("Mise à jour "+m.version+" téléchargée. Redémarrage…");setTimeout(function(){location.reload()},300);return true}catch(e){console.error("[ZarLiveUpdate]",e);if(manual)note("Échec de la mise à jour: "+(e&&e.message?e.message:e));return false}}
+function note(s){try{if(typeof showToast==="function")showToast(s);else alert(s)}catch(e){try{alert(s)}catch(_){} }}
+async function currentHtml(){
+  try{var r=await fetch(location.href,{cache:"no-store"});if(r.ok){var t=await r.text();if(t.indexOf("<html")>=0&&t.indexOf("</html>")>=0)return t}}catch(e){}
+  try{var t="<!DOCTYPE html>"+document.documentElement.outerHTML;if(t.indexOf("<html")>=0&&t.indexOf("</html>")>=0)return t}catch(e){}
+  return null;
+}
+async function check(manual){
+  try{
+    var r=await fetch(CFG.manifest,{cache:"no-store"});
+    if(!r.ok)throw Error("Manifest HTTP "+r.status);
+    var m=await r.json();
+    if(!m||!m.version||!m.url||!m.sha256)throw Error("Manifest invalide");
+    if(!newer(m.version,CURRENT)){if(manual)note("Aucune mise à jour disponible.");return false}
+    var h=await fetch(m.url,{cache:"no-store"});
+    if(!h.ok)throw Error("Update HTTP "+h.status);
+    var html=await h.text();
+    if(html.indexOf("<html")<0||html.indexOf("</html>")<0)throw Error("Fichier HTML invalide");
+    var actual=await digest(html);
+    if(actual.toLowerCase()!==String(m.sha256).toLowerCase())throw Error("SHA-256 mismatch — mise à jour refusée");
+    /* FIX #19: preserve the currently running HTML before arming the new version. */
+    var old=await currentHtml();
+    if(!old)throw Error("Impossible de sauvegarder la version actuelle — mise à jour annulée");
+    var oldVer=localStorage.getItem(CFG.verKey)||CURRENT;
+    localStorage.setItem(CFG.prevHtmlKey,old);
+    localStorage.setItem(CFG.prevVerKey,oldVer);
+    if(html.indexOf("__ZAR_LIVE_CACHED_VERSION__=")<0){var mark='<script>window.__ZAR_LIVE_CACHED_VERSION__='+JSON.stringify(m.version)+';<\/script>',p=html.indexOf("<head>");html=p>=0?html.slice(0,p+6)+mark+html.slice(p+6):mark+html}
+    localStorage.setItem(CFG.htmlKey,html);
+    localStorage.setItem(CFG.verKey,String(m.version));
+    localStorage.setItem(CFG.hashKey,actual);
+    localStorage.setItem(CFG.pendingKey,"1");
+    localStorage.removeItem(CFG.attemptKey);
+    note("Mise à jour "+m.version+" téléchargée. Redémarrage sécurisé…");
+    setTimeout(function(){location.reload()},300);
+    return true;
+  }catch(e){console.error("[ZarLiveUpdate]",e);if(manual)note("Échec de la mise à jour: "+(e&&e.message?e.message:e));return false}
+}
 window.ZarLiveUpdate={check:check,install:check,current:CURRENT,config:CFG};
-window.addEventListener("load",function(){var b=document.getElementById("zarLiveUpdateBtn");if(b)b.style.setProperty("display","inline-flex","important")});
+window.addEventListener("load",function(){
+  /* FIX #19: the new cached document reaching load is the activation heartbeat. */
+  try{
+    if(window.__ZAR_LIVE_CACHED_VERSION__){
+      localStorage.removeItem(CFG.pendingKey);
+      localStorage.removeItem(CFG.attemptKey);
+    }
+    var b=document.getElementById("zarLiveUpdateBtn");if(b)b.style.setProperty("display","inline-flex","important");
+  }catch(e){}
+});
 })();
 </script>
 </body>

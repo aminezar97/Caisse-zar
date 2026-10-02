@@ -1923,6 +1923,58 @@ const CatalogImages={
   },
   key(path){
     return String(path||"").replace(/\\/g,"/").split("/").pop().toLowerCase();
+  },
+  async normalizeKeysCase(){
+    /* يمر على كل مفاتيح IndexedDB ويصلح أي مفتاح بأحرف كبيرة */
+    try{
+      const db = await this.open();
+      const allKeys = await new Promise((resolve, reject) => {
+        const tx = db.transaction(this.STORE, "readonly");
+        const store = tx.objectStore(this.STORE);
+        const r = store.getAllKeys();
+        r.onsuccess = () => resolve(r.result || []);
+        r.onerror = () => reject(r.error);
+      });
+
+      let fixed = 0, ok = 0;
+
+      for(const k of allKeys){
+        const key = String(k);
+        const lower = key.toLowerCase();
+
+        if(key !== lower){
+          const val = await new Promise((resolve) => {
+            const tx = db.transaction(this.STORE, "readonly");
+            const r = tx.objectStore(this.STORE).get(key);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => resolve(null);
+          });
+
+          if(val){
+            await new Promise((resolve) => {
+              const tx = db.transaction(this.STORE, "readwrite");
+              const r = tx.objectStore(this.STORE).put(val, lower);
+              r.onsuccess = () => resolve();
+              r.onerror = () => resolve();
+            });
+            await new Promise((resolve) => {
+              const tx = db.transaction(this.STORE, "readwrite");
+              const r = tx.objectStore(this.STORE).delete(key);
+              r.onsuccess = () => resolve();
+              r.onerror = () => resolve();
+            });
+            fixed++;
+          }
+        } else {
+          ok++;
+        }
+      }
+
+      return { fixed, ok };
+    } catch(e){
+      console.warn("[CatalogImages.normalizeKeysCase]", e);
+      return { fixed: 0, ok: 0, error: String(e) };
+    }
   }
 };
 
@@ -2895,7 +2947,12 @@ function openRepaymentModal(id){const c=zarClient(id);if(!c){toast('Client intro
 function processRepayment(){const id=document.getElementById("repaymentClientId").value;const a=parseFloat(document.getElementById("repaymentAmount").value);if(!id){toast('Client introuvable','error');return;}if(!a||a<=0){toast('Montant invalide','error');return;}const c=zarClient(id);if(!c)return;if(a>(c.debt||0)){toast('Dépasse la dette','error');return;}c.debt=(c.debt||0)-a;saveDB();closeModal("repaymentModal");renderAll();toast('Remboursement enregistré','success');}
 
 function renderProductAdmin(){const box=document.getElementById("productsAdmin");if(!box)return;const q=(document.getElementById("productAdminSearch")?.value||"").toLowerCase().trim();const list=db.products.filter(p=>!q||p.name.toLowerCase().includes(q)||String(p.barcode).includes(q));box.innerHTML=list.map(p=>'<tr><td><strong>'+escapeHTML(p.name)+'</strong>'+(p.variantGroup?' <span class="tier-badge wholesale" data-vgroup="'+escapeAttr(p.variantGroup)+'" onclick="Variants.open(this.dataset.vgroup)" style="cursor:pointer">Variantes</span>':'')+(p.saleType&&p.saleType!=='unit'?' <span class="tier-badge vip">'+(p.saleType==='weight'?'kg':'L')+'</span>':'')+'</td><td>'+escapeHTML(p.category)+'</td><td class="mono">'+escapeHTML(p.barcode)+'</td><td class="mono">'+money(p.price)+'</td><td class="mono">'+money(p.purchasePrice)+'</td><td class="mono">'+p.stock+'</td><td><div class="row-actions"><button onclick="editProduct(\''+escapeAttr(String(p.id))+'\')">'+icon('edit',14)+'</button><button class="danger-row" onclick="deleteProduct(\''+escapeAttr(String(p.id))+'\')">'+icon('trash',14)+'</button></div></td></tr>').join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px">Aucun produit</td></tr>';}
-function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=String(data.id);document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=Number(data.price||0).toFixed(2);document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){const img=normalizeProductImage(data.image);currentImage=data.image;document.getElementById("imagePreview").innerHTML='<img src="'+escapeAttr(img)+'">';}}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
+function openProductModal(data,barcode){document.getElementById("editProductId").value="";["pName","pBarcode","pPrice","pPurchasePrice","pStock","pExpiration"].forEach(id=>document.getElementById(id).value="");document.getElementById("pCategory").value="Épicerie";document.getElementById("pMinStock").value="5";document.getElementById("imagePreview").innerHTML='<span>Aucune image</span>';currentImage="";Suppliers.populateProductSelect();if(data){document.getElementById("editProductId").value=String(data.id);document.getElementById("pName").value=data.name;document.getElementById("pCategory").value=data.category;document.getElementById("pBarcode").value=data.barcode;document.getElementById("pPrice").value=Number(data.price||0).toFixed(2);document.getElementById("pPurchasePrice").value=data.purchasePrice;document.getElementById("pStock").value=data.stock;document.getElementById("pMinStock").value=data.minStock||5;if(data.expirationDate)document.getElementById("pExpiration").value=data.expirationDate;if(data.supplierId)document.getElementById("pSupplier").value=data.supplierId;if(data.saleType)document.getElementById("pSaleType").value=data.saleType;if(data.variantGroup)document.getElementById("pVariantGroup").value=data.variantGroup;if(data.image){
+    const img = normalizeProductImage(data.image);
+    currentImage = data.image;
+    document.getElementById("imagePreview").innerHTML =
+      '<img src="'+escapeAttr(img)+'" onerror="this.parentNode.innerHTML=\'<span>Aucune image</span>\';currentImage=\'\'">';
+  }}else if(barcode)document.getElementById("pBarcode").value=barcode;onProductSaleTypeChange();document.getElementById("productModal").classList.add("show");setTimeout(()=>document.getElementById("pName").focus(),200);}
 function onProductSaleTypeChange(){const type=document.getElementById("pSaleType")?.value;const vg=document.getElementById("variantGroup");if(vg)vg.style.display=type==='unit'?'block':'none';}
 function editProduct(id){const key=String(id).trim();const p=zarProduct(key);if(!p){toast("Produit introuvable","error");return;}openProductModal(p);}
 function _zarParseNumber(v){const raw=String(v??"").trim().replace(/\s/g,"").replace(",",".");if(raw==="")return 0;const n=Number(raw);return Number.isFinite(n)?n:0;}
@@ -2909,7 +2966,7 @@ async function persistProductImageCanonical(productId){
     if(!blob) return;
     const type=String(blob.type||"image/jpeg").toLowerCase();
     const ext=type.includes("png")?"png":type.includes("webp")?"webp":type.includes("gif")?"gif":"jpg";
-    const canonical=String(productId).trim()+"."+ext;
+    const canonical=String(productId).trim().toLowerCase()+"."+ext;
     await CatalogImages.put(canonical,blob);
     await CatalogImages.delete(key);
     if(CatalogImages.urls.has(key)){
@@ -2971,9 +3028,15 @@ async function saveProduct(){
     db.products.push({id:newId,name,category:category||"Épicerie",barcode:barcode||newId,price,purchasePrice,stock,minStock,expirationDate,image:currentImage||"",supplierId,saleType,variantGroup,updatedAt:Date.now()});
     AuditLog.log("product.create",name,money(price));
   }
-  const savedProduct=zarProduct(id) || db.products[db.products.length-1];
+  const savedProduct = zarProduct(id) || db.products[db.products.length-1];
   if(savedProduct && currentImage && /^images\/custom_/i.test(String(currentImage))){
     await persistProductImageCanonical(savedProduct.id);
+    // تحقق من نجاح الحفظ
+    const checkKey = CatalogImages.key(savedProduct.image || "");
+    if(!CatalogImages.urls.has(checkKey)){
+      console.warn("[saveProduct] Image canonicalization failed, keeping original");
+      savedProduct.image = currentImage;
+    }
   }
   db._updatedAt=Date.now();
   _searchIndexDirty=true;
@@ -4962,6 +5025,19 @@ async function init(){
   await CatalogImages.load().catch(e=>console.warn("CatalogImages.load failed",e));
   await StoreLogo.load().catch(e=>console.warn("StoreLogo.load failed",e));
   clearImageCache();
+
+  // إصلاح تلقائي للمفاتيح القديمة بأحرف كبيرة
+  try {
+    const fixResult = await CatalogImages.normalizeKeysCase();
+    if(fixResult.fixed > 0){
+      console.log(`[CatalogImages] ${fixResult.fixed} clé(s) normalisée(s)`);
+      await CatalogImages.load();
+      clearImageCache();
+      if(typeof renderAll === "function") renderAll();
+    }
+  } catch(e){
+    console.warn("[CatalogImages] normalizeKeysCase failed", e);
+  }
 
   try{
     const su=localStorage.getItem(USER_KEY);
